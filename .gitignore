@@ -47,8 +47,6 @@ dist-ssr
 # Rolldown
 .rolldown
 
-# Playground (dev only)
-playground
 
 # CI/CD caches
 .eslintcache
