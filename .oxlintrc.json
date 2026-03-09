@@ -1,0 +1,57 @@
+{
+	"env": {
+		"browser": true,
+		"node": true,
+		"es2024": true
+	},
+	"rules": {
+		"import/no-unused-modules": "warn",
+		"no-console": "off",
+		"no-debugger": "warn"
+	},
+	"categories": {
+		"correctness": "error",
+		"perf": "warn",
+		"style": "off",
+		"suspicious": "warn"
+	},
+	"ignorePatterns": [
+		"node_modules/",
+		"dist/",
+		".git/",
+		".github/",
+		"coverage/",
+		".vite/",
+		".rolldown/",
+		".cache/",
+		"playground/"
+	],
+	"plugins": [
+		"import",
+		"node",
+		"unicorn"
+	],
+	"settings": {
+		"import/resolver": {
+			"node": {
+				"extensions": [
+					".js",
+					".jsx",
+					".ts",
+					".tsx",
+					".vue"
+				]
+			}
+		}
+	},
+	"overrides": [
+		{
+			"files": [
+				"**/*.vue"
+			],
+			"rules": {
+				"vue/no-unused-vars": "warn"
+			}
+		}
+	]
+}

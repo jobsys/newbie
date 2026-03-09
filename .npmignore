@@ -1,0 +1,85 @@
+# Source files (not needed for npm)
+src
+components
+hooks
+directives
+utils
+locales
+playground
+*.config.js
+*.config.ts
+vite.config.*
+rollup.config.*
+
+# Development files
+.github
+.vscode
+.idea
+*.md
+!README.md
+TODOs.md
+API_DOCUMENTATION.md
+
+# Build configs
+.oxfmtrc.json
+.oxlintrc.json
+.prettierrc
+.eslintrc
+.stylelintrc
+.editorconfig
+
+# Test files
+tests
+__tests__
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+coverage
+*.lcov
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+.cache
+.vite
+.rolldown
+.eslintcache
+.stylelintcache
+.prettiercache
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Lock files (keep only what's needed)
+# pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Git
+.git
+.gitignore

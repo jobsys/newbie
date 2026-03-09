@@ -1,0 +1,29 @@
+.newbie-copy {
+  cursor: pointer;
+
+  &:hover {
+    .newbie-copy-icon {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    .newbie-copy-icon {
+      color: #333;
+    }
+  }
+
+  .newbie-copy-text {
+  }
+
+  .newbie-copy-icon {
+    margin-left: 2px;
+    opacity: 0;
+    font-size: 12px;
+    color: #999;
+
+    &.always-show {
+      opacity: 1 !important;
+    }
+  }
+}

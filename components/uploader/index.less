@@ -1,0 +1,27 @@
+.newbie-uploader {
+  .newbie-upload {
+    .ant-upload-list-file {
+      width: 300px;
+    }
+
+    &.is-image {
+      min-height: 104px;
+
+      .ant-upload-list-item,
+      .ant-upload-list-picture-card-container,
+      .ant-upload.ant-upload-select-picture-card > .ant-upload {
+        min-height: 104px;
+      }
+
+      .ant-btn-icon-only {
+        position: absolute;
+        top: -30px;
+        right: 10px;
+      }
+    }
+
+    .ant-upload-list-item.ant-upload-list-item-list-type-file {
+      min-height: auto;
+    }
+  }
+}

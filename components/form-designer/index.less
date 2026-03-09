@@ -1,0 +1,240 @@
+.newbie-form-designer {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+
+  .newbie-form-designer__widget-container {
+    flex-shrink: 0;
+    width: 238px;
+    box-sizing: border-box;
+    height: 100%;
+    overflow-y: auto;
+    background: #fff;
+
+    .widget-func-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 8px;
+      background: #f8f9fd;
+    }
+
+    .widget-list-container {
+      padding: 8px;
+
+      .widget-list-title {
+        font-weight: bold;
+        font-size: 14px;
+      }
+
+      .widget-list {
+        display: flex;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding-top: 8px;
+        grid-gap: 4px;
+        gap: 4px;
+
+        .widget-item {
+          height: 36px;
+          width: 92px;
+          cursor: pointer;
+          margin-top: 8px;
+          padding: 0 8px;
+          display: flex;
+          align-items: center;
+          font-size: 12px;
+
+          .widget-icon {
+            margin-right: 8px;
+          }
+
+          .widget-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: break-all;
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+  }
+
+  .newbie-form-designer__painter-container {
+    background: #f8f9fd;
+    min-height: 100%;
+    flex-grow: 1;
+    padding: 20px 40px;
+    overflow-y: auto;
+    box-sizing: border-box;
+
+    .painter-title {
+      text-align: center;
+      padding: 40px 0;
+      font-size: 24px;
+      font-weight: bold;
+      border-bottom: 1px dashed #ddd;
+    }
+
+    .ghost {
+      opacity: 0.5;
+      background: #e6f4ff;
+    }
+
+    .newbie-form {
+      max-width: 840px;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow:
+        rgba(0, 0, 0, 0) 0 0 0 0,
+        rgba(0, 0, 0, 0) 0 0 0 0,
+        rgba(0, 0, 0, 0.03) 0 2px 14px 0;
+      box-sizing: border-box;
+
+      .painter-wrapper {
+        min-height: 200px;
+        background: #fff;
+        width: 100%;
+        padding-bottom: 80px;
+        box-sizing: border-box;
+      }
+
+      .ant-form-item-label {
+        label {
+          height: auto;
+        }
+      }
+    }
+
+    .painter-item {
+      position: relative;
+      border: 1px dashed #fff;
+      padding: 20px 40px 20px 80px;
+      transition: background-color ease 0.3s;
+      cursor: grab;
+
+      &.active {
+        background: #fafafa;
+        border: 1px dashed #fafafa;
+
+        .drag-handle {
+          display: flex;
+        }
+
+        .op-container {
+          display: flex;
+        }
+      }
+
+      &:hover {
+        border: 1px dashed #bbb;
+
+        .drag-handle {
+          display: flex;
+        }
+
+        .op-container {
+          display: flex;
+        }
+      }
+
+      .item-label {
+        font-weight: bold;
+        font-size: 17px;
+
+        .item-index {
+          margin-right: 10px;
+        }
+      }
+
+      .drag-handle {
+        position: absolute;
+        width: 30px;
+        height: 40px;
+        left: -30px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
+        cursor: grab;
+        background: #666;
+        top: calc(50% - 20px);
+        z-index: 100;
+        color: #fff;
+      }
+
+      .op-container {
+        position: absolute;
+        display: none;
+        height: 100%;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        right: -29px;
+        top: 0;
+
+        .op-item {
+          border-top-right-radius: 4px;
+          border-bottom-right-radius: 4px;
+          background: #666;
+          color: #fff;
+          padding: 4px;
+          font-size: 20px;
+          cursor: pointer;
+        }
+      }
+
+      .ant-form-item {
+        margin-bottom: 0;
+      }
+    }
+
+    .newbie-form-designer__help-wrapper {
+      padding: 20px;
+      background: #f1f1f1;
+      text-align: center;
+
+      p {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .newbie-form-designer__props-container {
+    flex-shrink: 0;
+    width: 380px;
+    box-sizing: border-box;
+    height: 100%;
+    background: #fff;
+    overflow: auto;
+
+    .widget-name {
+      font-weight: bold;
+      padding: 20px 10px;
+      background: #333;
+      color: #fff;
+
+      .widget-icon {
+        margin-right: 8px;
+      }
+    }
+
+    .empty-props {
+      text-align: center;
+      font-size: 20px;
+      margin-top: 100px;
+      color: #cccccc;
+    }
+
+    .newbie-form {
+      margin-top: 20px;
+      padding: 0 20px;
+      box-sizing: border-box;
+
+      .newbie-form__submit-wrapper {
+        display: none !important;
+      }
+    }
+  }
+}

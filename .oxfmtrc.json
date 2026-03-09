@@ -1,0 +1,29 @@
+{
+	"include": [
+		"**/*.js",
+		"**/*.jsx",
+		"**/*.ts",
+		"**/*.tsx",
+		"**/*.vue",
+		"**/*.json",
+		"**/*.md"
+	],
+	"exclude": [
+		"node_modules/**",
+		"dist/**",
+		".git/**",
+		".github/**",
+		"coverage/**",
+		".vite/**",
+		".rolldown/**",
+		".cache/**",
+		"playground/**"
+	],
+	"lineWidth": 100,
+	"indentWidth": 4,
+	"useTabs": false,
+	"quoteStyle": "double",
+	"trailingComma": "es5",
+	"bracketSpacing": true,
+	"arrowParens": "avoid"
+}

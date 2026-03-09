@@ -1,0 +1,39 @@
+.strength-indicator-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 5px;
+
+  .strength-indicator {
+    height: 5px;
+    border: 1px solid #e8e8e8;
+  }
+
+  &.bad {
+    .active {
+      background: #ff0000;
+    }
+  }
+
+  &.weak {
+    .active {
+      background: #ffa500;
+    }
+  }
+
+  &.medium {
+    .active {
+      background: #ffff00;
+    }
+  }
+
+  &.strong {
+    .active {
+      background: #008000;
+    }
+  }
+}
+
+.error-message {
+  color: red;
+  margin-top: 5px;
+}

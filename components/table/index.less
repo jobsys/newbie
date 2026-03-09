@@ -1,0 +1,192 @@
+@grey: #f5f5f5;
+
+.newbie-table {
+  .newbie-search {
+    margin-bottom: 10px;
+    padding: 20px 0;
+  }
+
+  .newbie-table-prepend-wrapper {
+    margin-bottom: 10px;
+  }
+
+  .newbie-table-functional-wrapper {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    align-items: center;
+
+    .newbie-table-functional-default {
+      width: 150px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .newbie-table-functional {
+      flex-grow: 1;
+    }
+  }
+
+  /*    &.newbie-table-hidden {
+            :deep(.newbie-table > .ant-card-body) {
+                display: none;
+            }
+
+            .newbie-form-extra-arrow {
+                transform: rotate(180deg);
+            }
+        }
+
+        .newbie-hidden {
+            display: none !important;
+        }*/
+
+  .ant-table-wrapper {
+    border: none;
+
+    .newbie-table-header-wrapper {
+      &.with-func {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .newbie-table-header-title-wrapper {
+      }
+
+      .newbie-table-header-func-wrapper {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        .newbie-table-header-func {
+          font-weight: normal;
+          font-size: 10px;
+          color: #999;
+        }
+      }
+    }
+
+    .newbie-table-striped td {
+      background-color: #fafafa;
+    }
+
+    .ant-table-cell .ant-image {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .ant-table-cell {
+      .table-editable-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        //gap
+        gap: 10px;
+
+        &:hover {
+          .table-editable-icon {
+            display: flex;
+          }
+        }
+
+        .table-editable-text {
+          flex-grow: 1;
+        }
+
+        .table-editable-icon {
+          flex-shrink: 0;
+          width: 30px;
+          display: none;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 10px;
+
+          &.editing {
+            display: flex;
+            width: 40px;
+            justify-content: space-between;
+          }
+
+          .anticon {
+            font-size: 18px;
+
+            color: #666;
+
+            &:hover {
+              color: #000;
+            }
+          }
+        }
+      }
+
+      .table-copy-wrapper {
+        cursor: pointer;
+        display: inline-block;
+        width: 100%;
+        &:hover {
+          .anticon-copy {
+            opacity: 1;
+          }
+        }
+
+        &:active {
+          .anticon-copy {
+            color: #333;
+          }
+        }
+
+        .table-copy-content {
+          display: inline-block;
+          width: calc(100% - 20px);
+        }
+
+        .anticon-copy {
+          font-size: 12px;
+          color: #999;
+          margin-left: 4px;
+          opacity: 0;
+        }
+      }
+
+      .table-actions-wrapper {
+        .ant-btn-text {
+          border-right: 1px solid #ddd;
+          border-radius: 0;
+
+          &:last-child {
+            border-right: none;
+          }
+        }
+      }
+    }
+  }
+
+  .newbie-table-footer {
+    padding: 20px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    /**
+        有 pagination 时上移到 pagination 同一高度
+         */
+
+    &.pagination-adapt {
+      margin-top: -70px;
+    }
+
+    .newbie-table-append-wrapper {
+      flex-grow: 1;
+      padding: 10px 0 0;
+      min-height: 32px;
+    }
+
+    .newbie-table-pagination-wrapper {
+      text-align: right;
+      flex-shrink: 0;
+      width: 550px;
+    }
+  }
+}

@@ -1,0 +1,267 @@
+.newbie-search {
+  .newbie-search-query {
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .newbie-search-form {
+      flex-grow: 1;
+
+      .newbie-search-form-wrapper {
+        .newbie-search-item {
+          position: relative;
+
+          &.hidden {
+            display: none;
+          }
+
+          .newbie-search-mask {
+            .newbie-search-mask-title {
+              font-size: 12px;
+              color: #999;
+              padding: 0 6px;
+              border-radius: 4px;
+            }
+
+            .newbie-search-mask-content {
+              display: flex;
+              overflow: hidden;
+              border-radius: 6px;
+              cursor: text;
+              width: 200px;
+              height: 30px;
+              border: 1px solid #ccc;
+              font-size: 14px;
+
+              &:hover {
+                border-color: #999;
+              }
+
+              .newbie-search-mask-condition {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #eee;
+                font-size: 13px;
+                flex-shrink: 0;
+                width: 60px;
+              }
+
+              .newbie-search-mask-value {
+                padding: 4px 11px;
+                box-sizing: border-box;
+                display: flex;
+                flex-grow: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+            }
+          }
+
+          .newbie-search-popup-panel {
+            position: absolute;
+            z-index: 10;
+            top: 6px;
+            left: -11px;
+
+            .newbie-search-condition {
+              box-sizing: border-box;
+              padding: 10px 11px 16px;
+              font-size: 13px;
+              background: #f3f3f3;
+              overflow: hidden;
+              border: 1px solid #ddd;
+              border-bottom: none;
+              border-top-right-radius: 6px;
+              border-top-left-radius: 6px;
+              position: absolute;
+              left: 0;
+              right: 0;
+              top: 0;
+              opacity: 0;
+              z-index: -1;
+              box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.12);
+              transition: all ease-in-out 0.3s;
+
+              .newbie-search-condition-title {
+                font-size: 13px;
+              }
+
+              .newbie-search-condition-dropdown-link {
+                margin-left: 6px;
+
+                .anticon-down {
+                  font-size: 12px;
+                }
+              }
+            }
+
+            .newbie-search-input-container {
+              background: #fff;
+              border-radius: 6px;
+              min-width: 200px;
+              box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.12);
+              border: 1px solid #ddd;
+              border-top: none;
+              z-index: 2;
+              padding: 0;
+              transform: translateX(11px) translateY(12px);
+            }
+          }
+        }
+      }
+    }
+
+    .newbie-search-operation {
+      width: 280px;
+      margin: 20px 0 0 20px;
+      flex-shrink: 0;
+      padding: 0 10px;
+      box-sizing: border-box;
+      justify-content: flex-end;
+    }
+  }
+
+  .newbie-search-expand {
+    margin-top: 20px;
+
+    .newbie-search-expand-item {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      border-top: 1px solid #eee;
+      border-radius: 4px;
+
+      &:last-child {
+        border-bottom: 1px solid #eee;
+      }
+
+      .newbie-search-expand-item-title {
+        flex-shrink: 0;
+        padding: 10px;
+        font-weight: bold;
+        font-size: 13px;
+        background: #f3f3f3;
+        display: flex;
+        align-items: center;
+        width: 100px;
+      }
+
+      .newbie-search-expand-item-options {
+        flex-grow: 1;
+        margin-left: 20px;
+        padding: 4px 0;
+        display: flex;
+        align-items: center;
+        .ant-space {
+          margin-bottom: 0 !important;
+        }
+
+        .ant-tag {
+          font-size: 13px;
+        }
+      }
+
+      .newbie-search-expand-item-extra {
+        flex-shrink: 0;
+        padding-right: 10px;
+        color: #999;
+        font-size: 13px;
+      }
+    }
+  }
+
+  .newbie-search-label {
+    display: flex;
+    align-items: center;
+    margin-top: 14px;
+    background: #f3f3f3;
+    border: 1px dashed #eee;
+    padding: 10px 12px;
+    border-radius: 4px;
+
+    .newbie-search-label-title {
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: bold;
+      width: 74px;
+      flex-shrink: 0;
+    }
+
+    .newbie-search-label-content {
+      flex-grow: 1;
+    }
+  }
+}
+
+.newbie-search-sortable {
+  justify-content: center;
+  margin-top: 40px;
+
+  .newbie-search-sortable__sortable-empty {
+    text-align: center;
+    margin-top: 100px;
+    color: rgba(0, 0, 0, 0.25);
+    font-size: 14px;
+  }
+
+  .newbie-search-sortable__sortable-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
+    padding: 4px 20px;
+    border-bottom: 1px dashed #eee;
+
+    .newbie-search-sortable__sortable-item-content {
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-sizing: border-box;
+      padding: 0 10px;
+
+      .newbie-search-sortable__sortable-item-title {
+      }
+
+      .newbie-search-sortable__sortable-item-sorter {
+      }
+    }
+
+    .drag-handle {
+      cursor: grab;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+
+    .newbie-search-sortable__sortable-item-delete {
+      .anticon {
+        color: #999;
+      }
+
+      &:hover {
+        .anticon {
+          color: #666;
+        }
+      }
+    }
+  }
+
+  .ghost {
+    opacity: 0.5;
+    background: #c8ebfb;
+  }
+
+  .list-group {
+    min-height: 20px;
+  }
+
+  .list-group-item {
+    cursor: move;
+  }
+
+  .list-group-item i {
+    cursor: pointer;
+  }
+}

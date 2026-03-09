@@ -1,0 +1,45 @@
+.newbie-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .newbie-modal-title {
+    cursor: move;
+    flex-grow: 1;
+  }
+
+  .newbie-modal-actions {
+    display: flex;
+    align-items: center;
+
+    a {
+      margin-left: 10px;
+      cursor: pointer;
+    }
+  }
+}
+
+.newbie-modal {
+  .ant-modal-body {
+    padding: 6px 24px 32px;
+  }
+}
+
+.full-modal {
+  .ant-modal {
+    max-width: 100%;
+    top: 0;
+    padding-bottom: 0;
+    margin: 0;
+  }
+
+  .ant-modal-content {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh);
+  }
+
+  .ant-modal-body {
+    flex: 1;
+  }
+}
