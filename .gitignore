@@ -16,7 +16,6 @@ coverage
 *.lcov
 
 # Production builds
-dist
 dist-ssr
 *.local
 

@@ -1,0 +1,2 @@
+const e=require(`./chunk-DMQnFFSv.cjs`);var t=e.t(((e,t)=>{t.exports={}}));Object.defineProperty(exports,`default`,{enumerable:!0,get:function(){return t()}});
+//# sourceMappingURL=__vite-browser-external-aYiy3g-2.cjs.map
