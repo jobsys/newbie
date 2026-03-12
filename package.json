@@ -1,77 +1,77 @@
 {
-    "name": "jobsys-newbie",
-    "version": "3.0.0",
-    "description": "Enhanced component based on ant-design-vue",
-    "keywords": [
-        "jobsys",
-        "newbie"
-    ],
-    "license": "ISC",
-    "author": "sinceow@163.com",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/jobsys/newbie"
+  "name": "jobsys-newbie",
+  "version": "3.0.1",
+  "description": "Enhanced component based on ant-design-vue",
+  "keywords": [
+    "jobsys",
+    "newbie"
+  ],
+  "license": "ISC",
+  "author": "sinceow@163.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jobsys/newbie"
+  },
+  "type": "module",
+  "main": "./dist/jobsys-newbie.cjs",
+  "module": "./dist/jobsys-newbie.js",
+  "exports": {
+    ".": {
+      "import": "./dist/jobsys-newbie.js",
+      "require": "./dist/jobsys-newbie.cjs"
     },
-    "type": "module",
-    "main": "./dist/jobsys-newbie.cjs",
-    "module": "./dist/jobsys-newbie.js",
-    "exports": {
-        ".": {
-            "import": "./dist/jobsys-newbie.js",
-            "require": "./dist/jobsys-newbie.cjs"
-        },
-        "./hooks": {
-            "import": "./dist/hooks.js",
-            "require": "./dist/hooks.cjs"
-        },
-        "./directives": {
-            "import": "./dist/directives.js",
-            "require": "./dist/directives.cjs"
-        },
-        "./dist/jobsys-newbie.css": {
-            "default": "./dist/jobsys-newbie.css"
-        },
-        "./*": {
-            "import": "./*",
-            "require": "./*"
-        }
+    "./hooks": {
+      "import": "./dist/hooks.js",
+      "require": "./dist/hooks.cjs"
     },
-    "scripts": {
-        "dev": "vite",
-        "build": "vite build",
-        "lint": "oxlint",
-        "fmt": "oxfmt write ."
+    "./directives": {
+      "import": "./dist/directives.js",
+      "require": "./dist/directives.cjs"
     },
-    "dependencies": {
-        "@vueuse/components": "10.3.0",
-        "@vueuse/core": "10.2.1",
-        "@wangeditor/editor": "5.1.23",
-        "animejs": "3.2.1",
-        "resumablejs": "1.1.0",
-        "signature_pad": "^5.0.7",
-        "sm-crypto-v2": "1.10.0",
-        "vue-i18n": "11.1.11",
-        "vuedraggable": "4.1.0"
+    "./dist/jobsys-newbie.css": {
+      "default": "./dist/jobsys-newbie.css"
     },
-    "devDependencies": {
-        "@vitejs/plugin-vue": "^6.0.4",
-        "@vitejs/plugin-vue-jsx": "^5.1.4",
-        "@vue/compiler-sfc": "3.5.13",
-        "autoprefixer": "10.4.21",
-        "globby": "^13.2.2",
-        "less": "4.2.2",
-        "oxfmt": "^0.36.0",
-        "oxlint": "^1.51.0",
-        "postcss": "8.5.1",
-        "rolldown-vite": "^7.3.1",
-        "unplugin-vue-components": "28.0.0"
-    },
-    "peerDependencies": {
-        "@ant-design/icons-vue": "6.1.0",
-        "ant-design-vue": "4.2.6",
-        "axios": "1.7.9",
-        "dayjs": "1.11.13",
-        "lodash-es": "4.17.21",
-        "vue": "3.5.13"
+    "./*": {
+      "import": "./*",
+      "require": "./*"
     }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint",
+    "fmt": "oxfmt write ."
+  },
+  "dependencies": {
+    "@vueuse/components": "10.3.0",
+    "@vueuse/core": "10.2.1",
+    "@wangeditor/editor": "5.1.23",
+    "animejs": "3.2.1",
+    "resumablejs": "1.1.0",
+    "signature_pad": "^5.0.7",
+    "sm-crypto-v2": "1.10.0",
+    "vue-i18n": "11.1.11",
+    "vuedraggable": "4.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.4",
+    "@vitejs/plugin-vue-jsx": "^5.1.4",
+    "@vue/compiler-sfc": "3.5.13",
+    "autoprefixer": "10.4.21",
+    "globby": "^13.2.2",
+    "less": "4.2.2",
+    "oxfmt": "^0.36.0",
+    "oxlint": "^1.51.0",
+    "postcss": "8.5.1",
+    "rolldown-vite": "^7.3.1",
+    "unplugin-vue-components": "28.0.0"
+  },
+  "peerDependencies": {
+    "@ant-design/icons-vue": "6.1.0",
+    "ant-design-vue": "4.2.6",
+    "axios": "1.7.9",
+    "dayjs": "1.11.13",
+    "lodash-es": "4.17.21",
+    "vue": "3.5.13"
+  }
 }
