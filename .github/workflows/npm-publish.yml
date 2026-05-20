@@ -30,8 +30,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pnpm install --frozen-lockfile
           pnpm approve-builds -g core-js es5-ext esbuild vue-demi
+          pnpm install --frozen-lockfile
 
       - name: Build
         run: pnpm run build
