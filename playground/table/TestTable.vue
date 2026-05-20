@@ -32,12 +32,12 @@
 	</NewbieTable>
 </template>
 <script setup>
-import { useTableActions } from "../../components";
-import { h, reactive } from "vue";
-import { Button, Space } from "ant-design-vue";
+import {useTableActions} from "../../components";
+import {h, reactive} from "vue";
+import {Button, Space} from "ant-design-vue";
 import NewbieTable from "../../components/table/NewbieTable.jsx";
 
-import { DeleteOutlined, EditOutlined, LikeOutlined, QrcodeOutlined } from "@ant-design/icons-vue";
+import {DeleteOutlined, EditOutlined, LikeOutlined, QrcodeOutlined} from "@ant-design/icons-vue";
 
 const state = reactive({
 	data: [
@@ -109,6 +109,9 @@ const columns = () => {
 				options: state.options,
 			},
 			align: "center",
+            customRender: ({ record }) => {
+                return record === 1  ? "TEST1" : "TEST2";
+            },
 			/*onClick: ({ record }) => {
                 message.success(record.name)
             },*/

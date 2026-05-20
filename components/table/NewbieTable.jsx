@@ -1,14 +1,4 @@
-import {
-	computed,
-	defineComponent,
-	inject,
-	nextTick,
-	onMounted,
-	reactive,
-	ref,
-	watch,
-	withModifiers,
-} from "vue";
+import {computed, defineComponent, inject, nextTick, onMounted, reactive, ref, watch, withModifiers,} from "vue";
 import {
 	Button,
 	Card,
@@ -32,15 +22,7 @@ import {
 	Tag,
 	Tooltip,
 } from "ant-design-vue";
-import {
-	cloneDeep,
-	isArray,
-	isBoolean,
-	isEqual,
-	isFunction,
-	isObject,
-	isUndefined,
-} from "lodash-es";
+import {cloneDeep, isArray, isBoolean, isEqual, isFunction, isObject, isUndefined,} from "lodash-es";
 import {
 	CheckCircleOutlined,
 	CloseCircleOutlined,
@@ -52,12 +34,12 @@ import {
 	PictureOutlined,
 	SyncOutlined,
 } from "@ant-design/icons-vue";
-import { useCache, useFetch, useProcessStatusSuccess, useSm3, useT } from "../../hooks";
-import { NEWBIE_TABLE } from "../provider/NewbieProvider.jsx";
+import {useCache, useFetch, useProcessStatusSuccess, useSm3, useT} from "../../hooks";
+import {NEWBIE_TABLE} from "../provider/NewbieProvider.jsx";
 import NewbieButton from "../button/NewbieButton.jsx";
 import NewbieSearch from "../search/NewbieSearch.jsx";
 import i18n from "../../i18n";
-import { useClipboard } from "@vueuse/core";
+import {useClipboard} from "@vueuse/core";
 
 import "./index.less";
 
@@ -255,7 +237,7 @@ export default defineComponent({
 
 		const tableProvider = inject(NEWBIE_TABLE, () => {});
 
-		const { copy } = useClipboard();
+		const { copy } = useClipboard({ legacy: true });
 
 		const genPersistenceKey = prefix => {
 			if (!props.persistence) {
@@ -974,9 +956,19 @@ export default defineComponent({
 					</div>
 				);
 			} else {
+				let textElem = null;
+
+				if (isEditing) {
+					textElem = editElems();
+				} else if (column.customRender) {
+					textElem = column.customRender(row);
+				} else {
+					textElem = text;
+				}
+
 				return (
 					<div class={"table-editable-wrapper"}>
-						<div class={"table-editable-text"}>{isEditing ? editElems() : text}</div>
+						<div class={"table-editable-text"}>{textElem}</div>
 						{editIconElem}
 					</div>
 				);
@@ -996,7 +988,7 @@ export default defineComponent({
 				>
 					{{
 						headerCell: ({ column }) => {
-							const titleElem = [
+							const titleCellElem = [
 								<span>{column.title}</span>,
 								column.tooltip ? (
 									isFunction(column.tooltip) ? (
@@ -1024,7 +1016,7 @@ export default defineComponent({
 
 							return (
 								<div class={`newbie-table-header-wrapper ${funcElems?.length ? "with-func" : ""}`}>
-									<div class={"newbie-table-header-title-wrapper"}>{titleElem}</div>
+									<div class={"newbie-table-header-title-wrapper"}>{titleCellElem}</div>
 									<div class={"newbie-table-header-func-wrapper"}>{funcElems}</div>
 								</div>
 							);
