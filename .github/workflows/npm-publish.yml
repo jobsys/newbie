@@ -28,6 +28,9 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
 
+      - name: Configure pnpm build scripts
+        run: pnpm config set only-built-dependencies '["core-js","es5-ext","esbuild","vue-demi"]'
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
