@@ -77,12 +77,4 @@
 	"engines": {
 		"node": ">=22.13.0"
 	},
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"core-js",
-			"es5-ext",
-			"esbuild",
-			"vue-demi"
-		]
-	}
 }
