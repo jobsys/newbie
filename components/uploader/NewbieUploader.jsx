@@ -131,7 +131,7 @@ export default defineComponent({
         : null,
     });
 
-    const isSignle = computed(() => !props.maxNum || props.maxNum === 1);
+    const isSingle = computed(() => !props.maxNum || props.maxNum === 1);
 
     const isOverflow = computed(() => {
       return state.fileList.length >= props.maxNum;
@@ -158,7 +158,7 @@ export default defineComponent({
           _disk: props.disk,
         }));
 
-      return isSignle.value ? fileList[0] || null : fileList;
+      return isSingle.value ? fileList[0] || null : fileList;
     };
 
     /**

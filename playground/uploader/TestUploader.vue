@@ -2,12 +2,9 @@
   <div>
     <NewbieProvider v-bind="provider">
       <NewbieUploader
-        v-model:value="fileList"
-        action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
-      ></NewbieUploader>
-      <NewbieUploader
         v-model:value="files"
         type="file"
+        disabled
         action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
       ></NewbieUploader>
     </NewbieProvider>
@@ -21,9 +18,9 @@ import { NewbieProvider, NewbieUploader } from "../../components";
 const fileList = ref([
   {
     uid: "-1",
-    name: "image.png",
+    name: "award-import-template.xlsx",
     status: "done",
-    url: "https://aliyuncdn.antdv.com/logo.png",
+    url: "http://uni-affair.test/templates/award-import-template.xlsx",
   },
   {
     uid: "-5",
