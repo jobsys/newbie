@@ -4,13 +4,11 @@
       title="助学金申请对象情况调查 - 题目表单"
       :widgets="widgets"
       @submit="onSubmit"
-      :form-items="formItems"
-      mode="quiz"
     ></NewbieFormDesigner>
   </div>
 </template>
 <script setup>
-import { ref } from "vue";
+import {ref} from "vue";
 
 const widgets = ref([
   {
@@ -29,15 +27,6 @@ const widgets = ref([
         },
       },
     ],
-  },
-]);
-const formItems = ref([
-  {
-    key: "656gqnzs05cxpulqiihb6",
-    placeholder: "请填写内容",
-    title: "文本",
-    type: "input",
-    width: "100%",
   },
 ]);
 

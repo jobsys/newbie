@@ -1,24 +1,17 @@
 import {Input} from "ant-design-vue";
+import {calcFormula} from "../utils/formula-engine";
 import {isFunction} from "lodash-es";
-import {genPixel} from "../../../utils/style.js";
 import {placeholder} from "../utils.js";
 
 /**
- * 输入框
- *
- * @param {NewbieFormItemConfig} item 字段配置
- * @param {Object} submitForm Form 数据
- * @return {JSX.Element}
+ * 计算字段渲染器
+ * 根据公式实时计算并显示结果，支持格式化（小数精度、前后缀）
  */
 const render = (item, submitForm) => {
-	if (
-		submitForm[item.key] === null ||
-		submitForm[item.key] === "null" ||
-		submitForm[item.key] === undefined
-	) {
-		submitForm[item.key] = "";
-	}
-	submitForm[item.key] = String(submitForm[item.key]);
+	const { formula } = item;
+	const isEmpty = !formula || !formula.trim();
+	let displayText = "",
+		hasError = false;
 	let inputSlot = {};
 	if (item.defaultProps) {
 		if (item.defaultProps.prefix) {
@@ -50,28 +43,33 @@ const render = (item, submitForm) => {
 			};
 		}
 	}
-	let defaultStyle = { width: genPixel(item.width || "200px") };
-	let InputComponent = Input;
-	if (item.type === "textarea" || (item.defaultProps && item.defaultProps.type === "textarea")) {
-		InputComponent = Input.TextArea;
-		defaultStyle = { width: genPixel(item.width || "100%") };
-	}
 
-	if (item.type === "password" || (item.defaultProps && item.defaultProps.type === "password")) {
-		InputComponent = Input.Password;
+	if (isEmpty) {
+		displayText = "暂未设置计算公式";
+	} else {
+		const result = calcFormula(formula, submitForm);
+		if (result && typeof result === "object" && result.error) {
+			displayText = result.error;
+			hasError = true;
+		} else {
+			displayText =
+				result === "" || result === null || result === undefined
+					? "—"
+					: String(result);
+			hasError = false;
+		}
 	}
-
 	return (
-		<InputComponent
-			v-model:value={submitForm[item.key]}
-			disabled={isFunction(item.disabled) ? item.disabled(submitForm) : item.disabled}
+		<Input
+			value={displayText}
 			placeholder={placeholder(item)}
-			style={item.style || defaultStyle}
-			class={{ readonly: item.readonly, ...item.class }}
+			style={{ ...item.style }}
+			status={hasError ? "error" : ""}
+			class={{ readonly: true, ...item.class }}
 			{...item.defaultProps}
 		>
 			{{ ...inputSlot, ...item.defaultSlots }}
-		</InputComponent>
+		</Input>
 	);
 };
 

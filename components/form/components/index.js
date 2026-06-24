@@ -24,6 +24,7 @@ import createRateRadio from "./RateRadio.jsx";
 import createRateCheckbox from "./RateCheckbox.jsx";
 import createPlain from "./Plain.jsx";
 import createCombiner from "./Combiner.jsx";
+import createComputedField from "./ComputedField.jsx";
 
 export {
   createTime,
@@ -52,4 +53,5 @@ export {
   createRateCheckbox,
   createPlain,
   createCombiner,
+  createComputedField,
 };

@@ -12,8 +12,8 @@ const render = (item, submitForm, formState) => {
 
   return (
     <div
-      style={{ display: "flex", gap: "6px", ...(item.style || {}) }}
-      class={{ ...(item.class || {}) }}
+      style={{ display: "flex", gap: "6px", ...item.style }}
+      class={{ ...item.class }}
     >
       {children.map(child => {
         return createFormItem(child, submitForm, formState);

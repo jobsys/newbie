@@ -1,4 +1,4 @@
-import { isFunction } from "lodash-es";
+import {isFunction} from "lodash-es";
 
 /**
  * Render a plain text
@@ -7,11 +7,11 @@ import { isFunction } from "lodash-es";
  * @returns {JSX.Element}
  */
 const render = (item, submitForm) => {
-  return (
-    <span style={item.style} class={{ ...item.class }}>
-      {isFunction(item.defaultValue) ? item.defaultValue({ submitForm }) : item.defaultValue}
-    </span>
-  );
+	return (
+		<span style={item.style} class={{ ...item.class }}>
+			{isFunction(item.defaultValue) ? item.defaultValue({ submitForm }) : item.defaultValue}
+		</span>
+	);
 };
 
 export default render;
