@@ -52,3 +52,4 @@ dist-ssr
 .stylelintcache
 .prettiercache
 /.omc
+/dist/

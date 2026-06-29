@@ -84,7 +84,10 @@
     "select-sorting-item": "请选择排序项",
     "ascending": "升序排序",
     "descending": "降序排序",
-    "remove-item": "移除当前项"
+    "remove-item": "移除当前项",
+    "restore-title": "上次查询条件已保存",
+    "restore-apply": "应用",
+    "restore-dismiss": "忽略"
   },
   "table": {
     "editable": "可编辑",

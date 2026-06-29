@@ -22,7 +22,7 @@ import {
 	Tag,
 	Tooltip,
 } from "ant-design-vue";
-import {cloneDeep, isArray, isBoolean, isEqual, isFunction, isObject, isUndefined,} from "lodash-es";
+import {cloneDeep, isArray, isEqual, isFunction, isObject, isUndefined,} from "lodash-es";
 import {
 	CheckCircleOutlined,
 	CloseCircleOutlined,
@@ -34,7 +34,7 @@ import {
 	PictureOutlined,
 	SyncOutlined,
 } from "@ant-design/icons-vue";
-import {useCache, useFetch, useProcessStatusSuccess, useSm3, useT} from "../../hooks";
+import {useFetch, usePersistence, parsePersistenceConfig, useProcessStatusSuccess, useSm3, useT} from "../../hooks";
 import {NEWBIE_TABLE} from "../provider/NewbieProvider.jsx";
 import NewbieButton from "../button/NewbieButton.jsx";
 import NewbieSearch from "../search/NewbieSearch.jsx";
@@ -207,7 +207,7 @@ export default defineComponent({
 		/**
 		 * 持久化，传入 localStorage 的 key，如果为 true, 将会以 URL Hash 为 key
 		 */
-		persistence: { type: [Boolean, String], default: false },
+		persistence: { type: [Boolean, String, Object], default: false },
 
 		/**
 		 * v1.18
@@ -239,19 +239,22 @@ export default defineComponent({
 
 		const { copy } = useClipboard({ legacy: true });
 
-		const genPersistenceKey = prefix => {
-			if (!props.persistence) {
-				return null;
-			}
-			prefix = prefix || "";
-			if (isBoolean(props.persistence)) {
-				return `newbieTable_${prefix}` + useSm3(location.href);
-			}
+		const persistenceConf = computed(() => parsePersistenceConfig(props.persistence));
 
-			return `newbieTable_${prefix}` + useSm3(location.pathname + "_" + props.persistence);
-		};
+		const persistenceNamespace = computed(() => {
+			if (!persistenceConf.value.enabled) return null;
+			const { key } = persistenceConf.value;
+			if (!key) return `table_${useSm3(location.href)}`;
+			return `table_${useSm3(location.pathname + "_" + key)}`;
+		});
 
-		let persistencePagination = props.persistence ? useCache(genPersistenceKey()).get({}) : {};
+		const persistTable = computed(() => {
+			const ns = persistenceNamespace.value;
+			if (!ns) return null;
+			return usePersistence(ns, { storage: persistenceConf.value.storage });
+		});
+
+		let persistencePagination = persistTable.value ? persistTable.value.loadWithFallback("pagination", {}) : {};
 
 		const state = reactive({
 			customColumns: [],
@@ -283,14 +286,11 @@ export default defineComponent({
 		 * 持久化翻页与滚动
 		 */
 		const onPersistence = () => {
-			if (!props.persistence) {
+			if (!persistTable.value) {
 				return;
 			}
 
-			const data = {
-				...state.pagination,
-			};
-			useCache(genPersistenceKey()).set(data);
+			persistTable.value.save("pagination", { ...state.pagination });
 		};
 
 		const onOpenCustomColumns = () => {
@@ -403,8 +403,9 @@ export default defineComponent({
 		};
 
 		const onSearch = searchData => {
-			state.searchFormData = searchData;
-			doFetch(!searchData.persistence);
+			const { persistence, ...formData } = searchData || {};
+			state.searchFormData = formData;
+			doFetch(!persistence);
 		};
 
 		const getKey = item => {
@@ -596,8 +597,9 @@ export default defineComponent({
 
 		onMounted(() => {
 			//1. 因为手动 fetch 需要调用 $ref 的 getQueryForm 等方法，所以需要 mounted 后才执行 fetch
-			//2. 当有持久化时需要等待 Search 和 Table 的持久化数据加载完成后再进行数据获取，放在 Search 初始化后中处理
-			if (!props.persistence) {
+			//2. 当有持久化且存在 Search 组件时，需要等待 Search 初始化后（onMounted）触发搜索事件来拉取数据
+			//3. 如果没有 Search（filterable=false），或未开启持久化，直接在此处 initFetch
+			if (!props.persistence || !props.filterable) {
 				initFetch();
 			}
 		});

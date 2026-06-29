@@ -27,7 +27,7 @@ import {
   ShrinkOutlined,
 } from "@ant-design/icons-vue";
 import { useWindowSize } from "@vueuse/core";
-import { useCache, useSm3, useT } from "../../hooks";
+import { usePersistence, parsePersistenceConfig, useSm3, useT } from "../../hooks";
 import dayjs from "dayjs";
 
 /**
@@ -82,7 +82,7 @@ export default defineComponent({
     /**
      * 持久化，传入 localStorage 的 key，如果为 true, 将会以 URL Hash 为 key
      */
-    persistence: { type: [Boolean, String], default: false },
+    persistence: { type: [Boolean, String, Object], default: false },
   },
   emits: [
     /**
@@ -93,6 +93,26 @@ export default defineComponent({
   ],
   setup(props, { expose, emit, slots }) {
     const searchProvider = inject(NEWBIE_SEARCH, () => {});
+
+    /********** 持久化配置 **********/
+
+    const persistenceConf = computed(() => parsePersistenceConfig(props.persistence));
+    const enableLocalStorage = computed(() => persistenceConf.value.storage === "local");
+
+    const persistenceNamespace = computed(() => {
+      if (!persistenceConf.value.enabled) return null;
+      const { key } = persistenceConf.value;
+      if (!key) return `search_${useSm3(location.href)}`;
+      return `search_${useSm3(location.pathname + "_" + key)}`;
+    });
+
+    const persist = computed(() => {
+      const ns = persistenceNamespace.value;
+      if (!ns) return null;
+      return usePersistence(ns, { storage: persistenceConf.value.storage });
+    });
+
+    /********** 状态 **********/
 
     const state = reactive({
       queryForm: {}, // 搜索表单
@@ -123,17 +143,6 @@ export default defineComponent({
 
     const searchState = {}; // 用于记录各个搜索项的状态
 
-    const genPersistenceKey = prefix => {
-      if (!props.persistence) {
-        return null;
-      }
-      prefix = prefix || "";
-      if (isBoolean(props.persistence)) {
-        return `newbieSearch_${prefix}` + useSm3(location.href);
-      }
-
-      return `newbieSearch_${prefix}` + useSm3(location.pathname + "_" + props.persistence);
-    };
 
     /**
      * 初始化搜索
@@ -145,10 +154,8 @@ export default defineComponent({
       const sortColumns = [];
       const defaultSortKeys = [];
 
-      const persistenceSearchData = props.persistence ? useCache(genPersistenceKey()).get({}) : {};
-      const persistenceSortData = props.persistence
-        ? useCache(genPersistenceKey("sort")).get({})
-        : {};
+      const persistenceSearchData = persist.value ? persist.value.load("form", {}) : {};
+      const persistenceSortData = persist.value ? persist.value.load("sort", {}) : {};
 
       props.filterableColumns.forEach(column => {
         const item = cloneDeep(column);
@@ -280,8 +287,8 @@ export default defineComponent({
     };
 
     const onClear = () => {
-      useCache(genPersistenceKey()).remove();
-      useCache(genPersistenceKey("sort")).remove();
+      if (persist.value) persist.value.clear(["form", "sort"]);
+      showRestore.value = false;
       init();
     };
 
@@ -298,11 +305,32 @@ export default defineComponent({
       }
     };
     onMounted(() => {
-      if (props.persistence) {
+      if (persist.value && !enableLocalStorage.value) {
+        // 内存模式：自动恢复上次搜索条件（同 SPA 导航）
         emit("search", {
           persistence: true,
           newbieQuery: getQueryForm(),
           newbieSort: getSortForm(),
+        });
+      } else if (persist.value && enableLocalStorage.value) {
+        if (persist.value.hasLocalData("form")) {
+          // 冷存储模式：如果有上次保存的条件，显示恢复入口
+          showRestore.value = true;
+        }
+        // 发出空搜索让表格先加载无筛选的初始数据
+        // 注意：不能调用 getQueryForm()/getSortForm()，它们会调用 save() 覆盖冷数据
+        emit("search", {
+          persistence: true,
+          newbieQuery: {},
+          newbieSort: {},
+        });
+      } else if (props.persistence) {
+        // 异常兜底：persistence prop 已配置但实例不可用（理论上不应进入此分支）
+        // 发出空搜索确保 Table 能获取初始数据
+        emit("search", {
+          persistence: true,
+          newbieQuery: {},
+          newbieSort: {},
         });
       }
       watch(
@@ -336,9 +364,8 @@ export default defineComponent({
         );
       });
 
-      if (props.persistence) {
-        const key = genPersistenceKey("sort");
-        useCache(key).set(form);
+      if (persist.value) {
+        persist.value.save("sort", form);
       }
       return form;
     };
@@ -377,9 +404,8 @@ export default defineComponent({
         }
       });
 
-      if (props.persistence) {
-        const key = genPersistenceKey();
-        useCache(key).set(persistenceForm);
+      if (persist.value) {
+        persist.value.save("form", persistenceForm);
       }
 
       return form;
@@ -420,6 +446,66 @@ export default defineComponent({
 
     expose({ getQueryForm, setQueryForm, getSortForm, getSearch });
 
+    /********** 冷恢复逻辑（localStorage 模式） **********/
+
+    const showRestore = ref(false);
+
+    const onApplyRestore = () => {
+      if (!persist.value) return;
+
+      // 从 localStorage 加载冷数据
+      const coldForm = persist.value.loadLocal("form", {});
+      const coldSort = persist.value.loadLocal("sort", {});
+
+      // 同步到内存
+      persist.value.save("form", coldForm);
+      persist.value.save("sort", coldSort);
+
+      // 应用到表单 state
+      Object.keys(coldForm).forEach(key => {
+        const item = coldForm[key];
+        if (state.queryForm[key]) {
+          state.queryForm[key].value = item.value;
+          if (item.condition) state.queryForm[key].condition = item.condition;
+        } else {
+          state.queryForm[key] = { value: item.value, condition: item.condition || "equal" };
+        }
+      });
+
+      // 类型转换：恢复后的数据需要经过 init() 中的类型处理
+      // date 字段：ISO 字符串 → dayjs 对象
+      // switch 字段：布尔值 → "checked"/"unchecked"
+      Object.keys(state.queryForm).forEach(key => {
+        const field = state.queryForm[key];
+        if (!field || !field.type) return;
+        if (field.type === "date" && field.value != null) {
+          field.value = isArray(field.value)
+            ? field.value.map(v => (isString(v) ? dayjs(new Date(v)) : v))
+            : isString(field.value) ? dayjs(new Date(field.value)) : field.value;
+        } else if (field.type === "switch" && field.value != null) {
+          field.value = isBoolean(field.value) ? (field.value ? "checked" : "unchecked") : undefined;
+        }
+      });
+
+      // 应用冷排序数据到 sortForm
+      const sortTargetKeys = [];
+      Object.keys(coldSort).forEach(key => {
+        sortTargetKeys.push(key);
+        const sortItem = find(state.sortColumns, { key });
+        if (sortItem) {
+          sortItem.direction = coldSort[key];
+        }
+      });
+      state.sortForm.targetKeys = sortTargetKeys;
+
+      showRestore.value = false;
+      onSearch();
+    };
+
+    const onDismissRestore = () => {
+      showRestore.value = false;
+    };
+
     /********** render **********/
 
     const searchElems = () => {
@@ -433,6 +519,24 @@ export default defineComponent({
     };
 
     const expandElems = () => state.expandColumns.map(item => createExpand(item, state.queryForm));
+
+    const restoreBarElem = () =>
+      showRestore.value ? (
+        <div class={"newbie-search-restore-bar"}>
+          <div class={"newbie-search-restore-bar-content"}>
+            <span class={"newbie-search-restore-bar-icon"}>📋</span>
+            <span class={"newbie-search-restore-bar-title"}>{useT("search.restore-title")}</span>
+          </div>
+          <div class={"newbie-search-restore-bar-actions"}>
+            <Button type={"primary"} size={"small"} onClick={onApplyRestore}>
+              {{ default: () => useT("search.restore-apply") }}
+            </Button>
+            <Button size={"small"} onClick={onDismissRestore}>
+              {{ default: () => useT("search.restore-dismiss") }}
+            </Button>
+          </div>
+        </div>
+      ) : null;
 
     const sortableElem = () =>
       state.sortColumns.length ? (
@@ -516,6 +620,8 @@ export default defineComponent({
               </Space>
             </div>
           ) : null}
+
+          {restoreBarElem()}
 
           {sortableElem()}
         </div>

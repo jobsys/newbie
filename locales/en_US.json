@@ -84,7 +84,10 @@
     "select-sorting-item": "Please select sorting items",
     "ascending": "Ascending",
     "descending": "Descending",
-    "remove-item": "Remove sorting item"
+    "remove-item": "Remove sorting item",
+    "restore-title": "Previous search conditions saved",
+    "restore-apply": "Apply",
+    "restore-dismiss": "Dismiss"
   },
   "table": {
     "editable": "Editable",
