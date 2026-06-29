@@ -232,9 +232,6 @@ const localSession = {
   },
 };
 
-window._printCache = () => {
-  console.log(JSON.parse(JSON.stringify(localCacheSession, null, 2)));
-};
 
 /**
  * 用于储存缓存的值
