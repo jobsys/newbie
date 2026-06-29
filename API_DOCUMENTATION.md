@@ -314,7 +314,7 @@ const handleSuccess = res => {
 | expandRender     | String/Function | null   | 额外的展开行                        |
 | expandedRowKeys  | Array           | null   | 展开的行                            |
 | showRefresh      | Boolean         | true   | 是否显示刷新按钮                    |
-| persistence      | Boolean/String  | false  | 持久化，传入 localStorage 的 key    |
+| persistence      | Boolean/String/Object | false  | 持久化，传入 localStorage 的 key；支持 Object 扩展：{ storage: 'memory' | 'local', key: string } |
 | cardWrapper      | Boolean         | true   | 是否用 Card 包裹                    |
 
 #### Events
@@ -432,7 +432,7 @@ const getTableData = () => {
 | disableConditions | Boolean        | false  | 是否禁用搜索条件                    |
 | autoQuery         | Boolean        | false  | 是否在搜索条件变化时自动搜索        |
 | gutter            | String/Number  | 16     | 搜索项的间距                        |
-| persistence       | Boolean/String | false  | 持久化，传入 localStorage 的 key    |
+| persistence       | Boolean/String/Object | false  | 持久化，传入 localStorage 的 key；支持 Object 扩展：{ storage: 'memory' | 'local', key: string } |
 
 #### Events
 
@@ -1731,10 +1731,98 @@ function useI18nJoin(
 ```javascript
 import { useI18nJoin } from "jobsys-newbie/hooks";
 
-const text = useI18nJoin("保存", "成功"); // '保存成功' 或 'Save success'（英文环境）
+---
+
+#### usePersistence
+
+统一持久化 composable，提供双层存储设计：内存（hot）保持当前 session 热数据，localStorage（cold）跨 session 持久化。
+
+**函数签名**
+
+```javascript
+function usePersistence(
+  namespace: string,
+  options?: {
+    storage?: 'memory' | 'local'
+  }
+): {
+  save(key: string, value: any): void
+  load(key: string, defaultValue?: any): any
+  loadWithFallback(key: string, defaultValue?: any): any
+  loadLocal(key: string, defaultValue?: any): any
+  hasLocalData(key: string): boolean
+  hasData(key: string): boolean
+  remove(key: string): void
+  clear(keys?: string[]): void
+}
+```
+
+**方法说明**
+
+| 方法 | 说明 |
+|------|------|
+| save(key, value) | 写内存 + 按配置写 localStorage |
+| load(key, defaultValue) | 读内存（热数据），不过问冷存储 |
+| loadWithFallback(key, defaultValue) | 读内存 → 降级到 localStorage，命中时同步回内存 |
+| loadLocal(key, defaultValue) | 强制读 localStorage（冷恢复） |
+| hasLocalData(key) | 检查 localStorage 是否有数据 |
+| remove(key) | 清除内存 + localStorage |
+| clear(keys) | 批量清除多个 key（默认 ["form", "sort"]） |
+
+**使用示例**
+
+```javascript
+import { usePersistence } from "jobsys-newbie/hooks";
+
+const persist = usePersistence("my_module", { storage: "local" });
+
+// 保存
+persist.save("form", { name: { value: "test", condition: "equal" } });
+
+// 读取
+const form = persist.load("form", {});
+
+// 冷恢复（仅 localStorage 模式）
+if (persist.hasLocalData("form")) {
+  const coldForm = persist.loadLocal("form", {});
+}
 ```
 
 ---
+
+#### parsePersistenceConfig
+
+解析 persistence prop 值，将 boolean / string / object 统一为规范化配置。
+
+**函数签名**
+
+```javascript
+function parsePersistenceConfig(prop: boolean | string | object): {
+  enabled: boolean
+  storage: 'memory' | 'local'
+  key: string | null
+}
+```
+
+**输入示例**
+
+| 输入 | 返回值 |
+|------|--------|
+| `true` | `{ enabled: true, storage: "memory", key: null }` |
+| `"my-key"` | `{ enabled: true, storage: "memory", key: "my-key" }` |
+| `{ storage: "local", key: "my-key" }` | `{ enabled: true, storage: "local", key: "my-key" }` |
+| `false` / `null` / `undefined` | `{ enabled: false, storage: "memory", key: null }` |
+
+**使用示例**
+
+```javascript
+import { parsePersistenceConfig } from "jobsys-newbie/hooks";
+
+const config = parsePersistenceConfig(props.persistence);
+if (config.enabled) {
+  const persist = usePersistence("ns", { storage: config.storage });
+}
+```
 
 ## Directives 文档
 
