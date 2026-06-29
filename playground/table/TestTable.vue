@@ -83,7 +83,7 @@ const state = reactive({
 });
 
 const searchSlots = {
-	number: ({ item }) => h("div", {}, item.title),
+	//number: ({ item }) => h("div", {}, item.title),
 };
 
 const onBeforeCellSubmit = data => {

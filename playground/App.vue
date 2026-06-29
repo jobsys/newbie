@@ -14,9 +14,8 @@ import TestSignaturePad from "./signature-pad/TestSignaturePad.vue";
 
 import zhCN from "ant-design-vue/es/locale/zh_CN"; // 引入中文语言包
 import enUS from "ant-design-vue/es/locale/en_US"; // 引入英文语言包
-
-import { reactive, ref, shallowRef } from "vue";
-import { find } from "lodash-es";
+import {reactive, ref, shallowRef} from "vue";
+import {find} from "lodash-es";
 
 // 定义支持的语言
 const locales = {
@@ -172,7 +171,7 @@ const changeComponent = e => {
         </a-radio-group>
       </div>
 
-      <div style="padding: 20px">
+      <div style="padding: 20px; background-color: #f0f0f0;">
         <component v-if="isComponent" :is="isComponent"></component>
       </div>
     </NewbieProvider>

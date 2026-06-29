@@ -698,7 +698,6 @@ export default defineComponent({
 								...props.searchSlots,
 							}}
 						</NewbieSearch>,
-						<Divider></Divider>,
 					]
 				: null;
 
