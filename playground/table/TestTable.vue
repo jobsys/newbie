@@ -1,51 +1,79 @@
 <template>
-	<NewbieTable
-		title="话题列表"
-		:form-data="state.data"
-		submit-url="http://xx.com"
-		row-selection
-		:columns="columns()"
-		:card-wrapper="false"
-		:editable="true"
-		:before-cell-submit="onBeforeCellSubmit"
-		:search-slots="searchSlots"
-		@row-click="({ record }) => console.log(record)"
-	>
-		<template #functional>
-			<Space>
-				<Button type="primary">Functional1</Button>
-				<Button type="default">Functional2</Button>
-			</Space>
-		</template>
-		<template #prepend>
-			<Space>
-				<Button type="primary">Prepend1</Button>
-				<Button type="default">Prepend2</Button>
-			</Space>
-		</template>
-		<template #append>
-			<Space>
-				<Button type="primary">Append1</Button>
-				<Button type="default">Append2</Button>
-			</Space>
-		</template>
-	</NewbieTable>
+	<div>
+		<div style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+			<span style="font-weight: 500;">持久化模式：</span>
+			<a-radio-group v-model:value="persistenceMode" button-style="solid" size="small">
+				<a-radio-button value="off">关闭</a-radio-button>
+				<a-radio-button value="memory">Memory</a-radio-button>
+				<a-radio-button value="local">localStorage</a-radio-button>
+				<a-radio-button value="custom">自定义 Key</a-radio-button>
+			</a-radio-group>
+		</div>
+
+		<NewbieTable
+			:key="persistenceKey"
+			title="话题列表"
+			:form-data="state.data"
+			submit-url="http://xx.com"
+			row-selection
+			:columns="columns()"
+			:card-wrapper="false"
+			:editable="true"
+			:before-cell-submit="onBeforeCellSubmit"
+			:search-slots="searchSlots"
+			:persistence="persistenceProp"
+			@row-click="({ record }) => console.log(record)"
+		>
+			<template #functional>
+				<Space>
+					<Button type="primary">Functional1</Button>
+					<Button type="default">Functional2</Button>
+				</Space>
+			</template>
+			<template #prepend>
+				<Space>
+					<Button type="primary">Prepend1</Button>
+					<Button type="default">Prepend2</Button>
+				</Space>
+			</template>
+			<template #append>
+				<Space>
+					<Button type="primary">Append1</Button>
+					<Button type="default">Append2</Button>
+				</Space>
+			</template>
+		</NewbieTable>
+	</div>
 </template>
 <script setup>
 import {useTableActions} from "../../components";
-import {h, reactive} from "vue";
-import {Button, Space} from "ant-design-vue";
+import {computed, h, reactive, ref} from "vue";
+import {Button, Radio, Space} from "ant-design-vue";
 import NewbieTable from "../../components/table/NewbieTable.jsx";
 
 import {DeleteOutlined, EditOutlined, LikeOutlined, QrcodeOutlined} from "@ant-design/icons-vue";
 
+const persistenceMode = ref("off");
+
+const persistenceProp = computed(() => {
+	switch (persistenceMode.value) {
+		case "memory": return true;
+		case "local": return { storage: "local", key: "playground" };
+		case "custom": return "my-custom-key";
+		default: return false;
+	}
+});
+
+// Force remount when persistence mode changes to reset all state
+const persistenceKey = computed(() => `table-${persistenceMode.value}`);
+
 const state = reactive({
 	data: [
-		{ id: 1, name: "话题1", switch: true, number: "" },
+		{ id: 1, name: "话题1", switch: true, number: 23 },
 		{ id: 2, name: "话题2", switch: false, number: 234 },
-		/*{ id: 3, name: "话题3" },
-        { id: 4, name: "话题4" },
-        { id: 5, name: "话题5" },*/
+		{ id: 3, name: "话题3", switch: true, number: 345 },
+		{ id: 4, name: "话题4", switch: false, number: 456 },
+		{ id: 5, name: "话题5", switch: true, number: 567 },
 	],
 
 	options: [
@@ -53,10 +81,6 @@ const state = reactive({
 		{ label: "话题2", value: 2 },
 	],
 });
-
-const openModal = () => {
-	state.showModal = true;
-};
 
 const searchSlots = {
 	number: ({ item }) => h("div", {}, item.title),
@@ -102,19 +126,15 @@ const columns = () => {
 			title: "话题名称",
 			dataIndex: "name",
 			tooltip: () => h("div", { style: { paddingLeft: "20px" } }, "话题名称12312312"),
-			//minWidth: 100,
 			width: 100,
 			editable: {
 				type: "select",
 				options: state.options,
 			},
 			align: "center",
-            customRender: ({ record }) => {
-                return record === 1  ? "TEST1" : "TEST2";
-            },
-			/*onClick: ({ record }) => {
-                message.success(record.name)
-            },*/
+			customRender: ({ record }) => {
+				return record === 1  ? "TEST1" : "TEST2";
+			},
 		},
 		{
 			title: "操作",
