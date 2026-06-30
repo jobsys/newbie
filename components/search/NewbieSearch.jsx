@@ -1,4 +1,4 @@
-import {computed, defineComponent, inject, onMounted, reactive, ref, watch} from "vue";
+import {computed, defineComponent, inject, nextTick, onMounted, reactive, ref, watch,} from "vue";
 
 import createSearchItem from "./components/SearchItem.jsx";
 
@@ -17,7 +17,6 @@ import {
 	SearchOutlined,
 	ShrinkOutlined,
 } from "@ant-design/icons-vue";
-import {useWindowSize} from "@vueuse/core";
 import {parsePersistenceConfig, usePersistence, useSm3, useT} from "../../hooks";
 import dayjs from "dayjs";
 
@@ -119,12 +118,10 @@ export default defineComponent({
 
 			openSortable: false, //是否打开排序设置
 			isFormExpanded: false, //是否已经展开
-			availableSearchItems: 0, //第一行可展数量
+			overflowCount: 0, //折叠时隐藏的搜索项数量
 		});
 
 		const formWrapperRef = ref();
-
-		const { width: windowWidth } = useWindowSize();
 
 		//带有 between 的搜索项则初始化为 [null, null]
 		const betweenKeys = ["number", "date"];
@@ -144,8 +141,9 @@ export default defineComponent({
 			const sortColumns = [];
 			const defaultSortKeys = [];
 
-			const persistenceSearchData = persist.value ? persist.value.load("form", {}) : {};
-			const persistenceSortData = persist.value ? persist.value.load("sort", {}) : {};
+			// localStorage 模式不加载冷数据，默认值始终优先；冷数据只在用户点"应用"时使用
+			const persistenceSearchData = persist.value && !enableLocalStorage.value ? persist.value.load("form", {}) : {};
+			const persistenceSortData = persist.value && !enableLocalStorage.value ? persist.value.load("sort", {}) : {};
 
 			props.filterableColumns.forEach(column => {
 				const item = cloneDeep(column);
@@ -216,7 +214,6 @@ export default defineComponent({
 					if (isUndefined(searchState[item.key].hidden)) {
 						searchState[item.key].hidden = false;
 					}
-
 					fieldColumns.push(item);
 				}
 
@@ -264,12 +261,10 @@ export default defineComponent({
 			() => [props.filterableColumns, props.sortableColumns],
 			() => {
 				init();
+				nextTick(() => updateOverflow());
 			},
 			{ immediate: true }
 		);
-
-		// 查询表格是否多行
-		const isFormFlexible = computed(() => state.fieldColumns.length > state.availableSearchItems);
 
 		const onSearch = () => {
 			state.openSortable = false;
@@ -283,18 +278,46 @@ export default defineComponent({
 			init();
 		};
 
-		const onToggleFormExpand = () => {
-			handleFormFlexible({ show: !state.isFormExpanded });
+		const onToggleMore = () => {
 			state.isFormExpanded = !state.isFormExpanded;
+			nextTick(() => updateOverflow());
 		};
 
-		const handleFormFlexible = ({ show, stand }) => {
-			if (isFormFlexible.value && !stand) {
-				state.fieldColumns.forEach((item, index) => {
-					searchState[item.key].hidden = show ? false : index >= state.availableSearchItems;
-				});
+		/********** 折叠逻辑（基于容器宽度测量） **********/
+
+		const updateOverflow = () => {
+			if (!formWrapperRef.value) return;
+			const container = formWrapperRef.value;
+			const firstItem = container.querySelector(".newbie-search-item");
+
+			let perRow = state.fieldColumns.length; // 默认：全部可见
+
+			if (firstItem && state.fieldColumns.length > 0) {
+				const itemWidth = firstItem.getBoundingClientRect().width;
+				if (itemWidth > 0) {
+					const containerWidth = container.getBoundingClientRect().width;
+					const gap = Number(props.gutter) || 0;
+					perRow = Math.max(1, Math.floor((containerWidth + gap) / (itemWidth + gap)));
+				}
 			}
+
+			// 折叠时只显示 perRow 个，展开时显示全部
+			const visibleCount = state.isFormExpanded ? state.fieldColumns.length : perRow;
+			state.overflowCount = state.fieldColumns.length - visibleCount;
+
+			// 逐条设置 item 的 hidden 状态
+			// 注意：如果某个 item 的面板正在显示中，则不隐藏它，避免下拉面板被裁剪
+			state.fieldColumns.forEach((item, index) => {
+				const shouldHide = index >= visibleCount;
+				// 如果面板正在显示，强制保持可见
+				if (shouldHide && searchState[item.key]?.showPanel) {
+					searchState[item.key].hidden = false;
+				} else {
+					searchState[item.key].hidden = shouldHide;
+				}
+			});
 		};
+
 		onMounted(() => {
 			if (persist.value && !enableLocalStorage.value) {
 				// 内存模式：自动恢复上次搜索条件（同 SPA 导航）
@@ -308,12 +331,11 @@ export default defineComponent({
 					// 冷存储模式：如果有上次保存的条件，显示恢复入口
 					showRestore.value = true;
 				}
-				// 发出空搜索让表格先加载无筛选的初始数据
-				// 注意：不能调用 getQueryForm()/getSortForm()，它们会调用 save() 覆盖冷数据
+				// 默认条件优先：发出带默认值的搜索，但不保存到持久化（避免覆盖冷数据）
 				emit("search", {
 					persistence: true,
-					newbieQuery: {},
-					newbieSort: {},
+					newbieQuery: getQueryForm(true),
+					newbieSort: getSortForm(true),
 				});
 			} else if (props.persistence) {
 				// 异常兜底：persistence prop 已配置但实例不可用（理论上不应进入此分支）
@@ -324,22 +346,13 @@ export default defineComponent({
 					newbieSort: {},
 				});
 			}
-			watch(
-				() => windowWidth.value,
-				() => {
-					const items = Math.floor(formWrapperRef.value.scrollWidth / (200 + props.gutter));
-					if (state.availableSearchItems !== items) {
-						state.availableSearchItems = items;
-						handleFormFlexible({});
-					}
-				},
-				{ immediate: true }
-			);
+			// 初始测量（等待 DOM 就绪）
+			requestAnimationFrame(() => updateOverflow());
 		});
 
 		/********** exposes **********/
 
-		const getSortForm = () => {
+		const getSortForm = (skipSave = false) => {
 			const form = {};
 
 			state.sortForm.targetKeys.forEach(key => {
@@ -365,7 +378,7 @@ export default defineComponent({
 				);
 			});
 
-			if (persist.value) {
+			if (persist.value && !skipSave) {
 				persist.value.save("sort", form);
 			}
 			return form;
@@ -375,7 +388,7 @@ export default defineComponent({
 		 * 获取表单实时数据
 		 * @return {*}
 		 */
-		const getQueryForm = () => {
+		const getQueryForm = (skipSave = false) => {
 			const form = {};
 			const persistenceForm = {}; //由于 Form 里的值会按 Provider 进行格式化，但这里需要的是原始值，所以记录多一次
 			state.searchLabels = [];
@@ -388,7 +401,10 @@ export default defineComponent({
 
 				if (
 					(Array.isArray(value) && value.length > 0) ||
-					(!Array.isArray(value) && value !== null && value !== undefined && value !== "") ||
+					(!Array.isArray(value) &&
+						value !== null &&
+						value !== undefined &&
+						value !== "") ||
 					condition === "null" ||
 					condition === "notNull"
 				) {
@@ -413,6 +429,8 @@ export default defineComponent({
 										const t = state.queryForm[item.key].type || item.type;
 										if (betweenKeys.includes(t)) {
 											state.queryForm[item.key].value = [null, null];
+										} else if (arrayKeys.includes(t)) {
+											state.queryForm[item.key].value = [];
 										} else if (t === "switch") {
 											state.queryForm[item.key].value = undefined;
 										} else {
@@ -429,7 +447,7 @@ export default defineComponent({
 				}
 			});
 
-			if (persist.value) {
+			if (persist.value && !skipSave) {
 				persist.value.save("search", persistenceForm);
 			}
 
@@ -489,11 +507,28 @@ export default defineComponent({
 			// 应用到表单 state
 			Object.keys(coldForm).forEach(key => {
 				const item = coldForm[key];
-				if (state.queryForm[key]) {
-					state.queryForm[key].value = item.value;
-					if (item.condition) state.queryForm[key].condition = item.condition;
+				let value = item.value;
+				// select/cascade/date 类型的值必须是数组
+				const field = state.queryForm[key];
+				const type = field?.type || item.type || "input";
+				if (
+					(betweenKeys.includes(type) || arrayKeys.includes(type)) &&
+					!isArray(value) &&
+					value != null &&
+					value !== ""
+				) {
+					value = [value];
+				}
+
+				if (field) {
+					field.value = value;
+					if (item.condition) field.condition = item.condition;
 				} else {
-					state.queryForm[key] = { value: item.value, condition: item.condition || "equal" };
+					state.queryForm[key] = {
+						value,
+						condition: item.condition || "equal",
+						type,
+					};
 				}
 			});
 
@@ -533,8 +568,6 @@ export default defineComponent({
 			onSearch();
 		};
 
-
-
 		/********** render **********/
 
 		const searchElems = () => {
@@ -547,7 +580,8 @@ export default defineComponent({
 			);
 		};
 
-		const expandElems = () => state.expandColumns.map(item => createExpand(item, state.queryForm));
+		const expandElems = () =>
+			state.expandColumns.map(item => createExpand(item, state.queryForm));
 
 		const sortableElem = () =>
 			state.sortColumns.length ? (
@@ -569,7 +603,11 @@ export default defineComponent({
 					<div class={"newbie-search-query"}>
 						<div class={"newbie-search-form"}>
 							<div class={`newbie-search-form-wrapper`} ref={formWrapperRef}>
-								<Space size={[props.gutter, 10]} wrap style={{ marginBottom: 0 }}>
+								<Space
+									size={[props.gutter, 10]}
+									wrap
+									style={{ marginBottom: 0 }}
+								>
 									{() => searchElems()}
 								</Space>
 							</div>
@@ -577,16 +615,27 @@ export default defineComponent({
 
 						<Space class={"newbie-search-operation"}>
 							{() => [
-								isFormFlexible.value ? (
+								state.overflowCount > 0 || state.isFormExpanded ? (
 									<Tooltip title={useT("search.toggle-more")}>
 										{() => (
 											<Button
 												type={"link"}
-												icon={state.isFormExpanded ? <ShrinkOutlined /> : <ArrowsAltOutlined />}
-												onClick={onToggleFormExpand}
+												icon={
+													state.isFormExpanded ? (
+														<ShrinkOutlined />
+													) : (
+														<ArrowsAltOutlined />
+													)
+												}
+												onClick={onToggleMore}
 											>
 												{() =>
-													state.isFormExpanded ? useT("search.collapse") : useT("common.more")
+													state.isFormExpanded
+														? useT("search.collapse")
+														: useT("common.more") +
+															"(" +
+															state.overflowCount +
+															")"
 												}
 											</Button>
 										)}
@@ -594,8 +643,16 @@ export default defineComponent({
 								) : null,
 								<Tooltip title={useT("search.clear-all-search-items")}>
 									{() => (
-										<Button type={"dashed"} icon={<ClearOutlined />} onClick={onClear}>
-											{() => (props.sortableColumns.length ? "" : useT("common.clear"))}
+										<Button
+											type={"dashed"}
+											icon={<ClearOutlined />}
+											onClick={onClear}
+										>
+											{() =>
+												props.sortableColumns.length
+													? ""
+													: useT("common.clear")
+											}
 										</Button>
 									)}
 								</Tooltip>,
@@ -603,14 +660,22 @@ export default defineComponent({
 									<Tooltip title={useT("search.sort-setting")}>
 										{() => (
 											<Button
-												type={state.sortForm.targetKeys.length ? "primary" : "default"}
+												type={
+													state.sortForm.targetKeys.length
+														? "primary"
+														: "default"
+												}
 												icon={<OrderedListOutlined />}
 												onClick={() => (state.openSortable = true)}
 											></Button>
 										)}
 									</Tooltip>
 								) : null,
-								<Button type={"primary"} icon={<SearchOutlined />} onClick={onSearch}>
+								<Button
+									type={"primary"}
+									icon={<SearchOutlined />}
+									onClick={onSearch}
+								>
 									{() => useT("common.search")}
 								</Button>,
 							]}
@@ -621,14 +686,27 @@ export default defineComponent({
 					) : null}
 					{state.searchLabels?.length || showRestore.value ? (
 						<div class={"newbie-search-label"}>
-							<Space class={"newbie-search-label-content"} wrap={true} style={{ marginBottom: 0 }}>
+							<Space
+								class={"newbie-search-label-content"}
+								wrap={true}
+								style={{ marginBottom: 0 }}
+							>
 								{() => [
 									showRestore.value ? (
 										<Tag
-											style={{ cursor: "pointer", color: "#92400e", background: "#fff7e6", borderColor: "#ffa940", borderStyle: "dashed" }}
+											style={{
+												cursor: "pointer",
+												color: "#92400e",
+												background: "#fff7e6",
+												borderColor: "#ffa940",
+												borderStyle: "dashed",
+											}}
 											onClick={onApplyRestore}
 										>
-											{() => [<HistoryOutlined style={{ marginRight: '4px'}} />, useT("search.restore-last")]}
+											{() => [
+												<HistoryOutlined style={{ marginRight: "4px" }} />,
+												useT("search.restore-last"),
+											]}
 										</Tag>
 									) : null,
 									...state.searchLabels.filter(Boolean),

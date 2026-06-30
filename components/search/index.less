@@ -15,9 +15,31 @@
 			.newbie-search-form-wrapper {
 				.newbie-search-item {
 					position: relative;
+					transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
 
 					&.hidden {
-						display: none;
+						opacity: 0;
+						transform: translateY(-10px);
+						visibility: hidden;
+						height: 0 !important;
+						overflow: visible !important;
+						min-height: 0 !important;
+						padding-top: 0 !important;
+						padding-bottom: 0 !important;
+						margin-top: 0 !important;
+						margin-bottom: 0 !important;
+						pointer-events: none;
+
+						// Hide the mask/content but allow popup panels to escape
+						.newbie-search-mask {
+							display: none;
+						}
+
+						// Ensure popup panels can render above other content
+						.newbie-search-popup-panel {
+							visibility: visible;
+							z-index: 1000;
+						}
 					}
 
 					.newbie-search-mask {
@@ -26,6 +48,7 @@
 							color: #999;
 							padding: 0 6px;
 							border-radius: 4px;
+							margin-bottom: 2px;
 						}
 
 						.newbie-search-mask-content {
@@ -128,14 +151,15 @@
 	}
 
 	.newbie-search-expand {
-		margin-top: 20px;
+		margin-top: 12px;
 
 		.newbie-search-expand-item {
 			display: flex;
 			align-items: stretch;
 			justify-content: space-between;
 			border-top: 1px solid #eee;
-			border-radius: 4px;
+			border-radius: 6px;
+			overflow: hidden;
 
 			&:last-child {
 				border-bottom: 1px solid #eee;
@@ -180,7 +204,7 @@
 		display: flex;
 		align-items: center;
 		border-radius: 4px;
-		margin-top: 8px;
+		margin-top: 12px;
 
 
 		.newbie-search-label-content {
@@ -215,7 +239,7 @@
 			align-items: center;
 			justify-content: space-between;
 			box-sizing: border-box;
-			padding: 0 10px;
+			padding: 0 12px;
 
 			.newbie-search-sortable__sortable-item-title {
 			}

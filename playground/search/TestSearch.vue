@@ -74,7 +74,7 @@ const items = ref([
       };
     },
   },
-  /*{ title: "是否启用", key: "enabled", type: "switch", options: ["启用", "禁用"], defaultValue: true },
+  { title: "是否启用", key: "enabled", type: "switch", options: ["启用", "禁用"], defaultValue: true },
 	{ title: "姓名", key: "name5", type: "input", disableConditions: true },
 	{ title: "学号", key: "stu_num", type: "textarea", inputProps: { style: { width: "300px" } } },
 	{
@@ -115,7 +115,7 @@ const items = ref([
 		],
 	},
 	{ title: "项目金额", key: "amount", type: "number", sortOrder: 1, defaultValue: [20, 0] },
-	{ title: "注册日期", key: "registered_at", type: "date" },*/
+	{ title: "注册日期", key: "registered_at", type: "date" },
 ]);
 
 const onSearch = () => {

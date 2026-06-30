@@ -2,11 +2,17 @@
 
 .newbie-table {
     .newbie-search {
-        margin-bottom: 10px;
+        margin-bottom: 12px;
     }
 
     .newbie-table-prepend-wrapper {
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+    }
+
+    .newbie-table-content{
+        padding: 12px;
+        background: #FFF;
+        border-radius: 6px;
     }
 
     .newbie-table-functional-wrapper {
@@ -164,22 +170,15 @@
     }
 
     .newbie-table-footer {
-        padding: 20px 0;
+        padding-top: 10px;
         display: flex;
         justify-content: space-between;
         align-items: center;
 
-        /**
-            有 pagination 时上移到 pagination 同一高度
-             */
 
-        &.pagination-adapt {
-            margin-top: -70px;
-        }
 
         .newbie-table-append-wrapper {
             flex-grow: 1;
-            padding: 10px 0 0;
             min-height: 32px;
         }
 
@@ -189,4 +188,19 @@
             width: 550px;
         }
     }
+
+    /**
+           有 pagination 时上移到 pagination 同一高度
+            */
+    &.pagination-adapt {
+        .ant-table-pagination{
+            height: 50px;
+            margin: 0;
+            align-items: center;
+        }
+        .newbie-table-footer{
+            margin-top: -48px;
+        }
+    }
+
 }

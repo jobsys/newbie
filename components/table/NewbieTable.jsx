@@ -1,40 +1,51 @@
-import {computed, defineComponent, inject, nextTick, onMounted, reactive, ref, watch, withModifiers,} from "vue";
 import {
-	Button,
-	Card,
-	Checkbox,
-	CheckboxGroup,
-	Col,
-	Divider,
-	Dropdown,
-	Flex,
-	Image,
-	Input,
-	InputNumber,
-	Menu,
-	MenuItem,
-	message,
-	Modal,
-	Row,
-	Select,
-	Switch,
-	Table,
-	Tag,
-	Tooltip,
+    computed,
+    defineComponent,
+    inject,
+    nextTick,
+    onMounted,
+    reactive,
+    ref,
+    watch,
+    watchEffect,
+    withModifiers,
+} from "vue";
+import {
+    Button,
+    Card,
+    Checkbox,
+    CheckboxGroup,
+    Col,
+    Divider,
+    Dropdown,
+    Flex,
+    Image,
+    Input,
+    InputNumber,
+    Menu,
+    MenuItem,
+    message,
+    Modal,
+    Row,
+    Select,
+    Switch,
+    Table,
+    Tag,
+    Tooltip,
 } from "ant-design-vue";
 import {cloneDeep, isArray, isEqual, isFunction, isObject, isUndefined,} from "lodash-es";
 import {
-	CheckCircleOutlined,
-	CloseCircleOutlined,
-	CopyOutlined,
-	DownOutlined,
-	EditOutlined,
-	FilePdfOutlined,
-	InfoCircleOutlined,
-	PictureOutlined,
-	SyncOutlined,
+    CheckCircleOutlined,
+    CloseCircleOutlined,
+    CopyOutlined,
+    DownOutlined,
+    EditOutlined,
+    FilePdfOutlined,
+    InfoCircleOutlined,
+    PictureOutlined,
+    SyncOutlined,
 } from "@ant-design/icons-vue";
-import {useFetch, usePersistence, parsePersistenceConfig, useProcessStatusSuccess, useSm3, useT} from "../../hooks";
+import {parsePersistenceConfig, useFetch, usePersistence, useProcessStatusSuccess, useSm3, useT} from "../../hooks";
 import {NEWBIE_TABLE} from "../provider/NewbieProvider.jsx";
 import NewbieButton from "../button/NewbieButton.jsx";
 import NewbieSearch from "../search/NewbieSearch.jsx";
@@ -213,7 +224,7 @@ export default defineComponent({
 		 * v1.18
 		 * 是否用 `Card` 包裹
 		 */
-		cardWrapper: { type: Boolean, default: true },
+		cardWrapper: { type: Boolean, default: false },
 	},
 	emits: [
 		/**
@@ -233,7 +244,7 @@ export default defineComponent({
 	],
 	setup(props, { emit, slots, expose }) {
 		const searchRef = ref();
-		const footerElemRef = ref();
+		const tableRef = ref();
 
 		const tableProvider = inject(NEWBIE_TABLE, () => {});
 
@@ -254,7 +265,9 @@ export default defineComponent({
 			return usePersistence(ns, { storage: persistenceConf.value.storage });
 		});
 
-		let persistencePagination = persistTable.value ? persistTable.value.loadWithFallback("pagination", {}) : {};
+		let persistencePagination = persistTable.value
+			? persistTable.value.loadWithFallback("pagination", {})
+			: {};
 
 		const state = reactive({
 			customColumns: [],
@@ -555,15 +568,11 @@ export default defineComponent({
 		);
 
 		//为了避免出现 Append 在一开始覆盖 Table 内容的情况，在 doFetch 后 Pagination 确定下来再添加兼容样式
-		watch(
-			() => state.pagination,
-			value => {
-				if (value) {
-					footerElemRef.value?.classList.add("pagination-adapt");
-				}
-			},
-			{ deep: true }
-		);
+		watchEffect(() => {
+			if (!!props.pagination && tableRef.value) {
+				tableRef.value?.classList.add("pagination-adapt");
+			}
+		});
 
 		watch(
 			() => props.formData,
@@ -1085,14 +1094,14 @@ export default defineComponent({
 
 		const footerElem = () =>
 			slots.append || props.pagination ? (
-				<div ref={footerElemRef} class={`newbie-table-footer`}>
+				<div class={`newbie-table-footer`}>
 					<div class={"newbie-table-append-wrapper"}>{slots.append ? slots.append() : null}</div>
 					<div class={"newbie-table-pagination-wrapper"}></div>
 				</div>
 			) : null;
 
 		return () => (
-			<div class={"newbie-table"}>
+			<div class={"newbie-table"} ref={tableRef}>
 				{props.cardWrapper ? (
 					<Card size={"small"} class={"newbie-table-card"}>
 						{{
@@ -1108,7 +1117,13 @@ export default defineComponent({
 						}}
 					</Card>
 				) : (
-					[prependElem(), filterElem(), functionalElem(), tableElem(), footerElem()]
+					[
+						prependElem(),
+						filterElem(),
+						<div class={"newbie-table-content"}>
+							{[functionalElem(), tableElem(), footerElem()]}
+						</div>,
+					]
 				)}
 
 				<Modal
