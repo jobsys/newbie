@@ -11,6 +11,7 @@ import {
 	ArrowsAltOutlined,
 	ClearOutlined,
 	FallOutlined,
+	HistoryOutlined,
 	OrderedListOutlined,
 	RiseOutlined,
 	SearchOutlined,
@@ -272,6 +273,7 @@ export default defineComponent({
 
 		const onSearch = () => {
 			state.openSortable = false;
+			showRestore.value = false;
 			emit("search", { newbieQuery: getQueryForm(), newbieSort: getSortForm() });
 		};
 
@@ -343,8 +345,18 @@ export default defineComponent({
 			state.sortForm.targetKeys.forEach(key => {
 				const item = find(state.sortColumns, { key });
 				form[key] = item.direction;
+				const sortLabelIdx = state.searchLabels.length;
 				state.searchLabels.push(
-					<Tag color={"green"}>
+					<Tag
+						color={"green"}
+						closable
+						onClose={e => {
+							e?.preventDefault?.();
+							const sidx = state.sortForm.targetKeys.indexOf(key);
+							if (sidx > -1) state.sortForm.targetKeys.splice(sidx, 1);
+							state.searchLabels[sortLabelIdx] = null;
+						}}
+					>
 						{() => [
 							<span style={{ marginRight: "2px" }}>{item.title}</span>,
 							item.direction === "asc" ? <RiseOutlined /> : <FallOutlined />,
@@ -389,7 +401,31 @@ export default defineComponent({
 						value = isArray(value) ? value.map(v => formatter(v)) : formatter(value);
 					}
 					form[item.key] = { condition, type, value };
-					state.searchLabels.push(searchLabel ? <Tag color={"blue"}>{searchLabel}</Tag> : null);
+					const labelIdx = state.searchLabels.length;
+					state.searchLabels.push(
+						searchLabel ? (
+							<Tag
+								color={"blue"}
+								closable
+								onClose={e => {
+									e?.preventDefault?.();
+									if (state.queryForm[item.key]) {
+										const t = state.queryForm[item.key].type || item.type;
+										if (betweenKeys.includes(t)) {
+											state.queryForm[item.key].value = [null, null];
+										} else if (t === "switch") {
+											state.queryForm[item.key].value = undefined;
+										} else {
+											state.queryForm[item.key].value = "";
+										}
+									}
+									state.searchLabels[labelIdx] = null;
+								}}
+							>
+								{searchLabel}
+							</Tag>
+						) : null
+					);
 				}
 			});
 
@@ -497,9 +533,7 @@ export default defineComponent({
 			onSearch();
 		};
 
-		const onDismissRestore = () => {
-			showRestore.value = false;
-		};
+
 
 		/********** render **********/
 
@@ -514,24 +548,6 @@ export default defineComponent({
 		};
 
 		const expandElems = () => state.expandColumns.map(item => createExpand(item, state.queryForm));
-
-		const restoreBarElem = () =>
-			showRestore.value ? (
-				<div class={"newbie-search-restore-bar"}>
-					<div class={"newbie-search-restore-bar-content"}>
-						<span class={"newbie-search-restore-bar-icon"}>📋</span>
-						<span class={"newbie-search-restore-bar-title"}>{useT("search.restore-title")}</span>
-					</div>
-					<div class={"newbie-search-restore-bar-actions"}>
-						<Button type={"primary"} size={"small"} onClick={onApplyRestore}>
-							{{ default: () => useT("search.restore-apply") }}
-						</Button>
-						<Button size={"small"} onClick={onDismissRestore}>
-							{{ default: () => useT("search.restore-dismiss") }}
-						</Button>
-					</div>
-				</div>
-			) : null;
 
 		const sortableElem = () =>
 			state.sortColumns.length ? (
@@ -603,16 +619,23 @@ export default defineComponent({
 					{state.expandColumns?.length ? (
 						<div class={"newbie-search-expand"}>{expandElems()}</div>
 					) : null}
-					{state.searchLabels?.length ? (
+					{state.searchLabels?.length || showRestore.value ? (
 						<div class={"newbie-search-label"}>
 							<Space class={"newbie-search-label-content"} wrap={true} style={{ marginBottom: 0 }}>
-								{() => state.searchLabels}
+								{() => [
+									showRestore.value ? (
+										<Tag
+											style={{ cursor: "pointer", color: "#92400e", background: "#fff7e6", borderColor: "#ffa940", borderStyle: "dashed" }}
+											onClick={onApplyRestore}
+										>
+											{() => [<HistoryOutlined style={{ marginRight: '4px'}} />, useT("search.restore-last")]}
+										</Tag>
+									) : null,
+									...state.searchLabels.filter(Boolean),
+								]}
 							</Space>
 						</div>
 					) : null}
-
-					{restoreBarElem()}
-
 					{sortableElem()}
 				</div>
 			);

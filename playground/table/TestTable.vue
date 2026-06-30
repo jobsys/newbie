@@ -131,6 +131,7 @@ const columns = () => {
 				type: "select",
 				options: state.options,
 			},
+            filterable: true,
 			align: "center",
 			customRender: ({ record }) => {
 				return record === 1  ? "TEST1" : "TEST2";

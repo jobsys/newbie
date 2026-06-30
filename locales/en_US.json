@@ -87,6 +87,7 @@
     "remove-item": "Remove sorting item",
     "restore-title": "Previous search conditions saved",
     "restore-apply": "Apply",
+    "restore-last": "Last query",
     "restore-dismiss": "Dismiss"
   },
   "table": {

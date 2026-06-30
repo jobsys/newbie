@@ -91,7 +91,7 @@ const render = (item, queryForm, itemState, context) => {
     onEnter: (el, done) => {
       anime({
         targets: ".newbie-search-input-container",
-        padding: "11px",
+        padding: "8px",
         translateX: "0",
         translateY: "0",
         duration: 100,
