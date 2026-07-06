@@ -4,7 +4,7 @@ import {Dropdown, Menu, MenuItem, TypographyText} from "ant-design-vue";
 import {DownOutlined} from "@ant-design/icons-vue";
 import * as Fields from "./index";
 import {OnClickOutside} from "@vueuse/components";
-import anime from "animejs";
+import {animate} from "animejs";
 import {useT} from "../../../hooks/index.js";
 
 /**
@@ -92,43 +92,47 @@ const render = (item, queryForm, itemState, context) => {
 
 	const animations = {
 		onEnter: (el, done) => {
-			anime({
-				targets: ".newbie-search-input-container",
+			animate(".newbie-search-input-container", {
 				padding: "8px",
 				translateX: "0",
 				translateY: "0",
 				duration: 100,
-				easing: "linear",
+				ease: "linear",
 			});
-			anime({
-				targets: ".newbie-search-condition",
+			animate(".newbie-search-condition", {
 				top: "-44px",
 				opacity: 1,
 				duration: 100,
-				easing: "linear",
+				ease: "linear",
 			});
 			done();
 		},
 	};
 
 	const conditionText = computed(
-		() => find(conditions, { value: queryForm[item.key].condition })?.label || useT("search.equal")
+		() =>
+			find(conditions, { value: queryForm[item.key].condition })?.label ||
+			useT("search.equal")
 	);
 
 	const conditionMaskText = computed(
-		() => find(conditions, { value: queryForm[item.key].condition })?.label || useT("search.equal")
+		() =>
+			find(conditions, { value: queryForm[item.key].condition })?.label ||
+			useT("search.equal")
 	);
 
 	return (
 		<OnClickOutside onTrigger={onClosePanel}>
 			<div
-				class={`newbie-search-item ${isHidden.value ? 'hidden' : ''} ${searchProvider.maskClass || ""}`}
+				class={`newbie-search-item ${isHidden.value ? "hidden" : ""} ${searchProvider.maskClass || ""}`}
 			>
 				<div class={"newbie-search-mask"} onClick={onOpenPanel}>
 					<div class={"newbie-search-mask-title"}>{item.title}</div>
 					<div class={"newbie-search-mask-content"}>
 						{queryForm[item.key].condition !== "equal" ? (
-							<div class={"newbie-search-mask-condition"}>{conditionMaskText.value}</div>
+							<div class={"newbie-search-mask-condition"}>
+								{conditionMaskText.value}
+							</div>
 						) : null}
 						<div class={"newbie-search-mask-value"}>{displayValue?.value}</div>
 					</div>
@@ -139,17 +143,23 @@ const render = (item, queryForm, itemState, context) => {
 							<div class={"newbie-search-condition"}>
 								<span class={"newbie-search-condition-title"}>
 									{useT("common.search")}{" "}
-									<TypographyText code={true}>{{ default: () => item.title }}</TypographyText>
+									<TypographyText code={true}>
+										{{ default: () => item.title }}
+									</TypographyText>
 								</span>
 								{props.disableConditions || item.disableConditions ? null : (
-									<Dropdown trigger={["click"]} getPopupContainer={() => panelRef.value}>
+									<Dropdown
+										trigger={["click"]}
+										getPopupContainer={() => panelRef.value}
+									>
 										{{
 											default: () => (
 												<a
 													class={"newbie-search-condition-dropdown-link"}
 													onClick={withModifiers(() => {}, ["prevent"])}
 												>
-													{conditionText.value} <DownOutlined></DownOutlined>
+													{conditionText.value}{" "}
+													<DownOutlined></DownOutlined>
 												</a>
 											),
 											overlay: () => (
@@ -160,7 +170,13 @@ const render = (item, queryForm, itemState, context) => {
 																<MenuItem key={condition.value}>
 																	{{
 																		default: () => (
-																			<a onClick={() => onSelectCondition(index)}>
+																			<a
+																				onClick={() =>
+																					onSelectCondition(
+																						index
+																					)
+																				}
+																			>
 																				{condition.label}
 																			</a>
 																		),
