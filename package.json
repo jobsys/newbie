@@ -44,7 +44,7 @@
 	},
 	"dependencies": {
 		"@vueuse/components": "10.3.0",
-		"@vueuse/core": "10.2.1",
+		"@vueuse/core": "14.2.1",
 		"@wangeditor/editor": "5.1.23",
 		"animejs": "3.2.1",
 		"resumablejs": "1.1.0",
@@ -67,12 +67,12 @@
 		"unplugin-vue-components": "28.0.0"
 	},
 	"peerDependencies": {
-		"@ant-design/icons-vue": "6.1.0",
-		"ant-design-vue": "4.2.6",
-		"axios": "1.7.9",
-		"dayjs": "1.11.13",
-		"lodash-es": "4.17.21",
-		"vue": "3.5.13"
+		"@ant-design/icons-vue": "^7.0.1",
+		"ant-design-vue": "^4.2.6",
+		"axios": "^1.15.0",
+		"dayjs": "^1.11.19",
+		"lodash-es": "^4.17.23",
+		"vue": "^3.5.30"
 	},
 	"engines": {
 		"node": ">=22.13.0"
