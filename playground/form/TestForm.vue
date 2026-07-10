@@ -35,9 +35,9 @@
   </div>
 </template>
 <script setup>
-import { ref } from "vue";
-import { Button, DatePicker } from "ant-design-vue";
-import { useModalConfirm } from "../../hooks/index.js";
+import {ref} from "vue";
+import {Button, DatePicker} from "ant-design-vue";
+import {useModalConfirm} from "../../hooks/index.js";
 
 const content = ref("");
 const counter = ref(0);
@@ -59,6 +59,15 @@ const cardSlots = {
 
 const getForm = () => {
   return [
+	  {
+		  title: "关联调查问卷",
+		  key: "survey_id",
+		  optional: ["是", "否"],
+		  width: 300,
+		  type: "select",
+		  options: ['选项1', '选项2'],
+		  help: "如果开启将需要申请者先完成该调查问卷",
+	  },
     {
       title: "Shipping Number",
       key: "area",

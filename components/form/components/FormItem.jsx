@@ -7,6 +7,12 @@ import {isBoolean, isFunction, isUndefined} from "lodash-es";
 import {initItemDefaultValue, isOptionalChecked, placeholder} from "../utils.js";
 import {useI18n} from "vue-i18n";
 
+// 存储 optional 字段的 ref 状态
+// key 为 formState[item.key]（reactive 对象，跨渲染稳定）
+// 使用 WeakMap 而非直接存在 reactive 对象上，因为 reactive 会自动解包 ref，
+// 导致取出来的是布尔值而非 ref 对象
+const optionalStateMap = new WeakMap();
+
 /**
  *
  * 渲染优先级为：slot > customRender > type
@@ -283,9 +289,12 @@ const render = (item, submitForm, { props, slots, formState }) => {
 	let optionalRenderItem = null;
 
 	if (item.optional && !item.readonly) {
-		if (isUndefined(item.optionalValue)) {
+		const formItemState = formState[item.key];
+		let optionalValue = optionalStateMap.get(formItemState);
+		if (!optionalValue) {
 			const isChecked = isOptionalChecked(item, submitForm);
-			item.optionalValue = ref(isChecked);
+			optionalValue = ref(isChecked);
+			optionalStateMap.set(formItemState, optionalValue);
 		}
 		// 如果切换为 false, 则把 value 赋为 null
 		// 由原来的赋 undefined 改为 null, 因为 undefined 会被 FormItem 认为是未填写
@@ -293,14 +302,15 @@ const render = (item, submitForm, { props, slots, formState }) => {
 			<div class={"newbie-form__optional"}>
 				<FormItemRest>
 					<Switch
-						v-model:checked={item.optionalValue.value}
+						checked={optionalValue.value}
+						onUpdate:checked={val => (optionalValue.value = val)}
 						checkedChildren={item.optional?.[0] || ""}
 						unCheckedChildren={item.optional?.[1] || ""}
 						onChange={checked => !checked && (submitForm[item.key] = null)}
 					></Switch>
 				</FormItemRest>
 				<div class={"newbie-form__optional-content"}>
-					{item.optionalValue.value ? renderItem : false}
+					{optionalValue.value ? renderItem : false}
 				</div>
 			</div>
 		);
