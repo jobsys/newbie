@@ -4,6 +4,9 @@ import createFormItem from "./FormItem.jsx";
 import {nextTick} from "vue";
 import {RightOutlined} from "@ant-design/icons-vue";
 
+// 每个折叠容器的展开动画控制器，用于反向切换时移除未触发的 transitionend 监听
+const expandAnimations = new WeakMap();
+
 /**
  *
  * @param {Array.<NewbieFormItemConfig>} formItems
@@ -110,12 +113,27 @@ const render = (formItems, submitForm, submitButtons, context) => {
 		const collapseElem = document.getElementById(`collapse_${item.key}`);
 
 		if (formState[item.key].isCollapse) {
+			expandAnimations.get(collapseElem)?.abort();
+
 			collapseElem.style.height = `${collapseElem.scrollHeight}px`;
+
+			// 过渡结束后必须恢复 auto，固定像素高度会在后续内容变高（增删行、行高变化等）时把超出部分截断
+			const controller = new AbortController();
+			expandAnimations.set(collapseElem, controller);
+			collapseElem.addEventListener(
+				"transitionend",
+				event => {
+					if (event.target === collapseElem && event.propertyName === "height") {
+						collapseElem.style.height = "auto";
+					}
+				},
+				{signal: controller.signal}
+			);
 		} else {
+			expandAnimations.get(collapseElem)?.abort();
+
 			//由于没有定义 height 的样式第一次无法触发动画，所以先设置个原始高度，再异步变为0来触发动画
-			if (!collapseElem.style.height) {
-				collapseElem.style.height = `${collapseElem.scrollHeight}px`;
-			}
+			collapseElem.style.height = `${collapseElem.scrollHeight}px`;
 			setTimeout(() => (collapseElem.style.height = "0px"));
 		}
 		nextTick(() => {
