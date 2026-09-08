@@ -177,7 +177,10 @@ export default defineComponent({
 						(betweenKeys.includes(item.type) || arrayKeys.includes(item.type)) &&
 						!isArray(persistenceValue)
 					) {
-						value = [persistenceValue];
+						//为空/不为空条件收集的值为 null，保持该类型初始的空值，避免恢复出 [null]
+						if (persistenceValue != null && persistenceValue !== "") {
+							value = [persistenceValue];
+						}
 					} else {
 						value = persistenceValue;
 					}
@@ -511,13 +514,15 @@ export default defineComponent({
 				// select/cascade/date 类型的值必须是数组
 				const field = state.queryForm[key];
 				const type = field?.type || item.type || "input";
-				if (
-					(betweenKeys.includes(type) || arrayKeys.includes(type)) &&
-					!isArray(value) &&
-					value != null &&
-					value !== ""
-				) {
-					value = [value];
+				if (betweenKeys.includes(type) || arrayKeys.includes(type)) {
+					if (!isArray(value)) {
+						//为空/不为空条件收集的值为 null，归一化为该类型的空值
+						if (value != null && value !== "") {
+							value = [value];
+						} else {
+							value = betweenKeys.includes(type) ? [null, null] : [];
+						}
+					}
 				}
 
 				if (field) {

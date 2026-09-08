@@ -40,7 +40,9 @@ const render = (item, queryForm, context) => {
 
     const conditionLabel = find(conditions, { value: queryForm[item.key].condition })?.label;
 
-    if (
+    if (["null", "notNull"].includes(queryForm[item.key].condition)) {
+      searchLabel = `${item.title}${conditionLabel}`;
+    } else if (
       queryForm[item.key].condition === "between" &&
       queryForm[item.key].value &&
       every(queryForm[item.key].value, dayjs.isDayjs)
@@ -63,6 +65,11 @@ const render = (item, queryForm, context) => {
   };
 
   const displayValue = computed(() => {
+    // 为空/不为空条件不消耗值，残留的日期不参与展示
+    if (["null", "notNull"].includes(queryForm[item.key].condition)) {
+      return null;
+    }
+
     if (
       queryForm[item.key].condition === "between" &&
       queryForm[item.key].value &&
@@ -108,36 +115,47 @@ const render = (item, queryForm, context) => {
     },
   ]);
 
-  let Component =
-    queryForm[item.key].condition === "between" ? (
-      <RangePicker
-        ref={inputRef}
-        v-model:value={queryForm[item.key].value}
-        allowClear={true}
-        inputReadOnly={true}
-        open={true}
-        presets={picker === "date" ? rangePresets.value : []}
-        style={{ width: "400px" }}
-        class={`${searchProvider.inputClass || ""}`}
-        placeholder={[useT("search.start-time"), useT("search.end-time")]}
-        getPopupContainer={triggerNode => triggerNode?.parentNode}
-        {...item.inputProps}
-      ></RangePicker>
-    ) : (
-      <DatePicker
-        ref={inputRef}
-        v-model:value={queryForm[item.key].value[0]}
-        allowClear={true}
-        open={true}
-        inputReadOnly={true}
-        presets={picker === "date" ? presets.value : []}
-        style={{ width: "200px" }}
-        class={`${searchProvider.inputClass || ""}`}
-        placeholder={useI18nJoin(useT("common.search"), item.title)}
-        getPopupContainer={triggerNode => triggerNode?.parentNode}
-        {...item.inputProps}
-      ></DatePicker>
-    );
+  let Component = ["null", "notNull"].includes(queryForm[item.key].condition) ? (
+    // 为空/不为空不需要选值，禁用日期选择
+    <DatePicker
+      ref={inputRef}
+      disabled={true}
+      value={undefined}
+      style={{ width: "200px" }}
+      class={`${searchProvider.inputClass || ""}`}
+      placeholder={useI18nJoin(useT("common.search"), item.title)}
+      getPopupContainer={triggerNode => triggerNode?.parentNode}
+      {...item.inputProps}
+    ></DatePicker>
+  ) : queryForm[item.key].condition === "between" ? (
+    <RangePicker
+      ref={inputRef}
+      v-model:value={queryForm[item.key].value}
+      allowClear={true}
+      inputReadOnly={true}
+      open={true}
+      presets={picker === "date" ? rangePresets.value : []}
+      style={{ width: "400px" }}
+      class={`${searchProvider.inputClass || ""}`}
+      placeholder={[useT("search.start-time"), useT("search.end-time")]}
+      getPopupContainer={triggerNode => triggerNode?.parentNode}
+      {...item.inputProps}
+    ></RangePicker>
+  ) : (
+    <DatePicker
+      ref={inputRef}
+      v-model:value={queryForm[item.key].value[0]}
+      allowClear={true}
+      open={true}
+      inputReadOnly={true}
+      presets={picker === "date" ? presets.value : []}
+      style={{ width: "200px" }}
+      class={`${searchProvider.inputClass || ""}`}
+      placeholder={useI18nJoin(useT("common.search"), item.title)}
+      getPopupContainer={triggerNode => triggerNode?.parentNode}
+      {...item.inputProps}
+    ></DatePicker>
+  );
 
   return { conditions, Component, displayValue, onComponentOpen };
 };

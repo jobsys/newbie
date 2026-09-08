@@ -17,6 +17,8 @@ const render = (item, queryForm, context) => {
     { label: useT("search.not-equal"), value: "notEqual" },
     { label: useT("search.include"), value: "include" },
     { label: useT("search.exclude"), value: "exclude" },
+    { label: useT("search.null"), value: "null" },
+    { label: useT("search.not-null"), value: "notNull" },
   ];
 
   if (item.conditions && item.conditions.length) {
@@ -27,11 +29,16 @@ const render = (item, queryForm, context) => {
   options = options.map(op => (isString(op) || isNumber(op) ? { value: op, label: op } : op));
 
   const displayValue = computed(() => {
+    // 为空/不为空条件不消耗值，持久化恢复的残留选项不参与展示
+    if (["null", "notNull"].includes(queryForm[item.key].condition)) {
+      return null;
+    }
+
     return (
       <Space>
         {{
           default: () =>
-            queryForm[item.key].value.map(val => {
+            (queryForm[item.key].value || []).map(val => {
               return <Tag>{{ default: () => find(options, { value: val })?.label }}</Tag>;
             }),
         }}
@@ -46,6 +53,11 @@ const render = (item, queryForm, context) => {
         queryForm[item.key].value = queryForm[item.key].value?.[0]
           ? [queryForm[item.key].value[0]]
           : [];
+      } else if (!["null", "notNull"].includes(val)) {
+        // 从为空/不为空切回带值条件时，清理持久化恢复可能产生的 null 残留
+        queryForm[item.key].value = (queryForm[item.key].value || []).filter(
+          option => !isNull(option) && !isUndefined(option)
+        );
       }
     }
   );
@@ -59,22 +71,24 @@ const render = (item, queryForm, context) => {
     let value = null,
       searchLabel = null;
 
-    const conditionLabel = find(conditions, { value: queryForm[item.key].condition })?.label;
+    const condition = find(conditions, { value: queryForm[item.key].condition });
 
-    if (
+    if (condition && ["null", "notNull"].includes(condition.value)) {
+      searchLabel = `${item.title}${condition?.label}`;
+    } else if (
       ["equal", "notEqual"].includes(queryForm[item.key].condition) &&
       !isUndefined(queryForm[item.key].value?.[0]) &&
       !isNull(queryForm[item.key].value?.[0])
     ) {
       value = queryForm[item.key].value?.[0] || null;
-      searchLabel = `${item.title}${conditionLabel}: ${find(options, { value })?.label}`;
+      searchLabel = `${item.title}${condition?.label}: ${find(options, { value })?.label}`;
     } else if (
       !["equal", "notEqual"].includes(queryForm[item.key].condition) &&
       every(queryForm[item.key].value, val => !isNull(val) && !isUndefined(val))
     ) {
       value = queryForm[item.key].value;
       const label = value.map(val => find(options, { value: val })?.label)?.join(",");
-      searchLabel = `${item.title}${conditionLabel}: ${label}`;
+      searchLabel = `${item.title}${condition?.label}: ${label}`;
     }
     return { value, searchLabel };
   };
@@ -83,7 +97,20 @@ const render = (item, queryForm, context) => {
     //inputRef.value?.focus()
   };
 
-  const Component = ["equal", "notEqual"].includes(queryForm[item.key].condition) ? (
+  const Component = ["null", "notNull"].includes(queryForm[item.key].condition) ? (
+    // 为空/不为空不需要选值，禁用下拉
+    <Select
+      ref={inputRef}
+      disabled={true}
+      value={undefined}
+      options={options}
+      style={{ width: "200px" }}
+      class={`${searchProvider.inputClass || ""}`}
+      placeholder={useI18nJoin(useT("common.search"), item.title)}
+      getPopupContainer={triggerNode => triggerNode.parentNode}
+      {...item.inputProps}
+    ></Select>
+  ) : ["equal", "notEqual"].includes(queryForm[item.key].condition) ? (
     <Select
       ref={inputRef}
       v-model:value={queryForm[item.key].value[0]}
