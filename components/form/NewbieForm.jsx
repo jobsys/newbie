@@ -538,7 +538,8 @@ export default defineComponent({
 				<Button
 					loading={state.submitFetcher.loading}
 					type={"primary"}
-					htmlType={"submit"}
+					// 不能设 htmlType="submit"：原生 submit 会触发 antd Form 内部 validateFields，
+					// 与 onClick 里的 validate 并发竞态，本侧永远 outOfDate 落败导致提交丢失
 					disabled={props.submitDisabled}
 					onClick={() => {
 						if (props.submitConfirmText) {
