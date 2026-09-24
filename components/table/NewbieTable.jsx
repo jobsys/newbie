@@ -568,9 +568,15 @@ export default defineComponent({
 		);
 
 		//为了避免出现 Append 在一开始覆盖 Table 内容的情况，在 doFetch 后 Pagination 确定下来再添加兼容样式
+		//空数据时 antd 不渲染分页，负 margin 上拉 footer 会压住表格，CSS 侧已用 :has 兜底，这里只负责开关 class
 		watchEffect(() => {
-			if (!!props.pagination && tableRef.value) {
+			if (!tableRef.value) {
+				return;
+			}
+			if (props.pagination) {
 				tableRef.value?.classList.add("pagination-adapt");
+			} else {
+				tableRef.value?.classList.remove("pagination-adapt");
 			}
 		});
 

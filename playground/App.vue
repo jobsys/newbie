@@ -4,6 +4,7 @@ import TestAddress from "./address/TestAddress.vue";
 import TestPassword from "./password/TestPassword.vue";
 import TestSearch from "./search/TestSearch.vue";
 import TestTable from "./table/TestTable.vue";
+import TestEmptyOverflow from "./table/TestEmptyOverflow.vue";
 import TestUploader from "./uploader/TestUploader.vue";
 import TestModal from "./modal/TestModal.vue";
 import TestForm from "./form/TestForm.vue";
@@ -104,6 +105,11 @@ const options = shallowRef([
     label: "Table",
     value: "Table",
     component: TestTable,
+  },
+  {
+    label: "EmptyOverflow",
+    value: "EmptyOverflow",
+    component: TestEmptyOverflow,
   },
   {
     label: "FormDesigner",
