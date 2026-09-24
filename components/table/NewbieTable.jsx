@@ -7,7 +7,6 @@ import {
     reactive,
     ref,
     watch,
-    watchEffect,
     withModifiers,
 } from "vue";
 import {
@@ -567,18 +566,27 @@ export default defineComponent({
 			{ immediate: true, deep: true }
 		);
 
-		//为了避免出现 Append 在一开始覆盖 Table 内容的情况，在 doFetch 后 Pagination 确定下来再添加兼容样式
-		//空数据时 antd 不渲染分页，负 margin 上拉 footer 会压住表格，CSS 侧已用 :has 兜底，这里只负责开关 class
-		watchEffect(() => {
-			if (!tableRef.value) {
-				return;
-			}
-			if (props.pagination) {
-				tableRef.value?.classList.add("pagination-adapt");
-			} else {
-				tableRef.value?.classList.remove("pagination-adapt");
-			}
-		});
+		/**
+		 * 仅在 antd 真正渲染分页后，才让 Append 与分页共用一行。
+		 * 不能只根据 props.pagination 添加 class：空数据时 antd 会隐藏分页，
+		 * 此时旧版负 margin 会让空 footer 压住表格底部。
+		 */
+		const syncPaginationAdapt = () => {
+			const hasPagination = !!tableRef.value?.querySelector(".ant-table-pagination");
+			tableRef.value?.classList.toggle("pagination-adapt", hasPagination);
+		};
+
+		watch(
+			() => [
+				props.pagination,
+				props.tableProps.pagination,
+				state.items.length,
+				state.pagination.totalSize,
+				tableRef.value,
+			],
+			() => nextTick(syncPaginationAdapt),
+			{ immediate: true, flush: "post" }
+		);
 
 		watch(
 			() => props.formData,
@@ -1099,7 +1107,7 @@ export default defineComponent({
 		};
 
 		const footerElem = () =>
-			slots.append || props.pagination ? (
+			slots.append ? (
 				<div class={`newbie-table-footer`}>
 					<div class={"newbie-table-append-wrapper"}>{slots.append ? slots.append() : null}</div>
 					<div class={"newbie-table-pagination-wrapper"}></div>

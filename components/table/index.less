@@ -190,13 +190,11 @@
     }
 
     /**
-           有 pagination 时上移到 pagination 同一高度
-           注意：空数据时 antd 不渲染 .ant-table-pagination，
-           此时不能再用负 margin 上拉 footer，否则 footer 会压住表格 body，
-           造成表格底部视觉上超出 wrapper。
-           用 :has 确保只有分页真实存在时才上拉，兼容本地数据 totalSize 为 0 但分页仍显示的情况
+           仅当分页 DOM 真正存在时，Append 才与分页共用一行。
+           该 class 由组件运行时判断，不依赖 CSS :has()，避免旧 CSS 或
+           不支持 :has() 的环境让空数据表格产生负 margin 溢出。
            */
-    &.pagination-adapt:has(.ant-table-pagination) {
+    &.pagination-adapt {
         .ant-table-pagination{
             height: 50px;
             margin: 0;
@@ -204,12 +202,6 @@
         }
         .newbie-table-footer{
             margin-top: -48px;
-        }
-    }
-
-    &.pagination-adapt:not(:has(.ant-table-pagination)) {
-        .newbie-table-pagination-wrapper {
-            display: none;
         }
     }
 
