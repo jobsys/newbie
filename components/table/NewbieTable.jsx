@@ -283,7 +283,7 @@ export default defineComponent({
 				// 翻页数据
 				totalSize: 0,
 				currentPage: persistencePagination.currentPage || 1,
-				pageSize: persistencePagination.pageSize || props.pagination?.pageSize || 10,
+				pageSize: persistencePagination.pageSize || props.pagination?.pageSize || 20,
 			},
 			id: "",
 			tableSelection: [], // 给外部用
@@ -783,7 +783,7 @@ export default defineComponent({
 					showQuickJumper: true,
 					showSizeChanger: true,
 					showTotal: total => useT("table.total", { total }),
-					pageSizeOptions: ["10", "30", "50", "100", "300", "500"],
+					pageSizeOptions: ["10", "20", "30", "50", "100", "300", "500"],
 					total: state.pagination.totalSize,
 					pageSize: state.pagination.pageSize,
 					current: state.pagination.currentPage,
