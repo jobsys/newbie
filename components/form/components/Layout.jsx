@@ -52,6 +52,19 @@ const render = (formItems, submitForm, submitButtons, context) => {
 		return null;
 	}
 
+	// 单列布局下跨行没有意义，仅在多列布局中生效
+	const canSpanRows = columns.length > 1;
+
+	/**
+	 * 表单项占用的行数，默认为 1
+	 * @param {NewbieFormItemConfig} item
+	 * @return {number}
+	 */
+	const toRowSpan = item => {
+		const value = parseInt(item.rowSpan, 10);
+		return canSpanRows && Number.isFinite(value) && value > 1 ? value : 1;
+	};
+
 	const sortedFormItems = staticFormItems.map(() => columns.map(() => []));
 
 	staticFormItems.forEach((items, index) => {
@@ -145,55 +158,114 @@ const render = (formItems, submitForm, submitButtons, context) => {
 	 * 生成静态表单项
 	 */
 	sortedFormItems.forEach((items, index) => {
-		/**
-		 * 计算最长的一列有多少个表单项,则代表有多少行
-		 * @type {number}
-		 */
-		const maxLength = Math.max(...items.map(item => item.length));
+		const sectionItems = staticFormItems[index];
 
-		const rows = [];
+		const breakItem = sectionItems.find(item => item.break) || null;
 
-		let breakItem = null;
+		// sectionElems 为该分组渲染出的元素数组
+		let sectionElems;
 
-		for (let row = 0; row < maxLength; row++) {
-			let offset = 0;
-			const columnElems = [];
+		if (sectionItems.some(item => toRowSpan(item) > 1)) {
+			/**
+			 * 存在跨行字段时改用 CSS Grid 布局，
+			 * 让较高的组件（如图片上传）可以占用多行，与相邻列的多个字段对齐
+			 */
+			const cursors = columns.map(() => 0);
+			const cells = [];
 
-			for (let col = 0; col < sortedFormItems[index].length; col++) {
-				const formItem = sortedFormItems[index][col][row];
-				if (!formItem) {
-					offset += columns[col];
-					continue;
+			sectionItems.forEach(item => {
+				let columnIndex = item.columnIndex || 0;
+				if (isNumber(columnIndex)) {
+					columnIndex = Math.min(columnIndex, columns.length - 1);
 				}
 
-				if (formItem.break) {
-					breakItem = formItem;
+				const startCol = isArray(columnIndex)
+					? Math.min(columnIndex[0], columns.length - 1)
+					: columnIndex;
+				const endCol = isArray(columnIndex)
+					? Math.min(columnIndex[columnIndex.length - 1], columns.length - 1)
+					: columnIndex;
+
+				// 跨列字段需要等它覆盖的所有列都空出位置后才能落位
+				let row = 0;
+				for (let col = startCol; col <= endCol; col++) {
+					row = Math.max(row, cursors[col]);
 				}
 
-				//如果是占位元素，则跳过，表示左则的元素占用了该列的位置，该位置没有元素
-				if (formItem === "placeholder") {
-					continue;
+				const rowSpan = toRowSpan(item);
+
+				cells.push({ item, startCol, endCol, row, rowSpan });
+
+				for (let col = startCol; col <= endCol; col++) {
+					cursors[col] = row + rowSpan;
+				}
+			});
+
+			sectionElems = [
+				<div
+					class={`newbie-form__grid`}
+					style={{ gridTemplateColumns: columns.map(width => `${width}fr`).join(" ") }}
+				>
+					{cells.map(cell => (
+						<div
+							class={`newbie-form__grid-item`}
+							style={{
+								gridColumn: `${cell.startCol + 1} / span ${cell.endCol - cell.startCol + 1}`,
+								gridRow: `${cell.row + 1} / span ${cell.rowSpan}`,
+							}}
+						>
+							{getFormItem(cell.item)}
+						</div>
+					))}
+				</div>,
+			];
+		} else {
+			/**
+			 * 计算最长的一列有多少个表单项,则代表有多少行
+			 * @type {number}
+			 */
+			const maxLength = Math.max(...items.map(item => item.length));
+
+			const rows = [];
+
+			for (let row = 0; row < maxLength; row++) {
+				let offset = 0;
+				const columnElems = [];
+
+				for (let col = 0; col < sortedFormItems[index].length; col++) {
+					const formItem = sortedFormItems[index][col][row];
+					if (!formItem) {
+						offset += columns[col];
+						continue;
+					}
+
+					//如果是占位元素，则跳过，表示左则的元素占用了该列的位置，该位置没有元素
+					if (formItem === "placeholder") {
+						continue;
+					}
+
+					columnElems.push(
+						<Col span={formItem.span} offset={offset}>
+							{getFormItem(formItem)}
+						</Col>
+					);
+					offset = 0;
 				}
 
-				columnElems.push(
-					<Col span={formItem.span} offset={offset}>
-						{getFormItem(formItem)}
-					</Col>
-				);
-				offset = 0;
+				rows.push(<Row gutter={16}>{columnElems}</Row>);
 			}
 
-			rows.push(<Row gutter={16}>{columnElems}</Row>);
+			sectionElems = rows;
 		}
 
 		if (breakItem) {
 			if (props.breakMode === "divider") {
-				rows.unshift(
+				staticFormElems = staticFormElems.concat([
 					<Divider {...props.dividerProps}>
 						{() => (isString(breakItem.break) ? breakItem.break : "")}
-					</Divider>
-				);
-				staticFormElems = staticFormElems.concat(rows);
+					</Divider>,
+					...sectionElems,
+				]);
 			} else if (props.breakMode === "collapse") {
 				if (isUndefined(formState[breakItem.key].isCollapse)) {
 					formState[breakItem.key].isCollapse = !!index; //默认展开第一个
@@ -213,14 +285,14 @@ const render = (formItems, submitForm, submitButtons, context) => {
 							class={`newbie-form__collapse-content-wrapper ${formState[breakItem.key].isCollapse ? "collapse" : ""}`}
 							id={`collapse_${breakItem.key}`}
 						>
-							<div class={`newbie-form__collapse-content`}>{rows}</div>
+							<div class={`newbie-form__collapse-content`}>{sectionElems}</div>
 						</div>
 					</div>
 				);
 				staticFormElems = staticFormElems.concat(collapseElem);
 			}
 		} else {
-			staticFormElems = staticFormElems.concat(rows);
+			staticFormElems = staticFormElems.concat(sectionElems);
 		}
 	});
 

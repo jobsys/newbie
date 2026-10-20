@@ -420,14 +420,16 @@ export default defineComponent({
 			doFetch(!persistence);
 		};
 
+		/**
+		 * 获取列的唯一 key
+		 * key 与 dataIndex 都可能是数组（嵌套路径），需要统一转成字符串，
+		 * 否则自定义列弹窗中 checkbox 的 value 会是数组，无法与 columnKey 的字符串 key 匹配
+		 * @param item
+		 * @returns {*}
+		 */
 		const getKey = item => {
-			if (item.key) {
-				return item.key;
-			}
-			if (isArray(item.dataIndex)) {
-				return item.dataIndex.join(".");
-			}
-			return item.dataIndex;
+			const key = item.key || item.dataIndex;
+			return isArray(key) ? key.join(".") : key;
 		};
 
 		const tidyColumnsRecursion = columns => {

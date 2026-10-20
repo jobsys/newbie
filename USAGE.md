@@ -128,6 +128,7 @@ const formConfig = [
     defaultProps: {},      // 组件原生属性
     options: [],           // 选项 (select/checkbox等)
     columnIndex: 0,        // 列位置
+    rowSpan: 1,            // 多列布局下占用的行数（如上传组件占两行）
   }
 ]
 ```

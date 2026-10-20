@@ -34,6 +34,17 @@ const widgetToProps = (widget, mode) => {
 			key: "break",
 			defaultValue: false,
 		},
+		{
+			title: "占用行数",
+			key: "rowSpan",
+			type: "number",
+			defaultValue: 1,
+			defaultProps: {
+				min: 1,
+				max: 5,
+			},
+			help: "多列布局下该字段占用的行数（如上传组件可占两行），单列布局下无效",
+		},
 	];
 
 	if (["input", "select", "textarea"].includes(widget.type)) {
@@ -204,7 +215,7 @@ const formItemToProps = (formItem, mode) => {
 	const formItemProps = formItem.props;
 	const props = {};
 
-	["key", "title", "required", "help", "break"].forEach(prop => {
+	["key", "title", "required", "help", "break", "rowSpan"].forEach(prop => {
 		props[prop] = formItemProps[prop];
 	});
 
@@ -257,7 +268,7 @@ const propsToFormItem = (props, formItem, mode) => {
 		return;
 	}
 	const formItemProps = formItem.props;
-	["title", "required", "help", "break"].forEach(prop => {
+	["title", "required", "help", "break", "rowSpan"].forEach(prop => {
 		formItemProps[prop] = props[prop];
 	});
 

@@ -7,6 +7,20 @@
   .newbie-form__submit-wrapper {
   }
 
+  /***** 多列布局（支持字段跨行时使用） *****/
+
+  .newbie-form__grid {
+    display: grid;
+    // 与 Row gutter={16} 保持一致：Row 左右负边距 8px，栅格项左右内边距 8px
+    margin: 0 -8px;
+  }
+
+  .newbie-form__grid-item {
+    display: flow-root;
+    min-width: 0;
+    padding: 0 8px;
+  }
+
   .newbie-form__optional {
     display: flex;
     align-items: center;
@@ -16,16 +30,35 @@
     }
   }
 
+  /***** collapse 分组 *****/
+
   .newbie-form__collapse-wrapper {
+    margin-bottom: 16px;
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+
     .newbie-form__collapse-header {
-      padding: 16px 0;
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
       cursor: pointer;
+      user-select: none;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+      }
 
       .newbie-form__collapse-icon {
+        display: inline-flex;
+        align-items: center;
         margin-right: 10px;
+        color: rgba(0, 0, 0, 0.45);
 
         .anticon {
-          transition: transform 0.5s;
+          transition: transform 0.3s;
         }
 
         &.open {
@@ -36,16 +69,16 @@
       }
 
       .newbie-form__collapse-title {
-        font-weight: bold;
-        font-size: 16px;
+        font-weight: 600;
+        font-size: 15px;
+        line-height: 22px;
+        color: rgba(0, 0, 0, 0.88);
       }
     }
 
     .newbie-form__collapse-content-wrapper {
-      transition: height 0.5s;
+      transition: height 0.3s;
       overflow: hidden;
-      background: #f9fafb;
-      border-radius: 4px;
 
       &.collapse {
         height: 0;
@@ -53,7 +86,7 @@
 
       .newbie-form__collapse-content {
         box-sizing: border-box;
-        padding: 16px;
+        padding: 8px 16px 0;
       }
     }
   }

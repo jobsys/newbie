@@ -174,6 +174,7 @@ export default defineComponent({
 		 * @property {Function} [match] 支持根据条件返回不同的配置进行动态渲染
 		 * @param {String} [formula] 公式，类型为 computed 时需要指定 formula
 		 * @property {number|Array|string} [columnIndex] 渲染在哪一列，默认为0，第一列
+		 * @property {number} [rowSpan] 多列布局下占用的行数，默认为 1，单列布局下无效
 		 * @property {boolean|string} [break] 新起一行，默认为false，如果为 String 则以 Divider 分割
 		 * @property {Object} [defaultProps] 组件的配置
 		 * @property {Object} [defaultSlots] 组件的默认插槽

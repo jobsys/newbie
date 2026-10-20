@@ -233,6 +233,7 @@ const handleSave = async () => {
 | beforeSubmit       | Function            | -       | 提交前修改表单项的值               |
 | match              | Function            | -       | 根据条件返回不同的配置进行动态渲染 |
 | columnIndex        | Number/Array/String | 0       | 渲染在哪一列                       |
+| rowSpan            | Number              | 1       | 多列布局下占用几行（如上传组件占两行） |
 | break              | Boolean/String      | false   | 新起一行，String 时以 Divider 分割 |
 | defaultProps       | Object              | -       | 组件的配置                         |
 | defaultSlots       | Object              | -       | 组件的默认插槽                     |

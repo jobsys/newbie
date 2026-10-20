@@ -4,10 +4,12 @@ import TestAddress from "./address/TestAddress.vue";
 import TestPassword from "./password/TestPassword.vue";
 import TestSearch from "./search/TestSearch.vue";
 import TestTable from "./table/TestTable.vue";
+import TestArrayDataIndex from "./table/TestArrayDataIndex.vue";
 import TestEmptyOverflow from "./table/TestEmptyOverflow.vue";
 import TestUploader from "./uploader/TestUploader.vue";
 import TestModal from "./modal/TestModal.vue";
 import TestForm from "./form/TestForm.vue";
+import TestFormLayout from "./form/TestFormLayout.vue";
 import TestFormDesigner from "./form-designer/TestFormDesigner.vue";
 import TestEditor from "./editor/TestEditor.vue";
 import TestCopy from "./copy/TestCopy.vue";
@@ -72,6 +74,11 @@ const options = shallowRef([
     component: TestForm,
   },
   {
+    label: "FormLayout",
+    value: "FormLayout",
+    component: TestFormLayout,
+  },
+  {
     label: "Address",
     value: "Address",
     component: TestAddress,
@@ -105,6 +112,11 @@ const options = shallowRef([
     label: "Table",
     value: "Table",
     component: TestTable,
+  },
+  {
+    label: "ArrayDataIndex",
+    value: "ArrayDataIndex",
+    component: TestArrayDataIndex,
   },
   {
     label: "EmptyOverflow",

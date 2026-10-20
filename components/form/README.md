@@ -22,6 +22,7 @@
 | optional      | 表单项是否开启后才可以输入, 用法见下方[FAQ](#faq)                                                                            | boolean \| Array              | -                                     | false   |
 | match         | 支持根据条件返回不同的配置进行动态渲染, 用法见下方[FAQ](#faq)                                                                | Function                      | -                                     | -       |
 | columnIndex   | 渲染在哪一列                                                                                                                 | number \| string              | -                                     |         |
+| rowSpan       | 多列布局下占用的行数（如上传组件可占两行），单列布局下无效                                                                   | number                        | -                                     | 1       |
 | break         | 是否新起一行，如果为String则以 Divider 分割                                                                                  | boolean \| string             | -                                     | false   |
 | defaultProps  | 组件的配置                                                                                                                   | object                        | -                                     | {}      |
 | formItemProps | 同原生 [FormItem](https://www.antdv.com/components/form-cn#form-item) 配置, 并可以直接使用 `slots` 属性定义 FormItem 的 slot | object                        | -                                     | {}      |
@@ -223,6 +224,26 @@ boolean 值，也可以传入一个函数，函数接收一个参数 `submitForm
 	}
 }
 ```
+
+### 多列布局下如何让某个字段（如图片上传）占用多行？
+
+在多列布局（如 `columns: [12, 12]`）中，同一行的字段高度会被拉齐。若其中某个组件（图片上传、富文本等）明显高于相邻字段，可以通过 `rowSpan` 让该字段跨行显示，从而与相邻列的多个字段对齐：
+
+```js
+{
+    key: "avatar",
+    title: "头像",
+    type: "uploader",
+    columnIndex: 1, // 放在第 2 列
+    rowSpan: 2, // 占用 2 行，右侧可与左侧两个字段对齐
+    defaultProps: {
+        type: "picture-card",
+        accept: ".png,.jpg,.jpeg",
+    },
+}
+```
+
+`rowSpan` 默认为 `1`，仅在多列布局（`columns` 长度大于 1）时生效。在表单设计器中也可以通过字段属性里的「占用行数」进行设置。
 
 ## 示例
 
