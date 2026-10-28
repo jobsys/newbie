@@ -243,6 +243,7 @@ const handleSave = async () => {
 | children           | Array/Function      | -       | 子表单配置                         |
 | childrenOperations | Array               | -       | 子表单操作                         |
 | cellProps          | Object              | -       | 单元格的配置                       |
+| rangeKeys          | Array&lt;String&gt; | -       | 区间字段：`date`/`time` 且 `defaultProps.type` 为 `range` 时，把区间值拆分写入这两个字段（如 `["started_at", "ended_at"]`）；仅顶层表单项与 `combiner` 子项生效 |
 
 #### 使用示例
 

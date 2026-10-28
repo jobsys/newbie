@@ -103,9 +103,15 @@ const render = (item, submitForm, { props, slots, formState }) => {
 				break;
 			case "date":
 				renderItem = Fields.createDate(item, submitForm);
+				if (item.defaultProps?.type === "range") {
+					requiredRule.type = "array";
+				}
 				break;
 			case "time":
 				renderItem = Fields.createTime(item, submitForm);
+				if (item.defaultProps?.type === "range") {
+					requiredRule.type = "array";
+				}
 				break;
 			case "switch":
 				renderItem = Fields.createSwitch(item, submitForm);

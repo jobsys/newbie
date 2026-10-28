@@ -29,6 +29,7 @@
 | defaultValue  | 默认值                                                                                                                       | any                           | -                                     | ""      |
 | children      | 子组件配置                                                                                                                   | array\<NewbieFormItemConfig\> | -                                     | -       |
 | cellProps     | 子组件渲染的[单元格配置](https://www.antdv.com/components/table-cn#column)                                                   | object                        | -                                     | -       |
+| rangeKeys     | 区间组件（`date` / `time` 且 `defaultProps.type` 为 `range`）拆分写入的两个字段名，如 `["started_at", "ended_at"]`          | Array\<string\>               | -                                     | -       |
 | customRender  | 自定义渲染函数                                                                                                               | func                          | -                                     | -       |
 
 ### `NewbieFormItemConfig.type` 支持组件类型

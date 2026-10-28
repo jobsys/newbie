@@ -129,9 +129,29 @@ const formConfig = [
     options: [],           // 选项 (select/checkbox等)
     columnIndex: 0,        // 列位置
     rowSpan: 1,            // 多列布局下占用的行数（如上传组件占两行）
+    rangeKeys: [],         // 区间字段：date/time 的 defaultProps.type 为 range 时，拆分写入这两个字段
   }
 ]
 ```
+
+**区间选择（一次写两个字段）：**
+
+```javascript
+{
+  key: 'period',
+  title: '项目时间',
+  type: 'date',
+  required: true,
+  rangeKeys: ['started_at', 'ended_at'],   // 初始化时由这两个字段合并，提交时拆分回去
+  defaultProps: { type: 'range', format: 'YYYY-MM-DD' },
+}
+```
+
+- 只对 `date` / `time` 且 `defaultProps.type === 'range'` 生效，其余配置会被忽略
+- 支持顶层表单项与 `combiner` 子项；`group` 子项由内部表单自行处理
+- 提交值按 `defaultProps.format` 格式化；时间类型未配 `format` 时兜底为 `HH:mm:ss`，
+  日期类型未配 `format` 时保持 dayjs 对象，交由 Form Provider 的 `format.date` 处理
+- 两个字段都为空时不会合并出 `[null, null]`，必填校验与 `defaultValue` 均按空区间处理
 
 **支持的 type 类型:**
 - `input` - 文本输入

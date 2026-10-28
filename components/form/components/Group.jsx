@@ -14,8 +14,13 @@ import { PlusOutlined } from "@ant-design/icons-vue";
 import { initItemDefaultValue } from "../utils";
 import NewbieModal from "../../modal/NewbieModal.jsx";
 import { cloneDeep, isArray, isFunction, isNumber, isString } from "lodash-es";
-import { useFindLabelsInValues, useI18nJoin, useLabelFromOptionsValue } from "../../../hooks";
-import dayjs from "dayjs";
+import {
+  useFindLabelsInValues,
+  useI18nJoin,
+  useLabelFromOptionsValue,
+  useDayjs,
+  useTimeDayjs,
+} from "../../../hooks";
 import { useTableImage } from "../../table";
 import { useI18n } from "vue-i18n";
 
@@ -51,7 +56,8 @@ const render = (item, submitForm, itemState, context) => {
   const dataColumns = childrenItems
     .filter(child => !child.invisible) // 有的不用在 table 中显示
     .map(child => ({
-      dataIndex: child.key,
+      // rangeKeys 的值存在两个字段中，记录里没有区间 key 本身，取起始字段作为数据列
+      dataIndex: child.rangeKeys?.[0] || child.key,
       title: child.title,
       width: child.width,
       key: child.key,
@@ -142,17 +148,6 @@ const render = (item, submitForm, itemState, context) => {
                 isString(op) || isNumber(op) ? { value: op, label: op } : op
               );
               return <span>{useLabelFromOptionsValue(record[column.item.key], options)}</span>;
-            } else if (column.item?.type === "date") {
-              if (record[column.item.key]) {
-                const dayjsObj = dayjs(record[column.item.key]);
-                if (column.item?.defaultProps?.format) {
-                  return <span>{dayjsObj.format(column.item.defaultProps.format)}</span>;
-                } else if (column.item?.defaultProps?.showTime) {
-                  return <span>{dayjsObj.format("YYYY-MM-DD HH:mm:ss")}</span>;
-                }
-                return <span>{dayjsObj.format("YYYY-MM-DD")}</span>;
-              }
-              return null;
             } else if (column.item?.type === "switch") {
               const options = column.item.options || [t("common.yes"), t("common.no")];
 
@@ -200,23 +195,61 @@ const render = (item, submitForm, itemState, context) => {
                 <div class={"flex justify-center"}>{useTableImage(record[column.item.key])}</div>
               );
             } else if (column.item?.type === "time" || column.item?.type === "date") {
+              const defaultProps = column.item?.defaultProps || {};
               const format =
-                column.item?.defaultProps?.format ||
-                (column.item?.type === "time" ? "HH:mm:ss" : "YYYY-MM-DD");
+                defaultProps.format ||
+                (column.item?.type === "time"
+                  ? "HH:mm:ss"
+                  : defaultProps.showTime
+                    ? "YYYY-MM-DD HH:mm:ss"
+                    : "YYYY-MM-DD");
 
-              if (column.item?.defaultProps?.type === "range") {
+              /** 纯时间字符串（如 08:00）需补齐日期再解析，否则会显示 Invalid Date */
+              const formatValue = raw => {
+                if (raw === null || raw === undefined || raw === "") {
+                  return "";
+                }
+                const parsed =
+                  column.item?.type === "time" ? useTimeDayjs(raw) : useDayjs(raw);
+                if (parsed?.isValid()) {
+                  return parsed.format(format);
+                }
+                return isString(raw) ? raw : "";
+              };
+
+              // rangeKeys 的区间值存在两个字段中，需合并后再展示；
+              // 老数据可能只有区间 key 本身，此时回退到 record[column.item.key]
+              const isRange = defaultProps.type === "range";
+              const rangeValue = isRange ? column.item.rangeKeys?.map(key => record[key]) : null;
+              const hasRangeValue =
+                isArray(rangeValue) &&
+                rangeValue.some(range_item => range_item !== null && range_item !== undefined && range_item !== "");
+
+              const value = hasRangeValue ? rangeValue : record[column.item.key];
+
+              if (isRange) {
+                if (!isArray(value) || !value.length) {
+                  return null;
+                }
+
+                const display = value.map(formatValue);
+
+                if (!display.some(Boolean)) {
+                  return null;
+                }
+
                 return (
                   <span>
-                    {dayjs(record[column.item.key][0]).format(format)} -{" "}
-                    {dayjs(record[column.item.key][1]).format(format)}
+                    {display[0]} - {display[1]}
                   </span>
                 );
               }
-              if (record[column.item.key]) {
-                return <span>{dayjs(record[column.item.key]).format(format)}</span>;
+
+              if (isArray(value)) {
+                return null;
               }
 
-              return <span></span>;
+              return <span>{formatValue(value)}</span>;
             }
 
             if (column.dataIndex === "operations") {

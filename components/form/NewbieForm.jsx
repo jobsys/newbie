@@ -1,11 +1,11 @@
 import {computed, defineComponent, inject, onMounted, reactive, ref, watch} from "vue";
-import {cloneDeep, every, isEqual, isFunction, isObject, isString, pick} from "lodash-es";
+import {cloneDeep, every, isArray, isEqual, isFunction, isObject, isString, pick} from "lodash-es";
 import {useFetch, useFormFail, useFormFormat, useI18nJoin, useProcessStatusSuccess,} from "../../hooks";
 import {Button, Card, Form, message, Modal, Skeleton, Space} from "ant-design-vue";
 import createLayout from "./components/Layout.jsx";
 import {NEWBIE_FORM, NEWBIE_UPLOADER} from "../provider/NewbieProvider.jsx";
 import "./index.less";
-import {initItemDefaultValue} from "./utils";
+import {applyRangeKeys, initItemDefaultValue} from "./utils";
 import {useI18n} from "vue-i18n";
 import {computeVisibility} from "./utils/rule-engine";
 import {normalizeFormConfig} from "./utils/normalize-form-config";
@@ -184,6 +184,7 @@ export default defineComponent({
 		 * @property {Array.<NewbieFormItemConfig>|Function} [children] 子表单配置
 		 * @property {Array} [childrenOperations] 子表单操作
 		 * @property {Object} [cellProps] 单元格的配置
+		 * @property {Array<string>} [rangeKeys] 区间组件（date / time 的 defaultProps.type 为 range）拆分写入的两个字段名，如 ["started_at", "ended_at"]
 		 */
 
 		/**
@@ -416,15 +417,17 @@ export default defineComponent({
 						// 为了在 item 中也能定制 beforeSubmit 这里和下面的 useFormFormat 会重复 copy 一次 submitForm
 						let form = cloneDeep(state.submitForm);
 
-						const itemsWithBeforeSubmit = formItems.value
-							.map(item => {
-								if (item.match) {
-									// match 的属性需要在这里处理
-									return { ...item, ...item.match(form) };
-								}
-								return item;
-							})
-							.filter(item => item.beforeSubmit && isFunction(item.beforeSubmit));
+						const matchedItems = formItems.value.map(item => {
+							if (item.match) {
+								// match 的属性需要在这里处理
+								return { ...item, ...item.match(form) };
+							}
+							return item;
+						});
+
+						const itemsWithBeforeSubmit = matchedItems.filter(
+							item => item.beforeSubmit && isFunction(item.beforeSubmit)
+						);
 
 						for (const item of itemsWithBeforeSubmit) {
 							form[item.key] = await item.beforeSubmit({
@@ -432,6 +435,15 @@ export default defineComponent({
 								submitForm: form, //将 form 传出去，这样可以增删 form 里的参数
 							});
 						}
+
+						// 区间组件拆成两个字段（rangeKeys），需在全局 format 之前处理；
+						// combiner 子项与 match 合并后的配置同样要覆盖
+						form = applyRangeKeys(
+							form,
+							matchedItems.flatMap(item =>
+								item.type === "combiner" && isArray(item.children) ? item.children : [item]
+							)
+						);
 
 						form = useFormFormat(form, formProvider.format || {});
 

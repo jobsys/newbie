@@ -1,7 +1,32 @@
 import { isArray, isFunction, isObject, isUndefined } from "lodash-es";
-import { useDayjs, useNumber } from "../../hooks";
+import { useDayjs, useNumber, useTimeDayjs } from "../../hooks";
 import { useAddressFullCode } from "../address/NewbieAddress.jsx";
 import { useI18n } from "vue-i18n";
+
+/** 是否有值（null / undefined / 空串都视为无值） */
+const hasValue = value => !isUndefined(value) && value !== null && value !== "";
+
+/**
+ * 是否为支持 rangeKeys 的区间表单项
+ *
+ * 只对 `date` / `time` 且 `defaultProps.type` 为 `range` 的表单项生效，
+ * 避免误配时把普通日期字段当成区间处理。
+ *
+ * @param {NewbieFormItemConfig} item
+ * @return {boolean}
+ */
+const isRangeItem = item =>
+  (item.type === "date" || item.type === "time") &&
+  item.defaultProps?.type === "range" &&
+  isArray(item.rangeKeys) &&
+  item.rangeKeys.length >= 2;
+
+/** 区间值拆分时的格式化：优先 item 配置的 format，时间类型兜底为 HH:mm:ss */
+const formatRangeValue = (item, value) => {
+  const format = item.defaultProps?.format || (item.type === "time" ? "HH:mm:ss" : null);
+
+  return format && isFunction(value?.format) ? value.format(format) : value;
+};
 
 /**
  * 初始化表单项默认值
@@ -21,6 +46,18 @@ const initItemDefaultValue = (item, existingData, submitForm, provider) => {
     value = isFunction(item.defaultValue)
       ? item.defaultValue({ submitForm, existingData })
       : item.defaultValue;
+  }
+
+  // rangeKeys: 区间组件由两个字段存值，初始化时从这两个字段合并成区间值
+  if (isRangeItem(item) && existingData) {
+    const [start_key, end_key] = item.rangeKeys;
+    const start_value = existingData[start_key];
+    const end_value = existingData[end_key];
+
+    // 两端都没有值时保持空区间，既不会绕过必填校验，也不会覆盖 defaultValue
+    if (hasValue(start_value) || hasValue(end_value)) {
+      value = [start_value, end_value];
+    }
   }
 
   if (item.init && isFunction(item.init)) {
@@ -50,10 +87,14 @@ const initItemDefaultValue = (item, existingData, submitForm, provider) => {
       value = value || undefined;
     }
   } else if (item.type === "date" || item.type === "time") {
+    // 时间类型可能是纯时间字符串（如后端 datetime:H:i 返回的 08:00），需补齐日期后解析
+    const parseValue = v => (v ? (item.type === "time" ? useTimeDayjs(v) : useDayjs(v)) : null);
+
     if (item.defaultProps && item.defaultProps.type === "range") {
-      value = value ? [useDayjs(value[0]), useDayjs(value[1])] : [];
+      value =
+        isArray(value) && value.length ? [parseValue(value[0]), parseValue(value[1])] : [];
     } else {
-      value = value ? useDayjs(value) : null;
+      value = parseValue(value);
     }
   } else if (item.type === "address") {
     value = value || [];
@@ -76,6 +117,49 @@ const initItemDefaultValue = (item, existingData, submitForm, provider) => {
   }
 
   return value;
+};
+
+/**
+ * 区间组件（date / time 的 type=range）提交前拆分到 rangeKeys 指定的两个字段
+ *
+ * 例：`{ key: "period", type: "date", defaultProps: { type: "range" }, rangeKeys: ["started_at", "ended_at"] }`
+ * 提交时会拆成 `started_at` / `ended_at` 两个字段，并移除 `period`。
+ * 未配置 rangeKeys、不支持的类型、以及区间值已被 item.beforeSubmit 转换成其它形态时都不做处理。
+ *
+ * @param {Object} form 表单数据
+ * @param {Array.<NewbieFormItemConfig>} formItems 表单项配置（需已合并 match）
+ * @return {Object}
+ */
+const applyRangeKeys = (form, formItems) => {
+  formItems.forEach(item => {
+    if (!isRangeItem(item)) {
+      return;
+    }
+
+    const value = form[item.key];
+    const [start_key, end_key] = item.rangeKeys;
+
+    // 未定义说明已被 item.beforeSubmit 处理，此处不再覆盖
+    if (isUndefined(value)) {
+      return;
+    }
+
+    if (isArray(value) && value.length === 2) {
+      form[start_key] = formatRangeValue(item, value[0]);
+      form[end_key] = formatRangeValue(item, value[1]);
+    } else if (value === null || (isArray(value) && !value.length)) {
+      // 清空区间时两个字段一并置空
+      form[start_key] = null;
+      form[end_key] = null;
+    } else {
+      // beforeSubmit 已把区间值转成字符串/对象等形态，保持其处理结果
+      return;
+    }
+
+    delete form[item.key];
+  });
+
+  return form;
 };
 
 const isOptionalChecked = (item, submitForm) => {
@@ -116,4 +200,4 @@ const placeholder = (item, type) => {
   return item.placeholder || t("form.please-input", { title });
 };
 
-export { initItemDefaultValue, isOptionalChecked, placeholder };
+export { applyRangeKeys, initItemDefaultValue, isOptionalChecked, placeholder };
