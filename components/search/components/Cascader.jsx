@@ -1,5 +1,5 @@
 import { Cascader } from "ant-design-vue";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { find, findIndex, isFunction } from "lodash-es";
 import { useFindLabelsFromPath, useI18nJoin, useT } from "../../../hooks/index.js";
 
@@ -18,15 +18,30 @@ const render = (item, queryForm, context) => {
     { label: useT("search.equal"), value: "equal" },
     { label: useT("search.not-equal"), value: "notEqual" },
     { label: useT("search.include-sub"), value: "include" },
+    { label: useT("search.null"), value: "null" },
   ];
 
   if (item.conditions && item.conditions.length) {
     conditions = conditions.filter(condition => item.conditions.includes(condition.value));
   }
 
-  const displayValue = computed(() =>
-    useFindLabelsFromPath(options, queryForm[item.key].value, item.inputProps?.fieldNames).join("/")
+  // 为空不消耗值，切到为空时清掉已选的地区，避免残留
+  watch(
+    () => queryForm[item.key].condition,
+    val => {
+      if (val === "null") {
+        queryForm[item.key].value = [];
+      }
+    }
   );
+
+  const displayValue = computed(() => {
+    if (queryForm[item.key].condition === "null") {
+      return null;
+    }
+
+    return useFindLabelsFromPath(options, queryForm[item.key].value, item.inputProps?.fieldNames).join("/");
+  });
 
   const inputRef = ref(null);
 
@@ -37,10 +52,14 @@ const render = (item, queryForm, context) => {
     let value = queryForm[item.key].value || null,
       searchLabel = null;
 
-    const conditionLabel = find(conditions, { value: queryForm[item.key].condition })?.label;
+    const condition = find(conditions, { value: queryForm[item.key].condition });
+
+    if (condition?.value === "null") {
+      return { value: null, searchLabel: `${item.title}${condition.label}` };
+    }
 
     if (value) {
-      searchLabel = `${item.title}${conditionLabel}: ${useFindLabelsFromPath(options, value, item.inputProps?.fieldNames).join("/")}`;
+      searchLabel = `${item.title}${condition?.label}: ${useFindLabelsFromPath(options, value, item.inputProps?.fieldNames).join("/")}`;
     }
 
     return { value, searchLabel };
@@ -50,22 +69,36 @@ const render = (item, queryForm, context) => {
     inputRef.value?.focus();
   };
 
-  const Component = (
-    <Cascader
-      ref={inputRef}
-      v-model:value={queryForm[item.key].value}
-      allowClear={true}
-      open={true}
-      class={`${searchProvider.inputClass || ""}`}
-      style={{ width: "200px" }}
-      options={options}
-      changeOnSelect={findIndex(conditions, { value: "include" }) > -1}
-      showSearch={true}
-      placeholder={useI18nJoin(useT("common.search"), item.title)}
-      getPopupContainer={triggerNode => triggerNode?.parentNode}
-      {...item.inputProps}
-    ></Cascader>
-  );
+  const Component =
+    queryForm[item.key].condition === "null" ? (
+      // 为空不需要选地区，禁用级联
+      <Cascader
+        ref={inputRef}
+        disabled={true}
+        value={undefined}
+        class={`${searchProvider.inputClass || ""}`}
+        style={{ width: "200px" }}
+        options={options}
+        placeholder={useI18nJoin(useT("common.search"), item.title)}
+        getPopupContainer={triggerNode => triggerNode?.parentNode}
+        {...item.inputProps}
+      ></Cascader>
+    ) : (
+      <Cascader
+        ref={inputRef}
+        v-model:value={queryForm[item.key].value}
+        allowClear={true}
+        open={true}
+        class={`${searchProvider.inputClass || ""}`}
+        style={{ width: "200px" }}
+        options={options}
+        changeOnSelect={findIndex(conditions, { value: "include" }) > -1}
+        showSearch={true}
+        placeholder={useI18nJoin(useT("common.search"), item.title)}
+        getPopupContainer={triggerNode => triggerNode?.parentNode}
+        {...item.inputProps}
+      ></Cascader>
+    );
 
   return { conditions, Component, displayValue, onComponentOpen };
 };

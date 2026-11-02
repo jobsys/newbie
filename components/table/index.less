@@ -1,6 +1,9 @@
 @grey: #f5f5f5;
 
 .newbie-table {
+    /* 分页行高固定，Append 行与它叠放时以同一个高度做垂直居中 */
+    --newbie-table-pagination-height: 50px;
+
     .newbie-search {
         margin-bottom: 12px;
     }
@@ -195,13 +198,31 @@
            不支持 :has() 的环境让空数据表格产生负 margin 溢出。
            */
     &.pagination-adapt {
-        .ant-table-pagination{
-            height: 50px;
-            margin: 0;
+        /**
+         * 分页行高、外边距都归组件统一控制：
+         * antd 会按密度给分页补 8px / 16px 下外边距，若不清零，
+         * 负边距会把 Append 顶偏，且分页会溢出内容卡底部。
+         * antd 的分页样式在运行时注入，需用更高优先级覆盖。
+         */
+        .ant-table-wrapper .ant-table-pagination.ant-pagination {
+            height: var(--newbie-table-pagination-height);
+            margin-bottom: 0;
             align-items: center;
         }
-        .newbie-table-footer{
-            margin-top: -48px;
+
+        .newbie-table-footer {
+            min-height: var(--newbie-table-pagination-height);
+            margin-top: calc(-1 * var(--newbie-table-pagination-height));
+            padding-top: 0;
+            align-items: center;
+        }
+
+        /* 按钮作为 flex 项参与居中，避免 inline-block 基线留白把内容顶高 2px */
+        .newbie-table-append-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            row-gap: 8px;
         }
     }
 
