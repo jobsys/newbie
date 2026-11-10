@@ -1,4 +1,4 @@
-import {Input} from "ant-design-vue";
+import {Input} from "antdv-next";
 import {isFunction} from "lodash-es";
 import {genPixel} from "../../../utils/style.js";
 import {placeholder} from "../utils.js";

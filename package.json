@@ -1,7 +1,7 @@
 {
   "name": "jobsys-newbie",
-  "version": "3.2.1",
-  "description": "Enhanced component based on ant-design-vue",
+  "version": "4.0.0-alpha.0",
+  "description": "Enhanced component library based on antdv-next",
   "keywords": [
     "jobsys",
     "newbie"
@@ -64,11 +64,14 @@
     "oxlint": "^1.51.0",
     "postcss": "8.5.1",
     "vite": "8.1.3",
-    "unplugin-vue-components": "32.1.0"
+    "unplugin-vue-components": "32.1.0",
+    "@antdv-next/icons": "1.1.2",
+    "@antdv-next/auto-import-resolver": "1.2.0",
+    "antdv-next": "1.8.1"
   },
   "peerDependencies": {
-    "@ant-design/icons-vue": "^7.0.1",
-    "ant-design-vue": "^4.2.6",
+    "@antdv-next/icons": "^1.1.2",
+    "antdv-next": "^1.8.1",
     "axios": "^1.15.0",
     "dayjs": "^1.11.19",
     "lodash-es": "^4.17.23",

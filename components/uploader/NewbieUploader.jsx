@@ -1,12 +1,13 @@
 import {computed, defineComponent, inject, onMounted, reactive, watch} from "vue";
-import {Form, Image, ImagePreviewGroup, message, Upload} from "ant-design-vue";
+import { Image, ImagePreviewGroup, message, Upload } from "antdv-next";
 import {every, isArray, isEqual, map, pick, random} from "lodash-es";
 import {NEWBIE_UPLOADER} from "../provider/NewbieProvider.jsx";
 import {STATUS, useFetch, useT} from "../../hooks";
 import Resumable from "resumablejs";
 import "./index.less";
-import {CloudUploadOutlined} from "@ant-design/icons-vue";
+import {CloudUploadOutlined} from "@antdv-next/icons";
 import NewbieButton from "../button/NewbieButton.jsx";
+import {useFormItemChange} from "../../utils/form-item-context.js";
 
 /**
  * 上传组件
@@ -112,7 +113,7 @@ export default defineComponent({
 	setup(props, { emit }) {
 		const { STATE_CODE_SUCCESS } = STATUS;
 
-		const formItemContext = Form.useInjectFormItemContext();
+		const triggerFieldChange = useFormItemChange();
 
 		const uploaderProvider = inject(NEWBIE_UPLOADER, () => ({}));
 		const defaultUploadUrl = uploaderProvider.uploadUrl || "";
@@ -242,7 +243,7 @@ export default defineComponent({
 			emit("update:value", fileList);
 			emit("success", fileList);
 
-			formItemContext.onFieldChange();
+			triggerFieldChange();
 		};
 
 		const handleChange = ({ file, fileList }) => {
@@ -450,8 +451,8 @@ export default defineComponent({
 				</Upload>
 				<ImagePreviewGroup
 					preview={{
-						visible: state.previewVisible,
-						onVisibleChange: vis => (state.previewVisible = vis),
+						open: state.previewVisible,
+						onOpenChange: vis => (state.previewVisible = vis),
 						current: state.previewCurrent,
 					}}
 				>

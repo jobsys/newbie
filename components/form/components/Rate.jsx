@@ -1,4 +1,4 @@
-import { Rate } from "ant-design-vue";
+import { Rate } from "antdv-next";
 import { isFunction } from "lodash-es";
 
 /**

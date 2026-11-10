@@ -1,10 +1,11 @@
-import {FormItem, FormItemRest, Switch} from "ant-design-vue";
+import {FormItem, Switch} from "antdv-next";
 
 import * as Fields from "./index.js";
 import {inject, ref} from "vue";
 import {NEWBIE_FORM, NEWBIE_UPLOADER} from "../../provider/NewbieProvider.jsx";
 import {isBoolean, isFunction, isUndefined} from "lodash-es";
 import {initItemDefaultValue, isOptionalChecked, placeholder} from "../utils.js";
+import {keyPath} from "../model.js";
 import {useI18n} from "vue-i18n";
 
 // 存储 optional 字段的 ref 状态
@@ -266,7 +267,7 @@ const render = (item, submitForm, { props, slots, formState }) => {
 	// FormItem props
 	let itemProps = {
 		label: item.title,
-		name: item.key,
+		name: keyPath(item.key),
 		validateFirst: true,
 		required: isRequired,
 		hasFeedback: rules?.length > 0,
@@ -306,15 +307,13 @@ const render = (item, submitForm, { props, slots, formState }) => {
 		// 由原来的赋 undefined 改为 null, 因为 undefined 会被 FormItem 认为是未填写
 		optionalRenderItem = (
 			<div class={"newbie-form__optional"}>
-				<FormItemRest>
-					<Switch
-						checked={optionalValue.value}
-						onUpdate:checked={val => (optionalValue.value = val)}
-						checkedChildren={item.optional?.[0] || ""}
-						unCheckedChildren={item.optional?.[1] || ""}
-						onChange={checked => !checked && (submitForm[item.key] = null)}
-					></Switch>
-				</FormItemRest>
+				<Switch
+					checked={optionalValue.value}
+					onUpdate:checked={val => (optionalValue.value = val)}
+					checkedChildren={item.optional?.[0] || ""}
+					unCheckedChildren={item.optional?.[1] || ""}
+					onChange={checked => !checked && (submitForm[item.key] = null)}
+				></Switch>
 				<div class={"newbie-form__optional-content"}>
 					{optionalValue.value ? renderItem : false}
 				</div>

@@ -1,10 +1,11 @@
 import { defineComponent, onBeforeUnmount, onMounted, ref, shallowRef, inject, watch } from "vue";
 import Editor from "./components/WangEditor.vue";
 import Toolbar from "./components/WangToolbar.vue";
-import { message, Form } from "ant-design-vue";
+import { message } from "antdv-next";
 import "./index.less";
 import { NEWBIE_EDITOR } from "../provider/NewbieProvider.jsx";
 import { useFetch, useProcessStatusSuccess, useT } from "../../hooks";
+import { useFormItemChange } from "../../utils/form-item-context.js";
 
 /**
  * 富文本编辑器
@@ -51,7 +52,7 @@ export default defineComponent({
   },
   emits: ["update:value"],
   setup(props, { emit, expose }) {
-    const formItemContext = Form.useInjectFormItemContext();
+    const triggerFieldChange = useFormItemChange();
 
     // 编辑器实例，必须用 shallowRef，重要！
     const editorRef = shallowRef();
@@ -141,7 +142,7 @@ export default defineComponent({
       }
       if (html !== props.value) {
         emit("update:value", html);
-        formItemContext.onFieldChange();
+        triggerFieldChange();
       }
     };
 

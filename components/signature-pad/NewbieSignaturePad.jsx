@@ -1,5 +1,5 @@
 import { defineComponent, ref, watch } from "vue";
-import { Checkbox, message, Modal } from "ant-design-vue";
+import { Checkbox, message, Modal } from "antdv-next";
 import SignaturePad from "signature_pad";
 import NewbieButton from "../button/NewbieButton.jsx";
 import "./index.less";

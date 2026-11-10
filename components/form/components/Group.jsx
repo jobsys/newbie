@@ -1,6 +1,5 @@
 import {
   Button,
-  FormItemRest,
   Modal,
   Popconfirm,
   Switch,
@@ -8,9 +7,9 @@ import {
   TableSummaryCell,
   TableSummaryRow,
   Tag,
-} from "ant-design-vue";
+} from "antdv-next";
 import { computed, toRef } from "vue";
-import { PlusOutlined } from "@ant-design/icons-vue";
+import { PlusOutlined } from "@antdv-next/icons";
 import { initItemDefaultValue } from "../utils";
 import NewbieModal from "../../modal/NewbieModal.jsx";
 import { cloneDeep, isArray, isFunction, isNumber, isString } from "lodash-es";
@@ -152,20 +151,17 @@ const render = (item, submitForm, itemState, context) => {
               const options = column.item.options || [t("common.yes"), t("common.no")];
 
               /**
-               * 由于 Group 内嵌在一个 FormItem 内，AntD 会对 FormItem 进行内容收集
-               * 为了避免该 FormItem 内出现多个输入组件收集引发的问题，使用 FormItemRest 进行包裹
-               * @see https://www.antdv.com/components/form-cn#%E6%B3%A8%E6%84%8F%EF%BC%9A
+               * Group 内嵌在一个 FormItem 内，antdv-next 不再自动收集
+               * 未声明 name 的子控件，因此这里不需要额外的 FormItemRest 包裹
                */
               return (
-                <FormItemRest>
-                  <Switch
-                    v-model:checked={record[column.item.key]}
-                    disabled={true}
-                    checkedChildren={options[0]}
-                    unCheckedChildren={options[1]}
-                    {...column.item.defaultProps}
-                  ></Switch>
-                </FormItemRest>
+                <Switch
+                  v-model:checked={record[column.item.key]}
+                  disabled={true}
+                  checkedChildren={options[0]}
+                  unCheckedChildren={options[1]}
+                  {...column.item.defaultProps}
+                ></Switch>
               );
             } else if (column.item?.type === "tree-select") {
               let options = isFunction(column.item?.options)

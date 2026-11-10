@@ -48,10 +48,10 @@
 <script setup>
 import {useTableActions} from "../../components";
 import {computed, h, reactive, ref} from "vue";
-import {Button, Radio, Space} from "ant-design-vue";
+import {Button, Radio, Space} from "antdv-next";
 import NewbieTable from "../../components/table/NewbieTable.jsx";
 
-import {DeleteOutlined, EditOutlined, LikeOutlined, QrcodeOutlined} from "@ant-design/icons-vue";
+import {DeleteOutlined, EditOutlined, LikeOutlined, QrcodeOutlined} from "@antdv-next/icons";
 
 const persistenceMode = ref("off");
 

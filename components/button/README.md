@@ -4,8 +4,8 @@
 
 <script setup>
 import { ref, h } from "vue";
-import {Space} from "ant-design-vue";
-import {EditOutlined, SaveOutlined} from "@ant-design/icons-vue";
+import {Space} from "antdv-next";
+import {EditOutlined, SaveOutlined} from "@antdv-next/icons";
 import NewbieButton from "@components/button/NewbieButton.jsx";
 
 const fetcher = ref({loading: false});
@@ -74,7 +74,7 @@ const onSave = () => {
 <script setup>
 import { NewbieButton } from "jobsys-newbie";
 import { h } from "vue";
-import { SaveOutlined } from "@ant-design/icons-vue";
+import { SaveOutlined } from "@antdv-next/icons";
 
 const fetcher = ref({ loading: false });
 

@@ -137,7 +137,7 @@ Newbie.config({
 <script setup>
 import { ref, h } from "vue";
 import { NewbieButton } from "jobsys-newbie";
-import { SaveOutlined } from "@ant-design/icons-vue";
+import { SaveOutlined } from "@antdv-next/icons";
 import { useFetch } from "jobsys-newbie/hooks";
 
 const fetcher = ref({ loading: false });

@@ -31,7 +31,7 @@ import {
     Table,
     Tag,
     Tooltip,
-} from "ant-design-vue";
+} from "antdv-next";
 import {cloneDeep, isArray, isEqual, isFunction, isObject, isUndefined,} from "lodash-es";
 import {
     CheckCircleOutlined,
@@ -43,7 +43,7 @@ import {
     InfoCircleOutlined,
     PictureOutlined,
     SyncOutlined,
-} from "@ant-design/icons-vue";
+} from "@antdv-next/icons";
 import {parsePersistenceConfig, useFetch, usePersistence, useProcessStatusSuccess, useSm3, useT} from "../../hooks";
 import {NEWBIE_TABLE} from "../provider/NewbieProvider.jsx";
 import NewbieButton from "../button/NewbieButton.jsx";
@@ -759,7 +759,7 @@ export default defineComponent({
 				expandedRowRender: props.expandRender,
 				expandedRowKeys: props.expandedRowKeys,
 				rowKey: props.rowKey,
-				customRow: (record, index) => ({
+				onRow: (record, index) => ({
 					onClick: event => {
 						const isEditing = state.editingData[record[props.rowKey]];
 						if (isEditing) {
@@ -1250,7 +1250,7 @@ export function useTableActions(actions) {
 								{() => [<DownOutlined style={{ fontSize: "12px" }}></DownOutlined>, name]}
 							</NewbieButton>
 						),
-						overlay: () => (
+						popupRender: () => (
 							<Menu>
 								{() =>
 									menuItems.map(item => (

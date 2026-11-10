@@ -15,7 +15,7 @@
 ---
 
 <script setup>
-import { Button } from "ant-design-vue";
+import { Button } from "antdv-next";
 import { ref } from "vue";
 import NewbieModal from "@components/modal/NewbieModal.jsx"
 

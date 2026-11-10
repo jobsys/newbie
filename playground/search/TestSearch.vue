@@ -16,7 +16,7 @@
 </template>
 <script setup>
 import { ref } from "vue";
-import { Card, Input } from "ant-design-vue";
+import { Card, Input } from "antdv-next";
 import NewbieSearch from "../../components/search/NewbieSearch.jsx";
 import { useFindParentValues } from "../../hooks/index.js";
 

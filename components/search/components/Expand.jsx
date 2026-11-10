@@ -1,4 +1,4 @@
-import { CheckableTag, Space } from "ant-design-vue";
+import { CheckableTag, Space } from "antdv-next";
 import { ref } from "vue";
 import { find, isFunction, isNumber, isString } from "lodash-es";
 import { useI18nJoin } from "../../../hooks/index.js";

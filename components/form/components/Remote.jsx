@@ -1,4 +1,4 @@
-import { Select, Spin } from "ant-design-vue";
+import { Select, Spin } from "antdv-next";
 import { debounce, isFunction, isNumber, isString } from "lodash-es";
 import { useFetch, useProcessStatusSuccess, useT } from "../../../hooks";
 import { genPixel } from "../../../utils/style.js";
@@ -71,7 +71,7 @@ const render = (item, submitForm, itemState) => {
       filterOption={false}
       notFoundContent={itemState.fetcher.loading ? undefined : useT("common.no-content")}
       placeholder={placeholder(item, "select")}
-      dropdownMatchSelectWidth={!item.width}
+      popupMatchSelectWidth={!item.width}
       style={item.style || (item.width ? { width: genPixel(item.width) } : {})}
       class={{ readonly: item.readonly, ...item.class }}
       onSearch={onSearch}

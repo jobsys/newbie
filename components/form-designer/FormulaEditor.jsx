@@ -1,5 +1,5 @@
 import {defineComponent, nextTick, ref, watch} from "vue";
-import {Input, Tag, Button, Modal} from "ant-design-vue";
+import {Input, Tag, Button, Modal} from "antdv-next";
 import {calcFormula, hasSelfReference} from "../form/utils/formula-engine.js";
 
 const { TextArea } = Input;

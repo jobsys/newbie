@@ -11,7 +11,7 @@ import {
   isString,
   isUndefined,
 } from "lodash-es";
-import { message } from "ant-design-vue";
+import { message } from "antdv-next";
 import { STATUS } from "./network";
 import dayjs from "dayjs";
 

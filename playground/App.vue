@@ -15,8 +15,8 @@ import TestEditor from "./editor/TestEditor.vue";
 import TestCopy from "./copy/TestCopy.vue";
 import TestSignaturePad from "./signature-pad/TestSignaturePad.vue";
 
-import zhCN from "ant-design-vue/es/locale/zh_CN"; // 引入中文语言包
-import enUS from "ant-design-vue/es/locale/en_US"; // 引入英文语言包
+import zhCN from "antdv-next/locale/zh_CN"; // 引入中文语言包
+import enUS from "antdv-next/locale/en_US"; // 引入英文语言包
 import {reactive, ref, shallowRef} from "vue";
 import {find} from "lodash-es";
 

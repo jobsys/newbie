@@ -1,4 +1,4 @@
-import { RadioGroup, Tag } from "ant-design-vue";
+import { RadioGroup, Tag } from "antdv-next";
 import { find, isFunction, isNumber, isObject, isString, isUndefined } from "lodash-es";
 import { useLabelFromOptionsValue } from "../../../hooks/index.js";
 

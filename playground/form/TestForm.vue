@@ -1,6 +1,9 @@
 <template>
   <div>
     <Button @click="() => counter++">获取内容</Button>
+    <Button @click="logForm">打印表单数据</Button>
+    <Button @click="resetForm">重置</Button>
+    <pre v-if="lastData" data-testid="form-data" style="white-space: pre-wrap; word-break: break-all;">{{ lastData }}</pre>
 
     <Button @click="() => (visible = !visible)">获取内容</Button>
 
@@ -9,6 +12,7 @@
     <Button @click="() => (showEditorModal = true)">展示</Button>
 
     <NewbieForm
+      ref="formRef"
       :form="getForm"
       break-mode="collapse"
       card-wrapper
@@ -36,13 +40,25 @@
 </template>
 <script setup>
 import {ref} from "vue";
-import {Button, DatePicker} from "ant-design-vue";
+import {Button, DatePicker} from "antdv-next";
 import {useModalConfirm} from "../../hooks/index.js";
 
 const content = ref("");
 const counter = ref(0);
 const visible = ref(false);
 const showEditorModal = ref(false);
+const formRef = ref(null);
+const lastData = ref("");
+
+const logForm = () => {
+  const data = formRef.value?.getFormStandalone();
+  lastData.value = JSON.stringify(data);
+  console.log("FORM_DATA", lastData.value);
+};
+
+const resetForm = () => {
+  formRef.value?.reset();
+};
 
 const onBeforeSubmit = ({ formatForm }) => {
   useModalConfirm("确定提交吗？", () => {
@@ -59,6 +75,27 @@ const cardSlots = {
 
 const getForm = () => {
   return [
+	  {
+		  title: "专业名称（点号 key）",
+		  key: "major.name",
+		  required: true,
+		  type: "input",
+		  help: "验证嵌套 model 与扁平 key 的双向映射",
+	  },
+	  {
+		  title: "专业层次（点号 key）",
+		  key: "major.level",
+		  type: "select",
+		  options: ["本科", "硕士", "博士"],
+	  },
+	  {
+		  title: "矩阵单选",
+		  key: "matrix-radio",
+		  type: "matrix-radio",
+		  rows: ["质量", "外观"],
+		  options: ["很好", "一般", "很差"],
+		  required: true,
+	  },
 	  {
 		  title: "关联调查问卷",
 		  key: "survey_id",

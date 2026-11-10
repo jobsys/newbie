@@ -19,7 +19,7 @@ import {
   StarOutlined,
   SwitcherOutlined,
   UserOutlined,
-} from "@ant-design/icons-vue";
+} from "@antdv-next/icons";
 
 /**
  * 获取默认的表单组件

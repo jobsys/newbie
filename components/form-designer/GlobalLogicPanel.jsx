@@ -12,8 +12,8 @@ import {
 	Radio,
 	Select,
 	Space,
-} from "ant-design-vue";
-import {PlusOutlined} from "@ant-design/icons-vue";
+} from "antdv-next";
+import {PlusOutlined} from "@antdv-next/icons";
 
 const operatorsByType = {
 	all: ["equals", "notEquals", "isEmpty", "isNotEmpty"],
@@ -230,7 +230,7 @@ export default defineComponent({
 							</Radio.Group>
 						</FormItem>
 						<FormItem label="条件列表">
-							<Space direction="vertical" style={{ width: "100%" }}>
+							<Space orientation="vertical" style={{ width: "100%" }}>
 								{editConditions.value.map((cond, index) => {
 									const operators = getOperatorsForField(cond.field);
 									const valueInputType = getValueInputType(cond.field);
@@ -315,7 +315,7 @@ export default defineComponent({
 		};
 
 		return () => (
-			<Drawer title="表单逻辑" open={props.open} onClose={props.onClose} width={600}>
+			<Drawer title="表单逻辑" open={props.open} onClose={props.onClose} size={600}>
 				{!showEditForm.value ? (
 					<>
 						<Button type="primary" icon={<PlusOutlined />} onClick={addRule} style={{ marginBottom: "16px" }}>

@@ -1,4 +1,4 @@
-import { Textarea } from "ant-design-vue";
+import { TextArea } from "antdv-next";
 import { computed, ref } from "vue";
 import { find, isArray, isString } from "lodash-es";
 import { useT } from "../../../hooks/index.js";
@@ -57,7 +57,7 @@ const render = (item, queryForm, context) => {
   };
 
   const Component = (
-    <Textarea
+    <TextArea
       ref={inputRef}
       v-model:value={queryForm[item.key].value}
       allowClear={true}
@@ -66,7 +66,7 @@ const render = (item, queryForm, context) => {
       autoSize={{ minRows: 4, maxRows: 8 }}
       placeholder={useT("search.textarea-placeholder", { title: item.title })}
       {...item.inputProps}
-    ></Textarea>
+    ></TextArea>
   );
 
   return { conditions, Component, displayValue, onComponentOpen };

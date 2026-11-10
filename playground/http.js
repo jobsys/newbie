@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Modal } from "ant-design-vue";
+import { Modal } from "antdv-next";
 
 export default {
   install(app, options) {

@@ -1,8 +1,8 @@
 import {isArray, isNumber, isString, isUndefined, sum} from "lodash-es";
-import {Affix, Card, Col, Divider, Row} from "ant-design-vue";
+import {Affix, Card, Col, Divider, Row} from "antdv-next";
 import createFormItem from "./FormItem.jsx";
 import {nextTick} from "vue";
-import {RightOutlined} from "@ant-design/icons-vue";
+import {RightOutlined} from "@antdv-next/icons";
 
 // 每个折叠容器的展开动画控制器，用于反向切换时移除未触发的 transitionend 监听
 const expandAnimations = new WeakMap();

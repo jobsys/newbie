@@ -1,6 +1,6 @@
 import { computed, ref, watch } from "vue";
 import { every, find, isFunction, isNull, isNumber, isString, isUndefined } from "lodash-es";
-import { Select, Space, Tag } from "ant-design-vue";
+import { Select, Space, Tag } from "antdv-next";
 import { useI18nJoin, useT } from "../../../hooks/index.js";
 
 /**

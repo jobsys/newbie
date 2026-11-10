@@ -1,6 +1,6 @@
 import { find } from "lodash-es";
 import { computed, ref } from "vue";
-import { Select } from "ant-design-vue";
+import { Select } from "antdv-next";
 import { useI18nJoin, useT } from "../../../hooks/index.js";
 
 const render = (item, queryForm, context) => {

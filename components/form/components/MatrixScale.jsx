@@ -1,4 +1,4 @@
-import { FormItemRest, Radio, RadioGroup, Table } from "ant-design-vue";
+import { Radio, RadioGroup, Table } from "antdv-next";
 import { cloneDeep, findIndex, isFunction, isNumber, isString } from "lodash-es";
 import { useT } from "../../../hooks/index.js";
 
@@ -63,18 +63,12 @@ const render = (item, submitForm) => {
             const { row } = rows[index];
             const value = findIndex(columns, { dataIndex: column.dataIndex });
             return (
-              <FormItemRest>
-                {() => (
-                  <RadioGroup v-model:value={submitForm[item.key][row]}>
-                    <Radio
-                      value={value}
-                      disabled={
-                        isFunction(item.disabled) ? item.disabled(submitForm) : item.disabled
-                      }
-                    ></Radio>
-                  </RadioGroup>
-                )}
-              </FormItemRest>
+              <RadioGroup v-model:value={submitForm[item.key][row]}>
+                <Radio
+                  value={value}
+                  disabled={isFunction(item.disabled) ? item.disabled(submitForm) : item.disabled}
+                ></Radio>
+              </RadioGroup>
             );
           }
           return record[column.dataIndex];

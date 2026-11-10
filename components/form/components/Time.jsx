@@ -1,4 +1,4 @@
-import { TimePicker, TimeRangePicker } from "ant-design-vue";
+import { TimePicker, TimeRangePicker } from "antdv-next";
 import { isFunction, isString } from "lodash-es";
 import { genPixel } from "../../../utils/style.js";
 import { placeholder as placeholderUtil } from "../utils.js";

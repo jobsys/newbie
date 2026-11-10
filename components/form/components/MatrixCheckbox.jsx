@@ -1,4 +1,4 @@
-import { Checkbox, FormItemRest, Table } from "ant-design-vue";
+import { Checkbox, Table } from "antdv-next";
 import { isFunction, isNumber, isString, remove } from "lodash-es";
 import { useT } from "../../../hooks/index.js";
 
@@ -52,16 +52,12 @@ const render = (item, submitForm) => {
           if (column.type === "option") {
             const value = `${column.dataIndex}`;
             return (
-              <FormItemRest>
-                {() => (
-                  <Checkbox
-                    id={`${row}_${value}`}
-                    checked={submitForm[item.key][row]?.includes(value)}
-                    onChange={() => onChange(row, value)}
-                    disabled={isFunction(item.disabled) ? item.disabled(submitForm) : item.disabled}
-                  ></Checkbox>
-                )}
-              </FormItemRest>
+              <Checkbox
+                id={`${row}_${value}`}
+                checked={submitForm[item.key][row]?.includes(value)}
+                onChange={() => onChange(row, value)}
+                disabled={isFunction(item.disabled) ? item.disabled(submitForm) : item.disabled}
+              ></Checkbox>
             );
           }
         },

@@ -14,7 +14,7 @@
 <script setup>
 import NewbieSignaturePad from "../../components/signature-pad/NewbieSignaturePad.jsx";
 import { ref } from "vue";
-import { Button } from "ant-design-vue";
+import { Button } from "antdv-next";
 
 const signaturePad = ref(null);
 

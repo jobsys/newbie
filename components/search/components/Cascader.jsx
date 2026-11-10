@@ -1,4 +1,4 @@
-import { Cascader } from "ant-design-vue";
+import { Cascader } from "antdv-next";
 import { computed, ref, watch } from "vue";
 import { find, findIndex, isFunction } from "lodash-es";
 import { useFindLabelsFromPath, useI18nJoin, useT } from "../../../hooks/index.js";

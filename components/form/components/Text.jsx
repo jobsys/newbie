@@ -1,5 +1,5 @@
 import { isArray } from "lodash-es";
-import { Tag } from "ant-design-vue";
+import { Tag } from "antdv-next";
 
 /**
  * 纯文本

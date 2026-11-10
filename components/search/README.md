@@ -27,7 +27,7 @@
 
 <script setup>
 import { ref } from "vue";
-import { Card } from "ant-design-vue";
+import { Card } from "antdv-next";
 import NewbieSearch from "@components/search/NewbieSearch.jsx";
 
 const elem = ref("");
@@ -78,7 +78,7 @@ const onSearch = () => {
 </template>
 <script setup>
 import { ref } from "vue";
-import { Card } from "ant-design-vue";
+import { Card } from "antdv-next";
 
 const elem = ref("");
 

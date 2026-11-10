@@ -1,4 +1,4 @@
-import { DatePicker, RangePicker } from "ant-design-vue";
+import { DatePicker, DateRangePicker } from "antdv-next";
 import { isFunction, isString } from "lodash-es";
 import { genPixel } from "../../../utils/style.js";
 import { placeholder as placeholderUtils } from "../utils.js";
@@ -14,7 +14,7 @@ const render = (item, submitForm) => {
   let DateComponent = DatePicker;
   let placeholder = placeholderUtils(item, "select");
   if (item.defaultProps && item.defaultProps.type === "range") {
-    DateComponent = RangePicker;
+    DateComponent = DateRangePicker;
     placeholder = isString(item.placeholder)
       ? [item.placeholder, item.placeholder]
       : [placeholder, placeholder];

@@ -1,7 +1,7 @@
 import {defineComponent} from "vue";
-import {CopyOutlined} from "@ant-design/icons-vue";
+import {CopyOutlined} from "@antdv-next/icons";
 import {useClipboard} from "@vueuse/core";
-import {message} from "ant-design-vue";
+import {message} from "antdv-next";
 import i18n from "../../i18n.js";
 
 import "./index.less";

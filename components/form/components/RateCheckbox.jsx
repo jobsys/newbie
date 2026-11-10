@@ -1,4 +1,4 @@
-import { Checkbox, FormItemRest, Tag } from "ant-design-vue";
+import { Checkbox, Tag } from "antdv-next";
 import { isFunction, isNumber, isObject, isString, isUndefined } from "lodash-es";
 import { useFindLabelsInValues } from "../../../hooks/index.js";
 
@@ -46,23 +46,21 @@ const render = (item, submitForm) => {
       ))}
     </div>
   ) : (
-    <FormItemRest>
-      {() =>
-        options.map(option => {
-          const checked = submitForm[item.key].filter(v => v.value === option.value).length > 0;
-          return (
-            <Checkbox
-              id={option.value}
-              checked={checked}
-              onChange={() => onChange(option)}
-              disabled={isFunction(item.disabled) ? item.disabled(submitForm) : item.disabled}
-            >
-              {() => option.label}
-            </Checkbox>
-          );
-        })
-      }
-    </FormItemRest>
+    <>
+      {options.map(option => {
+        const checked = submitForm[item.key].filter(v => v.value === option.value).length > 0;
+        return (
+          <Checkbox
+            id={option.value}
+            checked={checked}
+            onChange={() => onChange(option)}
+            disabled={isFunction(item.disabled) ? item.disabled(submitForm) : item.disabled}
+          >
+            {() => option.label}
+          </Checkbox>
+        );
+      })}
+    </>
   );
 };
 

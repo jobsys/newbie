@@ -17,9 +17,9 @@ import {
 	message,
 	Modal,
 	Row, Space,
-	Textarea,
+	TextArea,
 	Tooltip,
-} from "ant-design-vue";
+} from "antdv-next";
 
 import createFormItem from "../form/components/FormItem.jsx";
 import {
@@ -29,7 +29,7 @@ import {
 	DragOutlined, FunctionOutlined,
 	SaveOutlined,
 	SmileTwoTone,
-} from "@ant-design/icons-vue";
+} from "@antdv-next/icons";
 import NewbieForm from "../form/NewbieForm.jsx";
 import {getDefaultWidgets} from "./defaultWidgets.jsx";
 import {formItemToProps, propsToFormItem, widgetToProps} from "./widgetProps.js";
@@ -419,7 +419,7 @@ export default defineComponent({
 							labelCol={{ span: 24 }}
 							wrapperCol={{ span: 24 }}
 							model={state.submitForm}
-							labelAlign={"left"}
+							labelAlign={"start"}
 							class={"newbie-form"}
 						>
 							{props.title ? <div class={"painter-title"}>{props.title}</div> : null}
@@ -613,11 +613,11 @@ export default defineComponent({
 							}
 							style={{ marginBottom: "10px" }}
 						></Alert>,
-						<Textarea
+						<TextArea
 							v-model:value={state.optionsValue}
 							placeholder={"每行一个选项，如：\n选项一\n选项二"}
 							auto-size={{ minRows: 14, maxRows: 14 }}
-						></Textarea>,
+						></TextArea>,
 					]}
 				</Modal>
 			);
@@ -638,11 +638,11 @@ export default defineComponent({
 								<Col span={14}>
 									{() => [
 										<div>选项</div>,
-										<Textarea
+										<TextArea
 											v-model:value={state.optionsValue}
 											placeholder={"每行一个选项，如：\n选项一\n选项二"}
 											auto-size={{ minRows: 14, maxRows: 14 }}
-										></Textarea>,
+										></TextArea>,
 									]}
 								</Col>,
 								<Col span={10}>
@@ -668,11 +668,11 @@ export default defineComponent({
 												),
 											}}
 										</Dropdown>,
-										<Textarea
+										<TextArea
 											v-model:value={state.rateValue}
 											placeholder={"每行一个对应分值，如：\n1\n2"}
 											auto-size={{ minRows: 14, maxRows: 14 }}
-										></Textarea>,
+										></TextArea>,
 									]}
 								</Col>,
 							]}

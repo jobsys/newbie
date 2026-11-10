@@ -1,5 +1,5 @@
 import { defineComponent } from "vue";
-import { Button } from "ant-design-vue";
+import { Button } from "antdv-next";
 
 /**
  * 按钮组件

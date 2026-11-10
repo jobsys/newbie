@@ -1,4 +1,4 @@
-import { DatePicker, RangePicker, Tag } from "ant-design-vue";
+import { DatePicker, DateRangePicker, Tag } from "antdv-next";
 import { computed, ref } from "vue";
 import dayjs from "dayjs";
 import { every, find } from "lodash-es";
@@ -128,7 +128,7 @@ const render = (item, queryForm, context) => {
       {...item.inputProps}
     ></DatePicker>
   ) : queryForm[item.key].condition === "between" ? (
-    <RangePicker
+    <DateRangePicker
       ref={inputRef}
       v-model:value={queryForm[item.key].value}
       allowClear={true}
@@ -140,7 +140,7 @@ const render = (item, queryForm, context) => {
       placeholder={[useT("search.start-time"), useT("search.end-time")]}
       getPopupContainer={triggerNode => triggerNode?.parentNode}
       {...item.inputProps}
-    ></RangePicker>
+    ></DateRangePicker>
   ) : (
     <DatePicker
       ref={inputRef}

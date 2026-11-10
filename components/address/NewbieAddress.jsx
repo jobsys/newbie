@@ -1,5 +1,5 @@
 import { defineComponent, reactive, watch } from "vue";
-import { Cascader } from "ant-design-vue";
+import { Cascader } from "antdv-next";
 import localData from "./addressData.json";
 import { useFetch } from "../../hooks";
 

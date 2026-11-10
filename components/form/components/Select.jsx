@@ -1,4 +1,4 @@
-import { Select } from "ant-design-vue";
+import { Select } from "antdv-next";
 import { isFunction, isNumber, isString } from "lodash-es";
 import { genPixel } from "../../../utils/style.js";
 import { placeholder } from "../utils.js";
@@ -21,7 +21,7 @@ const render = (item, submitForm) => {
       disabled={isFunction(item.disabled) ? item.disabled(submitForm) : item.disabled}
       allowClear
       placeholder={placeholder(item, "select")}
-      dropdownMatchSelectWidth={!item.width}
+      popupMatchSelectWidth={!item.width}
       showSearch={true}
       optionFilterProp={"label"}
       style={item.style || (item.width ? { width: genPixel(item.width) } : {})}

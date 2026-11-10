@@ -1,7 +1,7 @@
 import {find, isFunction} from "lodash-es";
 import {computed, nextTick, ref, Transition, withModifiers} from "vue";
-import {Dropdown, Menu, MenuItem, TypographyText} from "ant-design-vue";
-import {DownOutlined} from "@ant-design/icons-vue";
+import {Dropdown, Menu, MenuItem, TypographyText} from "antdv-next";
+import {DownOutlined} from "@antdv-next/icons";
 import * as Fields from "./index";
 import {OnClickOutside} from "@vueuse/components";
 import {animate} from "animejs";
@@ -162,7 +162,7 @@ const render = (item, queryForm, itemState, context) => {
 													<DownOutlined></DownOutlined>
 												</a>
 											),
-											overlay: () => (
+											popupRender: () => (
 												<Menu>
 													{{
 														default: () =>

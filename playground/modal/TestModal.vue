@@ -9,7 +9,9 @@
       v-model:visible="showModal"
       type="modal"
       :before-close="onBeforeClose"
-    ></NewbieModal>
+    >
+      Modal 内容
+    </NewbieModal>
     <NewbieModal
       title="Drawer"
       v-model:visible="showDrawer"
@@ -46,10 +48,10 @@
 </template>
 <script setup>
 import { h, ref } from "vue";
-import { Button, Modal, Space } from "ant-design-vue";
+import { Button, Modal, Space } from "antdv-next";
 import NewbieModal from "../../components/modal/NewbieModal";
 import NewbieForm from "../../components/form/NewbieForm";
-import { SmileOutlined } from "@ant-design/icons-vue";
+import { SmileOutlined } from "@antdv-next/icons";
 
 const formRef = ref(null);
 

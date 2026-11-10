@@ -1,7 +1,7 @@
 import { computed, defineComponent, ref, watch, watchEffect } from "vue";
 import { useDraggable } from "@vueuse/core";
-import { Drawer, Modal } from "ant-design-vue";
-import { CloseOutlined, CompressOutlined, ExpandOutlined } from "@ant-design/icons-vue";
+import { Drawer, Modal } from "antdv-next";
+import { CloseOutlined, CompressOutlined, ExpandOutlined } from "@antdv-next/icons";
 import "./index.less";
 import { isFunction, isObject } from "lodash-es";
 import { genPixel } from "../../utils/style";
@@ -73,6 +73,19 @@ export default defineComponent({
     const modalTitleRef = ref(null);
     const isFullModal = ref(false);
     const isVisible = ref(false);
+
+    // antdv-next Drawer 的 size 只接受数字；百分比/字符串宽度仍走旧的 width
+    const drawerSize = computed(() => {
+      const raw = props.width;
+      if (typeof raw === "number") {
+        return raw;
+      }
+      const value = String(raw).trim();
+      if (/^\d+(\.\d+)?(px)?$/i.test(value)) {
+        return Number.parseFloat(value);
+      }
+      return undefined;
+    });
 
     watch(
       () => props.visible,
@@ -191,13 +204,13 @@ export default defineComponent({
     const elemModal = () => (
       <Modal
         footer={null}
-        wrapStyle={{ overflow: "hidden" }}
         wrapClassName={`newbie-modal ${isFullModal.value ? "full-modal" : ""}`}
         width={isFullModal.value ? "100%" : genPixel(props.width)}
-        v-model:open={isVisible.value}
-        bodyStyle={{ maxHeight: props.height ? genPixel(props.height) : "600px", overflow: "auto" }}
+        open={isVisible.value}
+        onUpdate:open={value => (isVisible.value = value)}
+        styles={{ wrapper: { overflow: "hidden" }, body: { maxHeight: props.height ? genPixel(props.height) : "600px", overflow: "auto" } }}
         closable={false}
-        destroyOnClose
+        destroyOnHidden
         maskClosable={false}
         onCancel={onCloseModal}
         {...props.modalProps}
@@ -208,7 +221,7 @@ export default defineComponent({
            */
           default: () => slots.default?.(),
           title: () => modalTitle(),
-          modalRender: ({ originVNode }) => <div style={transformStyle.value}>{originVNode}</div>,
+          modalRender: node => <div style={transformStyle.value}>{node}</div>,
         }}
       </Modal>
     );
@@ -216,10 +229,12 @@ export default defineComponent({
     const elemDrawer = () => (
       <Drawer
         title={props.title}
-        v-model:open={isVisible.value}
+        open={isVisible.value}
+        onUpdate:open={value => (isVisible.value = value)}
         closable={false}
-        destroyOnClose
-        width={genPixel(props.width)}
+        destroyOnHidden
+        size={drawerSize.value}
+        width={drawerSize.value === undefined ? props.width : undefined}
         maskClosable={false}
         onClose={onCloseModal}
         {...props.modalProps}
@@ -235,7 +250,9 @@ export default defineComponent({
     );
 
     return () => (
-      <div class="newbie-modal">{props.type === "modal" ? elemModal() : elemDrawer()}</div>
+      <div class="newbie-modal">
+        {props.type === "modal" ? elemModal() : elemDrawer()}
+      </div>
     );
   },
 });

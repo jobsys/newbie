@@ -9,7 +9,7 @@
 <script setup>
 import { NewbieEditor, NewbieProvider } from "../../components";
 import { ref } from "vue";
-import { Button } from "ant-design-vue";
+import { Button } from "antdv-next";
 
 const content = ref("");
 

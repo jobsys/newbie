@@ -2,7 +2,7 @@
  * @module Interact
  */
 
-import { Modal } from "ant-design-vue";
+import { Modal } from "antdv-next";
 import { isFunction } from "lodash-es";
 import i18n from "../i18n";
 

@@ -1,4 +1,4 @@
-import { Cascader } from "ant-design-vue";
+import { Cascader } from "antdv-next";
 import { isFunction, isNumber, isString } from "lodash-es";
 import { genPixel } from "../../../utils/style.js";
 import { useFindParentValues } from "../../../hooks/index.js";

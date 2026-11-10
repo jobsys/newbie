@@ -1,4 +1,4 @@
-import { Switch } from "ant-design-vue";
+import { Switch } from "antdv-next";
 import { isFunction } from "lodash-es";
 
 /**

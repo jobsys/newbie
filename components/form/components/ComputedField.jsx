@@ -1,4 +1,4 @@
-import {Input} from "ant-design-vue";
+import {Input} from "antdv-next";
 import {calcFormula} from "../utils/formula-engine";
 import {isFunction} from "lodash-es";
 import {placeholder} from "../utils.js";

@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import Components from "unplugin-vue-components/vite";
-import { AntDesignVueResolver } from "unplugin-vue-components/resolvers";
+import { AntdvNextResolver } from "@antdv-next/auto-import-resolver";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 
 // https://vitejs.dev/config/
@@ -10,7 +10,7 @@ export default defineConfig({
 		vue(),
 		vueJsx(),
 		Components({
-			resolvers: [AntDesignVueResolver({ importStyle: "less" })],
+			resolvers: [AntdvNextResolver()],
 		}),
 	],
 	css: {
@@ -38,8 +38,8 @@ export default defineConfig({
 			// make sure to externalize deps that shouldn't be bundledinto your library
 			external: [
 				"vue",
-				"ant-design-vue",
-				"@ant-design/icons-vue",
+				"antdv-next",
+				"@antdv-next/icons",
 				"axios",
 				"dayjs",
 				"lodash-es",
@@ -51,8 +51,8 @@ export default defineConfig({
 					vue: "Vue",
 					axios: "axios",
 					dayjs: "dayjs",
-					"ant-design-vue": "antdv",
-					"@ant-design/icons-vue": "antdvi",
+					"antdv-next": "antdv",
+					"@antdv-next/icons": "antdvi",
 					"lodash-es": "lodash",
 				},
 			},

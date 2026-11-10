@@ -1,4 +1,4 @@
-import { TreeSelect } from "ant-design-vue";
+import { TreeSelect } from "antdv-next";
 import { isFunction } from "lodash-es";
 import { genPixel } from "../../../utils/style.js";
 import { placeholder } from "../utils.js";
@@ -22,7 +22,7 @@ const render = (item, submitForm) => {
       showSearch
       allowClear
       placeholder={placeholder(item, "select")}
-      dropdownMatchSelectWidth={!item.width}
+      popupMatchSelectWidth={!item.width}
       style={item.style || (item.width ? { width: genPixel(item.width) } : {})}
       class={{ readonly: item.readonly, ...item.class }}
       {...item.defaultProps}

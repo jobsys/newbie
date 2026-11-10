@@ -1,4 +1,4 @@
-import { CheckboxGroup, Tag } from "ant-design-vue";
+import { CheckboxGroup, Tag } from "antdv-next";
 import { isFunction, isNumber, isString } from "lodash-es";
 import { useFindLabelsInValues } from "../../../hooks/index.js";
 

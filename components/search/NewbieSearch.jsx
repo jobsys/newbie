@@ -4,7 +4,7 @@ import createSearchItem from "./components/SearchItem.jsx";
 
 import "./index.less";
 import {NEWBIE_SEARCH} from "../provider/NewbieProvider.jsx";
-import {Button, Modal, Space, Tag, Tooltip} from "ant-design-vue";
+import {Button, Modal, Space, Tag, Tooltip} from "antdv-next";
 import {cloneDeep, concat, find, isArray, isBoolean, isFunction, isString, isUndefined, orderBy,} from "lodash-es";
 import {createExpand, createSortable} from "./components";
 import {
@@ -16,7 +16,7 @@ import {
 	RiseOutlined,
 	SearchOutlined,
 	ShrinkOutlined,
-} from "@ant-design/icons-vue";
+} from "@antdv-next/icons";
 import {parsePersistenceConfig, usePersistence, useSm3, useT} from "../../hooks";
 import dayjs from "dayjs";
 

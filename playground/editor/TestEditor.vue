@@ -7,7 +7,7 @@
 <script setup>
 import NewbieEditor from "../../components/editor/NewbieEditor";
 import { ref } from "vue";
-import { Button } from "ant-design-vue";
+import { Button } from "antdv-next";
 
 const content = ref("");
 

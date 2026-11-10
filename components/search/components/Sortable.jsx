@@ -1,7 +1,7 @@
-import { Transfer } from "ant-design-vue";
+import { Transfer } from "antdv-next";
 import Draggable from "vuedraggable/src/vuedraggable";
-import { Button, Tooltip } from "ant-design-vue";
-import { MenuOutlined, DeleteOutlined, FallOutlined, RiseOutlined } from "@ant-design/icons-vue";
+import { Button, Tooltip } from "antdv-next";
+import { MenuOutlined, DeleteOutlined, FallOutlined, RiseOutlined } from "@antdv-next/icons";
 import { find } from "lodash-es";
 import { useT } from "../../../hooks/index.js";
 

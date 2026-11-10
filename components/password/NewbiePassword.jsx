@@ -1,5 +1,5 @@
 import { computed, ref, watch, defineComponent } from "vue";
-import { InputPassword } from "ant-design-vue";
+import { InputPassword } from "antdv-next";
 import "./index.less";
 import { genPixel } from "../../utils/style.js";
 

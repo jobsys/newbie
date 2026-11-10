@@ -19,7 +19,7 @@
 ---
 
 <script setup>  
-import { message, Button } from "ant-design-vue";
+import { message, Button } from "antdv-next";
 import { ref } from "vue";
 import NewbieEditor from "@components/editor/NewbieEditor.jsx";
 
@@ -44,7 +44,7 @@ const getContent = () => {
 
 <script setup>
 import { NewbieEditor } from "jobsys-newbie";
-import { message, Button } from "ant-design-vue";
+import { message, Button } from "antdv-next";
 import { ref } from "vue";
 
 const content = ref("");

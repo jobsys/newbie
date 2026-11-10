@@ -6,7 +6,7 @@
 </template>
 <script setup>
 import { ref } from "vue";
-import { Button } from "ant-design-vue";
+import { Button } from "antdv-next";
 import NewbiePassword from "../../components/password/NewbiePassword.jsx";
 
 const content = ref("");

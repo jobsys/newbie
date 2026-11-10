@@ -1,7 +1,7 @@
 import { computed, defineComponent, ref, watch } from "vue";
 import { usePage, useT } from "../../hooks";
 import { useScroll } from "@vueuse/core";
-import { List, Spin } from "ant-design-vue";
+import { Spin } from "antdv-next";
 import "./index.less";
 
 /**
@@ -55,12 +55,10 @@ export default defineComponent({
 
   setup(props, { slots, expose }) {
     const containerRef = ref(null);
-    const listRef = ref(null);
 
     const combinedListProps = computed(() => {
-      return {
-        ...props.listProps,
-      };
+      const { header, footer, ...rest } = props.listProps || {};
+      return { header, footer, rest };
     });
 
     let pagination;
@@ -109,27 +107,27 @@ export default defineComponent({
 
     return () => (
       <div ref={containerRef} class={"newbie-list"} style={{ height: `${props.height}px` }}>
-        <List ref={listRef} dataSource={pagination.value?.items || []} {...combinedListProps.value}>
-          {{
-            default: () => slots.default?.(),
-            renderItem: ({ item, index }) =>
-              slots.renderItem ? slots.renderItem({ item, index }) : null,
-            loadMore: () => {
-              return [
-                pagination.value?.loading ? (
-                  <div class={"loading-container"}>
-                    <Spin />
-                  </div>
-                ) : null,
-                pagination.value?.finished ? (
-                  <div class={"finished-text"}>
-                    {props.finishedText || useT("common.loading-finished")}
-                  </div>
-                ) : null,
-              ];
-            },
-          }}
-        </List>
+        {combinedListProps.value.header ? (
+          <div class={"newbie-list__header"}>{combinedListProps.value.header}</div>
+        ) : null}
+        {slots.renderItem
+          ? (pagination.value?.items || []).map((item, index) =>
+              slots.renderItem({ item, index })
+            )
+          : slots.default?.()}
+        {pagination.value?.loading ? (
+          <div class={"loading-container"}>
+            <Spin />
+          </div>
+        ) : null}
+        {pagination.value?.finished ? (
+          <div class={"finished-text"}>
+            {props.finishedText || useT("common.loading-finished")}
+          </div>
+        ) : null}
+        {combinedListProps.value.footer ? (
+          <div class={"newbie-list__footer"}>{combinedListProps.value.footer}</div>
+        ) : null}
       </div>
     );
   },

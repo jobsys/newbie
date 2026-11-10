@@ -1,4 +1,4 @@
-import { InputNumber, Tag } from "ant-design-vue";
+import { InputNumber, Tag } from "antdv-next";
 import { every, find, isNumber } from "lodash-es";
 import { computed, ref } from "vue";
 import { useI18nJoin, useT } from "../../../hooks/index.js";

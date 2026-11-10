@@ -1,7 +1,7 @@
 import {computed, defineComponent, inject, onMounted, reactive, ref, watch} from "vue";
 import {cloneDeep, every, isArray, isEqual, isFunction, isObject, isString, pick} from "lodash-es";
 import {useFetch, useFormFail, useFormFormat, useI18nJoin, useProcessStatusSuccess,} from "../../hooks";
-import {Button, Card, Form, message, Modal, Skeleton, Space} from "ant-design-vue";
+import {Button, Card, Form, message, Modal, Skeleton, Space} from "antdv-next";
 import createLayout from "./components/Layout.jsx";
 import {NEWBIE_FORM, NEWBIE_UPLOADER} from "../provider/NewbieProvider.jsx";
 import "./index.less";
@@ -10,6 +10,7 @@ import {useI18n} from "vue-i18n";
 import {computeVisibility} from "./utils/rule-engine";
 import {normalizeFormConfig} from "./utils/normalize-form-config";
 import {calcFormula} from "./utils/formula-engine";
+import {createFormModel} from "./model";
 
 /**
  * 表单组件
@@ -238,13 +239,17 @@ export default defineComponent({
 
 		const editorRef = ref(null); //总的容器
 
+		// 扁平数据视图：对外保持原有「点号 key」契约
+		// 内部通过访问器同步到 antdv-next Form 需要的嵌套 model
+		const formModel = createFormModel();
+		const submitForm = formModel.flat;
+
 		const state = reactive({
 			temporary: {}, // 用于存放一些临时数据
 			submitFetcher: {
 				loading: false,
 			},
 			isInitializing: true, //是否正在初始化
-			submitForm: {}, //提交表单，初始化数据后会生成
 			submitFormBackup: {}, //初始化后的表单数据备份，用于重置表单以及脏数据判断
 		});
 
@@ -278,21 +283,22 @@ export default defineComponent({
 		const fieldVisibility = computed(() => {
 			const rules = formConfig.value.logic.rules;
 			if (!rules.length) return {};
-			return computeVisibility(rules, state.submitForm);
+			return computeVisibility(rules, submitForm);
 		});
 
 		// 计算字段实时求值：监听 submitForm 变化，自动更新 computed 字段的值
 		// 不通过渲染来触发，而是通过 watcher 直接写入 submitForm
 		watch(
-			() => state.submitForm,
+			() => submitForm,
 			() => {
 				formConfig.value.fields.forEach(item => {
 					if (item.type === "computed" && item.formula) {
-						const result = calcFormula(item.formula, state.submitForm);
+						const result = calcFormula(item.formula, submitForm);
 						if (result && typeof result === "object" && result.error) {
 							// 公式错误，不更新
 						} else {
-							state.submitForm[item.key] = result;
+							formModel.bind(item.key);
+							submitForm[item.key] = result;
 						}
 					}
 				});
@@ -313,7 +319,8 @@ export default defineComponent({
 				if (Object.keys(newVis).length === 0) return;
 				for (const key of Object.keys(newVis)) {
 					if (!newVis[key]) {
-						state.submitForm[key] = null;
+						formModel.bind(key);
+						submitForm[key] = null;
 					}
 				}
 			},
@@ -363,12 +370,12 @@ export default defineComponent({
 						extractFormData[child.key] = initItemDefaultValue(
 							child,
 							existingData,
-							state.submitForm,
+							submitForm,
 							{ uploaderProvider }
 						);
 					});
 				} else {
-					extractFormData[item.key] = initItemDefaultValue(item, existingData, state.submitForm, {
+					extractFormData[item.key] = initItemDefaultValue(item, existingData, submitForm, {
 						uploaderProvider,
 					});
 				}
@@ -379,7 +386,7 @@ export default defineComponent({
 				extractFormData = { ...existingData, ...extractFormData };
 			}
 
-			state.submitForm = extractFormData;
+			formModel.replace(extractFormData);
 			state.submitFormBackup = cloneDeep(extractFormData);
 		};
 
@@ -415,7 +422,7 @@ export default defineComponent({
 					.then(async () => {
 						// TODO need improve
 						// 为了在 item 中也能定制 beforeSubmit 这里和下面的 useFormFormat 会重复 copy 一次 submitForm
-						let form = cloneDeep(state.submitForm);
+						let form = cloneDeep(submitForm);
 
 						const matchedItems = formItems.value.map(item => {
 							if (item.match) {
@@ -448,7 +455,7 @@ export default defineComponent({
 						form = useFormFormat(form, formProvider.format || {});
 
 						if (props.beforeSubmit && isFunction(props.beforeSubmit)) {
-							form = await props.beforeSubmit({ formatForm: form, originalForm: state.submitForm });
+							form = await props.beforeSubmit({ formatForm: form, originalForm: submitForm });
 							// 如果返回 false 则阻止提交
 							if (form === false) {
 								return resolve();
@@ -458,7 +465,7 @@ export default defineComponent({
 						let res = await useFetch(state.submitFetcher).post(props.submitUrl, form);
 
 						//提交后再次备份表单数据，isDirty 检测即为 false
-						state.submitFormBackup = cloneDeep(state.submitForm);
+						state.submitFormBackup = cloneDeep(submitForm);
 
 						if (props.afterSubmit) {
 							props.afterSubmit(res);
@@ -491,27 +498,30 @@ export default defineComponent({
 		};
 
 		const reset = () => {
-			editorRef.value.resetFields();
+			editorRef.value?.clearValidate?.();
+			// 直接按初始化备份重建嵌套模型，避免 antd resetFields 在动态 model 下
+			// 依赖 initialValues 的行为差异（尤其是点号 key）
+			formModel.replace(cloneDeep(state.submitFormBackup));
 		};
 
 		/**
 		 * 获取复制的表单数据
 		 * @return {*}
 		 */
-		const getFormStandalone = () => cloneDeep(state.submitForm);
+		const getFormStandalone = () => cloneDeep(submitForm);
 
 		/**
 		 * 获取表单实时数据，慎用，会改变内部的值
 		 * @return {*}
 		 */
-		const getFormRealtime = () => state.submitForm;
+		const getFormRealtime = () => submitForm;
 
 		/**
 		 * 获取表单的字段值
 		 * @param {String} key
 		 * @return {*}
 		 */
-		const getField = key => cloneDeep(state.submitForm[key]);
+		const getField = key => cloneDeep(submitForm[key]);
 
 		/**
 		 *
@@ -520,7 +530,8 @@ export default defineComponent({
 		 */
 		const setForm = fields => {
 			Object.keys(fields).forEach(key => {
-				state.submitForm[key] = fields[key];
+				formModel.bind(key);
+				submitForm[key] = fields[key];
 			});
 		};
 
@@ -529,7 +540,7 @@ export default defineComponent({
 		 * @return {boolean}
 		 */
 		const isDirty = () => {
-			return !isEqual(state.submitForm, state.submitFormBackup);
+			return !isEqual(submitForm, state.submitFormBackup);
 		};
 
 		expose({
@@ -559,11 +570,11 @@ export default defineComponent({
 							Modal.confirm({
 								content: props.submitConfirmText,
 								onOk() {
-									onSubmit();
+									onSubmit().catch(() => {});
 								},
 							});
 						} else {
-							onSubmit();
+							onSubmit().catch(() => {});
 						}
 					}}
 				>
@@ -600,7 +611,7 @@ export default defineComponent({
 		};
 
 		const layoutElem = () =>
-			createLayout(formItems.value, state.submitForm, submitBtnElem(), {
+			createLayout(formItems.value, submitForm, submitBtnElem(), {
 				props,
 				slots,
 				formState,
@@ -609,7 +620,7 @@ export default defineComponent({
 
 		const formElem = () => (
 			<Form
-				model={state.submitForm}
+				model={formModel.model}
 				ref={editorRef}
 				class={`newbie-form`}
 				labelCol={{ span: 6 }}
