@@ -1056,6 +1056,11 @@ export default defineComponent({
 								return column.customRender({ column, text, record, index });
 							}
 
+							// 兼容 antdv-next / antd v5 的列 render 写法
+							if (column.render) {
+								return column.render(text, record, index);
+							}
+
 							if (column.onClick) {
 								return (
 									<a

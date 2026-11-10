@@ -54,3 +54,6 @@ dist-ssr
 /.omc
 /dist/
 /.openchamber/
+
+# Local build artifacts
+*.tgz

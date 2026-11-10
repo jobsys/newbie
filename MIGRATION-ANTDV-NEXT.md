@@ -58,6 +58,13 @@ pnpm lint
 - [ ] 把 playground 的验证用例沉淀为自动化测试（至少覆盖点号 key、矩阵、可选字段、上传）。
 - [ ] 评估 `zeroRuntime` + `StyleProvider layer`，为业务侧替换 `.ant-*` 覆盖做准备。
 
+## Phase 1 补充验证
+
+- `Input.TextArea` / `Input.Password` 仍然可用（antdv-next 保留了复合组件），2.0 前再切到独立导入。
+- `Input` 的 `addonBefore` / `addonAfter` 在 1.8 下仍可用，实测无警告；货币/单位字段保持原样。
+- `Transfer` 的 `listStyle` 实测无警告，暂不改为 `styles.section`。
+- `NewbieTable` 的单元格渲染新增 `column.render(text, record, index)` 兼容分支，方便后续按 antdv-next 的列 API 写新代码。
+
 ## 可继续优化的点
 
 - `NewbieForm` 的扁平/嵌套适配层已经统一，后续可以让业务侧逐步改用嵌套数据，减少一层转换。

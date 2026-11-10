@@ -97,6 +97,21 @@ const getForm = () => {
 		  required: true,
 	  },
 	  {
+		  title: "金额（前后缀）",
+		  key: "amount",
+		  defaultProps: { prepend: "¥", append: "元" },
+	  },
+	  {
+		  title: "多行文本",
+		  key: "remark",
+		  type: "textarea",
+	  },
+	  {
+		  title: "密码",
+		  key: "pwd",
+		  type: "password",
+	  },
+	  {
 		  title: "关联调查问卷",
 		  key: "survey_id",
 		  optional: ["是", "否"],
