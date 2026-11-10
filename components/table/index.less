@@ -2,7 +2,6 @@
 
 .newbie-table {
     /* 分页行高固定，Append 行与它叠放时以同一个高度做垂直居中 */
-    --newbie-table-pagination-height: 50px;
 
     .newbie-search {
         margin-bottom: 12px;
@@ -13,9 +12,9 @@
     }
 
     .newbie-table-content{
-        padding: 12px;
-        background: #FFF;
-        border-radius: 6px;
+        padding: var(--newbie-padding-sm, 12px);
+        background: var(--newbie-color-bg-container, #fff);
+        border-radius: var(--newbie-radius, 6px);
     }
 
     .newbie-table-functional-wrapper {
@@ -75,7 +74,7 @@
         }
 
         .newbie-table-striped td {
-            background-color: #fafafa;
+            background-color: var(--newbie-color-fill-alter, #fafafa);
         }
 
         .ant-table-cell .ant-image {
@@ -161,7 +160,7 @@
 
             .table-actions-wrapper {
                 .ant-btn-text {
-                    border-right: 1px solid #ddd;
+                    border-right: 1px solid var(--newbie-color-border, #ddd);
                     border-radius: 0;
 
                     &:last-child {
@@ -205,14 +204,14 @@
          * antd 的分页样式在运行时注入，需用更高优先级覆盖。
          */
         .ant-table-wrapper .ant-table-pagination.ant-pagination {
-            height: var(--newbie-table-pagination-height);
+            height: var(--newbie-table-pagination-height, 50px);
             margin-bottom: 0;
             align-items: center;
         }
 
         .newbie-table-footer {
-            min-height: var(--newbie-table-pagination-height);
-            margin-top: calc(-1 * var(--newbie-table-pagination-height));
+            min-height: var(--newbie-table-pagination-height, 50px);
+            margin-top: calc(-1 * var(--newbie-table-pagination-height, 50px));
             padding-top: 0;
             align-items: center;
         }

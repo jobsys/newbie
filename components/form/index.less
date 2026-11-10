@@ -33,18 +33,18 @@
   /***** collapse 分组 *****/
 
   .newbie-form__collapse-wrapper {
-    margin-bottom: 16px;
-    background: #fff;
-    border: 1px solid #f0f0f0;
-    border-radius: 8px;
+    margin-bottom: var(--newbie-padding, 16px);
+    background: var(--newbie-color-bg-container, #fff);
+    border: 1px solid var(--newbie-color-border-secondary, #f0f0f0);
+    border-radius: var(--newbie-radius, 8px);
 
     .newbie-form__collapse-header {
       display: flex;
       align-items: center;
-      padding: 12px 16px;
+      padding: var(--newbie-padding-sm, 12px) var(--newbie-padding, 16px);
       cursor: pointer;
       user-select: none;
-      border-radius: 8px;
+      border-radius: var(--newbie-radius, 8px);
       transition: background-color 0.2s;
 
       &:hover {
@@ -55,7 +55,7 @@
         display: inline-flex;
         align-items: center;
         margin-right: 10px;
-        color: rgba(0, 0, 0, 0.45);
+        color: var(--newbie-color-text-secondary, rgba(0, 0, 0, 0.45));
 
         .anticon {
           transition: transform 0.3s;
@@ -72,7 +72,7 @@
         font-weight: 600;
         font-size: 15px;
         line-height: 22px;
-        color: rgba(0, 0, 0, 0.88);
+        color: var(--newbie-color-text, rgba(0, 0, 0, 0.88));
       }
     }
 
@@ -96,9 +96,9 @@
   .ant-select-disabled {
     &.readonly {
       .ant-select-selector {
-        background-color: #fff;
+        background-color: var(--newbie-color-bg-container, #fff);
         border: 0;
-        color: #000;
+        color: var(--newbie-color-text, #000);
         box-shadow: none;
         cursor: default;
       }
@@ -111,9 +111,9 @@
 
   .ant-picker-disabled {
     &.readonly {
-      background-color: #fff;
+      background-color: var(--newbie-color-bg-container, #fff);
       border: 0;
-      color: #000;
+      color: var(--newbie-color-text, #000);
       box-shadow: none;
       cursor: default;
 
@@ -127,9 +127,9 @@
   .ant-input-number-disabled,
   .ant-input-password {
     &.readonly {
-      background-color: #fff;
+      background-color: var(--newbie-color-bg-container, #fff);
       border: 0;
-      color: #000;
+      color: var(--newbie-color-text, #000);
     }
   }
 }

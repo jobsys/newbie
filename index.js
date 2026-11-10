@@ -9,7 +9,10 @@ export default {
     app.use(i18n);
     for (const componentKey in components) {
       const component = components[componentKey];
-      app.use(component);
+      // 只安装真正的组件/插件，跳过 theme 常量、工具函数等导出
+      if (component && typeof component.install === "function") {
+        app.use(component);
+      }
     }
   },
   /**

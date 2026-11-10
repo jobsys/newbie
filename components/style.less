@@ -7,10 +7,9 @@
 }
 
 /**
- * antdv-next 移除了 Tag 默认的 8px 右间距（ant-design-vue 4 自带），
- * 这里恢复旧版行为，避免搜索栏、表格、详情页的多标签挤在一起。
- * 如果某个页面确实需要紧凑排列，可在局部覆盖 margin-inline-end: 0。
+ * antdv-next 的 ConfigProvider `tag.styles` 不会作用于 CheckableTag，
+ * 这里用主题层注入的 --newbie-tag-gap 保持两者一致，间距跟随密度。
  */
-.ant-tag.ant-tag {
-  margin-inline-end: 8px;
+.ant-tag.ant-tag-checkable {
+  margin-inline-end: var(--newbie-tag-gap, 8px);
 }

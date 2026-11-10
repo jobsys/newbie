@@ -49,6 +49,59 @@ pnpm lint
 
 `lint` 仍剩 3 个错误，均为 `main` 上已存在的历史问题（`NewbieAddress` 的两处正则、`index.js` 的 namespace 校验）。
 
+## 主题体系（NewbieThemeProvider）
+
+设计原则：**不再按旧版像素去“对齐”表头高度和间距**，而是把密度、主色、明暗映射到 antdv-next 的 Design Token，让尺寸由 token 推导。
+
+- `createNewbieTheme({ density, colorPrimary, scheme, token, components })`
+  返回 `{ theme, config, cssVariables, preset }`。
+- `NewbieThemeProvider`：内置 `StyleProvider` + `ConfigProvider`，默认开启 `cssVar`。
+- 密度预设：
+  - `compact`：`compactAlgorithm` + Table 单元格 padding 8px
+  - `default`：默认算法 + Table padding 12px
+  - `loose`：默认算法 + `controlHeight: 40`、`fontSize: 15`、更大的 padding/radius + Table padding 18px
+- 主色：`colorPrimary`，其余梯度由算法派生。
+- 明暗：`scheme="dark"`，自动叠加 `darkAlgorithm`。
+- 组件库自己的面板（搜索栏、表格容器、表单折叠面板、列表、弹窗 body）使用 `--newbie-*` CSS 变量，这些变量由当前 token 生成，因此会跟随密度/主色/暗色变化。
+
+```vue
+<NewbieThemeProvider density="compact" color-primary="#c2410c" scheme="dark" :locale="zhCN">
+  <NewbieProvider v-bind="provider">
+    <App />
+  </NewbieProvider>
+</NewbieThemeProvider>
+```
+
+如果项目已经有自己的 `ConfigProvider`，也可以只用工厂函数：
+
+```js
+const { theme, config, cssVariables } = createNewbieTheme({
+  density: "compact",
+  colorPrimary: "#c2410c",
+});
+```
+
+```vue
+<ConfigProvider :theme="theme" v-bind="config">
+  <div :style="{ display: 'contents', ...cssVariables }">
+    <App />
+  </div>
+</ConfigProvider>
+```
+
+暴露的 CSS 变量：
+
+| 变量 | 含义 |
+| --- | --- |
+| `--newbie-padding-sm` / `--newbie-padding` / `--newbie-padding-lg` | 小/中/大间距 |
+| `--newbie-radius` | 圆角 |
+| `--newbie-control-height-sm` | 小号控件高度 |
+| `--newbie-table-pagination-height` | 分页行高（由控件高度推导） |
+| `--newbie-tag-gap` | Tag 间距 |
+| `--newbie-color-bg-container` / `--newbie-color-border` / `--newbie-color-fill-alter` / `--newbie-color-text` / `--newbie-color-text-secondary` / `--newbie-color-text-tertiary` / `--newbie-color-primary` / `--newbie-color-primary-bg` | 当前主题色板 |
+
+> ⚠️ antdv-next 1.8.1 的 `ConfigProvider` 在 `theme` 变化后不会重新生成组件样式（实测：颜色/控件高度都不会更新）。`NewbieThemeProvider` 内部用 `themeKey` 触发重挂载，因此**运行时切换主题会重建子树**，业务状态会重置。建议在设置页或应用启动时切换；如果必须保留状态，需要等官方修复后移除这个 workaround。
+
 ## 剩余工作（Phase 1）
 
 - [ ] 41 处 `.ant-*` 选择器需要视觉回归（重点：form readonly、table 分页对齐、modal body、uploader）。
@@ -64,9 +117,9 @@ pnpm lint
 - `NewbieTable` 的单元格渲染新增 `column.render(text, record, index)` 兼容分支，方便后续按 antdv-next 的列 API 写新代码。
 - `NewbieUploader` 的进度条 `strokeWidth` 已改为 `size`。
 - Uploader 独立示例页在 `disabled` 下没有内容，是 `uploadBtn()` 的既有逻辑（禁用时不渲染上传按钮），不是迁移回归。
-- `Tag` 的默认右间距已通过 `.ant-tag.ant-tag { margin-inline-end: 8px }` 恢复，搜索栏多标签的间距与旧版一致。
+- `Tag` 间距不再写死：普通 Tag 走 ConfigProvider `tag.styles`，CheckableTag 走主题注入的 `--newbie-tag-gap`，随密度变化（6/8/10px）。
 - `NewbieTable` 里给每列加的 `resizable: true` 在 antdv-next 会启用原生列宽拖拽，但表格是 `table-layout: auto`，会告警；该能力在 antdv 4 中本来就没有生效，已移除，保持旧行为。需要列宽拖拽时应显式设置 `tableLayout="fixed"` 并作为新特性引入。
-- `scroll.x: 1000` 保持原值：antdv-next 会同时应用到 header/body 并同步滚动；同时验证了表头高度、分页位置与旧版一致。
+- `scroll.x: 1000` 保持原值：antdv-next 会同时应用到 header/body 并同步滚动。表头高度、分页高度现在由密度 token 决定（compact/default/loose 分别为 47/47/60 左右），不再按旧版像素对齐。
 
 ## 可继续优化的点
 

@@ -17,7 +17,7 @@ import TestSignaturePad from "./signature-pad/TestSignaturePad.vue";
 
 import zhCN from "antdv-next/locale/zh_CN"; // 引入中文语言包
 import enUS from "antdv-next/locale/en_US"; // 引入英文语言包
-import {reactive, ref, shallowRef} from "vue";
+import { reactive, ref, shallowRef } from "vue";
 import {find} from "lodash-es";
 
 // 定义支持的语言
@@ -66,6 +66,20 @@ const providers = reactive({
 });
 
 const checked = ref("Form");
+const density = ref("default");
+const primaryColor = ref("#1677ff");
+const dark = ref(false);
+const densityOptions = [
+  { label: "紧凑", value: "compact" },
+  { label: "默认", value: "default" },
+  { label: "宽松", value: "loose" },
+];
+const colorOptions = [
+  { label: "拂晓蓝", value: "#1677ff" },
+  { label: "暖橙", value: "#c2410c" },
+  { label: "青绿", value: "#0b6b4d" },
+  { label: "紫罗兰", value: "#7048e8" },
+];
 const isComponent = shallowRef();
 const options = shallowRef([
   {
@@ -156,8 +170,17 @@ const changeComponent = e => {
 </script>
 
 <template>
-  <a-config-provider :locale="locales[providers.locale]">
+  <NewbieThemeProvider :locale="locales[providers.locale]" :density="density" :color-primary="primaryColor" :scheme="dark ? 'dark' : 'light'">
     <NewbieProvider v-bind="providers">
+      <div style="display: flex; gap: 12px; align-items: center; padding: 12px 20px 0;">
+        <span>密度：</span>
+        <a-segmented v-model:value="density" :options="densityOptions" />
+        <span>主色：</span>
+        <a-select v-model:value="primaryColor" :options="colorOptions" style="width: 160px" />
+        <span>暗色：</span>
+        <a-switch v-model:checked="dark" />
+        <span style="color: #999">{{ density }} / {{ primaryColor }}</span>
+      </div>
       <div>
         <a-select
           v-model:value="providers.locale"
@@ -193,7 +216,7 @@ const changeComponent = e => {
         <component v-if="isComponent" :is="isComponent"></component>
       </div>
     </NewbieProvider>
-  </a-config-provider>
+  </NewbieThemeProvider>
 </template>
 
 <style>
