@@ -132,7 +132,7 @@ export default defineComponent({
 							"0%": "#108ee9",
 							"100%": "#87d068",
 						},
-						strokeWidth: 3,
+						size: 3,
 						format: percent => `${parseFloat(percent.toFixed(2))}%`,
 					}
 				: null,

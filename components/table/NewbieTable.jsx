@@ -333,10 +333,6 @@ export default defineComponent({
 			state.tableSelection = [].concat(selectedRows);
 		};
 
-		const onResizeColumn = (w, col) => {
-			col.width = w;
-		};
-
 		const onCustomSubmit = () => {
 			Object.keys(state.columnKey).forEach(key => {
 				state.columnKey[key] = state.columnKeyModal.indexOf(key) > -1;
@@ -443,7 +439,7 @@ export default defineComponent({
 					}
 					if (!item.children) {
 						if ((key && state.columnKey[key]) || !key) {
-							result.push({ ...item, resizable: true });
+							result.push(item);
 						}
 					} else {
 						const res = tidyColumnsRecursion([].concat(item.children));
@@ -1009,7 +1005,6 @@ export default defineComponent({
 					loading={state.tableLoading.loading}
 					dataSource={state.items}
 					columns={state.tableColumns}
-					onResizeColumn={onResizeColumn}
 					{...handleTable()}
 				>
 					{{

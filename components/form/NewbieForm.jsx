@@ -388,6 +388,8 @@ export default defineComponent({
 
 			formModel.replace(extractFormData);
 			state.submitFormBackup = cloneDeep(extractFormData);
+			// 数据重新加载后清掉上一轮校验状态，避免隐藏的旧错误残留
+			editorRef.value?.clearValidate?.();
 		};
 
 		/**

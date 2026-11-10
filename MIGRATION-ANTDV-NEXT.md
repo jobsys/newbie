@@ -51,9 +51,7 @@ pnpm lint
 
 ## 剩余工作（Phase 1）
 
-- [ ] `NewbieTable` 的 `onResizeColumn` 仍是 deprecated，2.0 前改为 `onResize`。
 - [ ] 41 处 `.ant-*` 选择器需要视觉回归（重点：form readonly、table 分页对齐、modal body、uploader）。
-- [ ] `Tag` 默认外边距被 antdv-next 移除，需要确认搜索/表格/详情页的间距。
 - [ ] 全面回归 `matrix-*`、`rate-*`、`group`、`combiner` 与可选字段。
 - [ ] 把 playground 的验证用例沉淀为自动化测试（至少覆盖点号 key、矩阵、可选字段、上传）。
 - [ ] 评估 `zeroRuntime` + `StyleProvider layer`，为业务侧替换 `.ant-*` 覆盖做准备。
@@ -64,6 +62,11 @@ pnpm lint
 - `Input` 的 `addonBefore` / `addonAfter` 在 1.8 下仍可用，实测无警告；货币/单位字段保持原样。
 - `Transfer` 的 `listStyle` 实测无警告，暂不改为 `styles.section`。
 - `NewbieTable` 的单元格渲染新增 `column.render(text, record, index)` 兼容分支，方便后续按 antdv-next 的列 API 写新代码。
+- `NewbieUploader` 的进度条 `strokeWidth` 已改为 `size`。
+- Uploader 独立示例页在 `disabled` 下没有内容，是 `uploadBtn()` 的既有逻辑（禁用时不渲染上传按钮），不是迁移回归。
+- `Tag` 的默认右间距已通过 `.ant-tag.ant-tag { margin-inline-end: 8px }` 恢复，搜索栏多标签的间距与旧版一致。
+- `NewbieTable` 里给每列加的 `resizable: true` 在 antdv-next 会启用原生列宽拖拽，但表格是 `table-layout: auto`，会告警；该能力在 antdv 4 中本来就没有生效，已移除，保持旧行为。需要列宽拖拽时应显式设置 `tableLayout="fixed"` 并作为新特性引入。
+- `scroll.x: 1000` 保持原值：antdv-next 会同时应用到 header/body 并同步滚动；同时验证了表头高度、分页位置与旧版一致。
 
 ## 可继续优化的点
 
