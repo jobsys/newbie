@@ -66,7 +66,7 @@ pnpm lint
 
 ```vue
 <NewbieThemeProvider density="compact" color-primary="#c2410c" scheme="dark" :locale="zhCN">
-  <NewbieProvider v-bind="provider">
+  <NewbieProvider :config="provider">
     <App />
   </NewbieProvider>
 </NewbieThemeProvider>
@@ -123,6 +123,21 @@ const { theme, config, cssVariables } = createNewbieTheme({
 - 构建 `external` 改为正则匹配包及其子路径：`antdv-next/dist/form/context` 必须与宿主共用同一份 InjectionKey。`vuedraggable` 改为随库打包，避免消费方解析其源码子路径。
 - `createFormModel` 的扁平视图改为 Proxy：动态字段直接写 `submitForm[key]` 时会自动补 `bind`，无 key 的展示项不会再生成 `undefined` 字段。
 - 发布包使用 `files` 白名单，只发布 `dist` 下的 js/cjs/css；sourcemap、旧 `.tgz`、源码入口不再进入 npm 包。已打包进 `dist` 的依赖移到 `devDependencies`，运行期只保留 `peerDependencies`。
+
+## NewbieProvider 全局配置变更（4.0）
+
+`NewbieProvider` 从「固定 5 个配置对象」改为「任意命名空间的覆盖包 + 组件自带默认值」：
+
+```vue
+<NewbieProvider :config="{ table: { pageSize: 50 }, uploader: { uploadUrl: '/api/upload' } }">
+```
+
+- 优先级：组件默认值 < `config[命名空间]` < 实例 props。
+- 顶层的 `editor` / `table` / `uploader` / `form` / `search` props 保留一个版本，会输出弃用警告，`config` 优先。
+- `table.pageSize` 默认值从 `10` 统一为 `20`（与表格原有实际行为一致）；全局 `table.page` 移除。
+- `locale` 默认从 `zh_CN` 改为空字符串，不再覆盖宿主应用语言。
+- 配置改为响应式，异步拉取的配置会在到达后自动生效；Provider 不再额外包裹 `<div>`。
+- 新增组件命名空间只需新建 `config.js`，不需要修改 `NewbieProvider`。详见 `docs/provider-config.md`。
 
 ## 可继续优化的点
 

@@ -352,14 +352,35 @@ signatureRef.value.getData() // 获取签名数据
 
 ```vue
 <NewbieProvider
+  :config="{
+    editor: { uploadUrl: '/api/upload' },
+    table: { pageSize: 20 },
+    uploader: {
+      uploadUrl: '/api/upload',
+      defaultFileItem: { url: 'fileUrl' },
+    },
+  }"
+>
+  <YourApp />
+</NewbieProvider>
+```
+
+优先级：组件默认值 < `config[命名空间]` < 实例 props。配置是响应式的，异步拉取后自动生效。`locale` 默认不修改宿主语言，需要时显式传入。
+
+旧写法（已弃用，仍可用一个版本，会输出警告）：
+
+```vue
+<NewbieProvider
   :editor="{ uploadUrl: '/api/upload' }"
-  :table="{ page: 1, pageSize: 20 }"
+  :table="{ pageSize: 20 }"
   :uploader="{ uploadUrl: '/api/upload' }"
   :locale="'zh_CN'"
 >
   <YourApp />
 </NewbieProvider>
 ```
+
+完整说明见 `docs/provider-config.md`。
 
 ---
 

@@ -27,39 +27,30 @@ const locales = {
 };
 
 const providers = reactive({
-  table: {
-    pageSizeKey: "page_size",
-    afterFetched: res => ({
-      items: res.result.data,
-      totalSize: res.result.total,
-    }),
-  },
-  form: {
-    columns: {
-      /*	switch: {
-                    defaultProps: {
-                        checkedValue: 1,
-                        unCheckedValue: 0,
-                    },
-                    defaultValue: 1,
-                },*/
+  config: {
+    table: {
+      pageSizeKey: "page_size",
+      afterFetched: res => ({
+        items: res.result.data,
+        totalSize: res.result.total,
+      }),
     },
-  },
-  search: {
-    valueFormatter: {
-      date(value) {
-        return value.format("YYYY-MM-DD");
+    form: {
+      columns: {},
+    },
+    search: {
+      valueFormatter: {
+        date(value) {
+          return value.format("YYYY-MM-DD");
+        },
       },
     },
-  },
-  uploader: {
-    uploadUrl: "/index.php/tool/test_upload",
-    defaultFileItem: {
-      id: "id",
-      name: "name",
-      url: "url",
-      path: "path",
-      thumbUrl: "thumbUrl",
+    uploader: {
+      uploadUrl: "/index.php/tool/test_upload",
+      // 只覆盖 url，其余字段由 uploader 默认值深合并
+      defaultFileItem: {
+        url: "url",
+      },
     },
   },
   locale: "zh_CN",

@@ -11,7 +11,7 @@
 | uploadUrl | string | 编辑器中的图片,文件上传路径 |
 
 ```html
-<NewbieProvider :eidtor="{uploadeUrl: 'somewhere-that-can-upload-files'}" />
+<NewbieProvider :config="{ editor: { uploadUrl: 'somewhere-that-can-upload-files' } }" />
 ```
 
 ## 示例

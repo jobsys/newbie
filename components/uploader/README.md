@@ -38,20 +38,19 @@ const fileList = ref([
 const files = ref([]);
 
 const provider = {
-	uploader: {
-		uploadUrl: "",
-		defaultFileItem: {
-			id: "id",
-			name: "name",
-			url: "url",
-			path: "path",
-			thumbUrl: "thumbUrl",
+	config: {
+		uploader: {
+			uploadUrl: "",
+			// 只需要覆盖 url，其余字段（id/name/path/thumbUrl）由默认值深合并
+			defaultFileItem: {
+				url: "url",
+			},
 		},
 	},
 };
 </script>
 
-<NewbieProvider v-bind="provider">
+<NewbieProvider :config="provider.config">
     <p>图片上传</p>
     <NewbieUploader v-model:value="fileList" accept=".png,.jpg,.jpeg" :max-num="5" action="https://www.mocky.io/v2/5cc8019d300000980a055e76"></NewbieUploader>
     <p>文件上传</p>

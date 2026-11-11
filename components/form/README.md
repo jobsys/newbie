@@ -85,7 +85,7 @@
 | afterFetched(response) => Object | Function | 表单数据获取数据后的回调函数, 参数为请求的 `response`                                            |
 
 ```html
-<NewbieProvider :form="{format: {boolean: true, date: 'YYYY-MM-DD'}}" />
+<NewbieProvider :config="{ form: { format: { boolean: true, date: 'YYYY-MM-DD' } } }" />
 ```
 
 ## FAQ

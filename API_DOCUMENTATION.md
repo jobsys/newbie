@@ -950,24 +950,30 @@ const handleSubmit = items => {
 
 ### NewbieProvider - 配置提供者组件
 
-用于全局配置其他组件。
+用于全局配置其他组件：提供任意命名空间的覆盖包，组件在自己的 `config.js` 中声明默认值。
+
+优先级：组件默认值 < `config[命名空间]` < 实例 props。配置为响应式，异步拉取后自动生效。
 
 #### Props
 
-| 属性名   | 类型   | 默认值                                    | 说明                |
-| -------- | ------ | ----------------------------------------- | ------------------- |
-| editor   | Object | { uploadUrl: '' }                         | NewbieEditor 配置   |
-| table    | Object | { page: 1, pageSize: 10, ... }            | NewbieTable 配置    |
-| uploader | Object | { uploadUrl: '', defaultFileItem: {...} } | NewbieUploader 配置 |
-| form     | Object | { format: {}, ... }                       | NewbieForm 配置     |
-| search   | Object | { maskClass: '', ... }                    | NewbieSearch 配置   |
-| locale   | String | 'zh_CN'                                   | 语言配置            |
+| 属性名 | 类型   | 默认值 | 说明                                                           |
+| ------ | ------ | ------ | -------------------------------------------------------------- |
+| config | Object | `{}`   | 覆盖包，如 `{ table: {...}, uploader: {...}, form: {...} }`     |
+| locale | String | `''`   | vue-i18n 语言；留空表示不修改宿主语言                           |
+
+顶层 `editor` / `table` / `uploader` / `form` / `search` props 仍保留一个版本，内部映射到 `config` 并输出弃用警告，`config` 优先。完整可配置项见 `docs/provider-config.md`。
 
 #### 使用示例
 
 ```vue
 <template>
-  <NewbieProvider :uploader="{ uploadUrl: '/api/upload' }" :form="{ format: { date: true } }">
+  <NewbieProvider
+    :config="{
+      uploader: { uploadUrl: '/api/upload', defaultFileItem: { url: 'fileUrl' } },
+      form: { format: { date: true } },
+      table: { pageSize: 50 },
+    }"
+  >
     <NewbieForm :form="formConfig" />
   </NewbieProvider>
 </template>
@@ -1987,7 +1993,7 @@ interface ExposedFormData {
 
 ```vue
 <template>
-  <NewbieProvider :form="{ format: { date: true } }">
+  <NewbieProvider :config="{ form: { format: { date: true } } }">
     <NewbieSearch :filterable-columns="searchColumns" @search="handleSearch" />
     <NewbieTable :columns="tableColumns" :url="/api/table" />
   </NewbieProvider>
