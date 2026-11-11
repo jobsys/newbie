@@ -1,7 +1,8 @@
-import {computed, defineComponent, inject, onMounted, reactive, watch} from "vue";
+import {computed, defineComponent, onMounted, reactive, watch} from "vue";
 import { Image, ImagePreviewGroup, message, Upload } from "antdv-next";
 import {every, isArray, isEqual, map, pick, random} from "lodash-es";
-import {NEWBIE_UPLOADER} from "../provider/NewbieProvider.jsx";
+import {uploaderDefaults} from "./config.js";
+import {useNewbieConfig} from "../../hooks/useMergedProps.js";
 import {STATUS, useFetch, useT} from "../../hooks";
 import Resumable from "resumablejs";
 import "./index.less";
@@ -115,11 +116,8 @@ export default defineComponent({
 
 		const triggerFieldChange = useFormItemChange();
 
-		const uploaderProvider = inject(NEWBIE_UPLOADER, () => ({}));
-		const defaultUploadUrl = uploaderProvider.uploadUrl || "";
-		const defaultFileItem = uploaderProvider.defaultFileItem || {};
-		const defaultPreview = uploaderProvider.defaultPreview || null;
-
+		const uploaderConfig = useNewbieConfig("uploader", uploaderDefaults);
+		const defaultFileItem = uploaderConfig.value.defaultFileItem;
 		const { url: urlKey, path: pathKey, name: nameKey } = defaultFileItem;
 
 		const state = reactive({
@@ -230,8 +228,8 @@ export default defineComponent({
 				state.previewVisible = true;
 			} else if (props.preview) {
 				props.preview(file);
-			} else if (defaultPreview) {
-				defaultPreview(file);
+			} else if (uploaderConfig.value.defaultPreview) {
+				uploaderConfig.value.defaultPreview(file);
 			} else {
 				location.href = file[urlKey];
 			}
@@ -436,7 +434,7 @@ export default defineComponent({
 					listType={props.type}
 					disabled={props.disabled}
 					accept={props.accept}
-					action={props.action || defaultUploadUrl}
+					action={props.action || uploaderConfig.value.uploadUrl}
 					headers={props.headers}
 					data={props.extraData}
 					multiple={props.multiple}

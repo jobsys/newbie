@@ -148,12 +148,6 @@ const render = (item, submitForm, { props, slots, formState }) => {
 			case "uploader":
 				renderItem = Fields.createUploader(item, submitForm);
 				if (isRequired) {
-					if (!Object.keys(uploaderProvider).length) {
-						console.error("Please inject NEWBIE_UPLOADER config in root component");
-						renderItem = null;
-						break;
-					}
-
 					if (item.defaultProps?.maxNum && item.defaultProps?.maxNum > 1) {
 						requiredRule.type = "array";
 						requiredRule.message = item.requiredMessage || placeholder(item, "upload");
@@ -161,7 +155,7 @@ const render = (item, submitForm, { props, slots, formState }) => {
 						requiredRule.type = "object";
 						requiredRule.message = item.requiredMessage || placeholder(item, "upload");
 						requiredRule.fields = {
-							[uploaderProvider.defaultFileItem.path]: {
+							[uploaderProvider.defaultFileItem?.path || "path"]: {
 								type: "string",
 								required: true,
 								message: placeholder(item, "upload"),
