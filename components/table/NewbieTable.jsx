@@ -1,7 +1,6 @@
 import {
     computed,
     defineComponent,
-    inject,
     nextTick,
     onMounted,
     reactive,
@@ -45,7 +44,8 @@ import {
     SyncOutlined,
 } from "@antdv-next/icons";
 import {parsePersistenceConfig, useFetch, usePersistence, useProcessStatusSuccess, useSm3, useT} from "../../hooks";
-import {NEWBIE_TABLE} from "../provider/NewbieProvider.jsx";
+import {tableDefaults} from "./config.js";
+import {useMergedProps} from "../../hooks/useMergedProps.js";
 import NewbieButton from "../button/NewbieButton.jsx";
 import NewbieSearch from "../search/NewbieSearch.jsx";
 import i18n from "../../i18n";
@@ -66,9 +66,9 @@ export default defineComponent({
 		title: { type: String, default: "" },
 
 		/**
-		 * 是否使用表单搜索
+		 * 是否使用表单搜索，默认读取 `tableDefaults.filterable`（true）
 		 */
-		filterable: { type: Boolean, default: true },
+		filterable: { type: Boolean, default: undefined },
 
 		/**
 		 *  原生表格属性
@@ -91,9 +91,9 @@ export default defineComponent({
 		searchSlots: { type: Object, default: () => ({}) },
 
 		/**
-		 * 是否使用分页，为 Object 时时使用自定义分页
+		 * 是否使用分页，为 Object 时时使用自定义分页，默认读取 `tableDefaults.pagination`（true）
 		 */
-		pagination: { type: [Boolean, Object], default: true },
+		pagination: { type: [Boolean, Object], default: undefined },
 
 		/**
 		 * 原生翻页事件
@@ -101,9 +101,9 @@ export default defineComponent({
 		pageEvents: { type: Object, default: () => ({}) },
 
 		/**
-		 * 是否在搜索条件变化时自动搜索
+		 * 是否在搜索条件变化时自动搜索，默认读取 `tableDefaults.autoQuery`（false）
 		 */
-		autoQuery: { type: Boolean, default: false },
+		autoQuery: { type: Boolean, default: undefined },
 
 		/**
 		 * 表格数据请求 URL
@@ -129,11 +129,11 @@ export default defineComponent({
 		beforeCellSubmit: { type: Function, default: null },
 
 		/**
-		 * 表格请求方式，默认为 GET
+		 * 表格请求方式，默认读取 `tableDefaults.method`（get）
 		 *
 		 * @values get, post
 		 */
-		method: { type: String, default: "get" },
+		method: { type: String },
 
 		/**
 		 * 请求数据时额外提交的参数
@@ -141,9 +141,9 @@ export default defineComponent({
 		extraData: { type: Object, default: () => ({}) },
 
 		/**
-		 * 请求后 Res 的处理方法, 如有 url， 则该方法必须传
+		 * 请求后 Res 的处理方法, 如有 url， 则该方法必须传，默认读取 `tableDefaults.afterFetched`（null）
 		 */
-		afterFetched: { type: Function, default: null },
+		afterFetched: { type: Function, default: undefined },
 
 		/**
 		 * @typedef {Object} TableColumnConfig
@@ -185,9 +185,9 @@ export default defineComponent({
 		rowSelection: { type: [Boolean, Object], default: () => null },
 
 		/**
-		 *  数据值需要指定 key 值，当启用 `rowSelection` 时一定要指定这个 key
+		 *  数据值需要指定 key 值，当启用 `rowSelection` 时一定要指定这个 key，默认读取 `tableDefaults.rowKey`（id）
 		 */
-		rowKey: { type: [String, Function], default: "id" },
+		rowKey: { type: [String, Function] },
 
 		/**
 		 * 表格数据
@@ -210,20 +210,20 @@ export default defineComponent({
 		expandedRowKeys: { type: Array, default: () => null },
 
 		/**
-		 * 是否显示刷新按钮
+		 * 是否显示刷新按钮，默认读取 `tableDefaults.showRefresh`（true）
 		 */
-		showRefresh: { type: Boolean, default: true },
+		showRefresh: { type: Boolean, default: undefined },
 
 		/**
-		 * 持久化，传入 localStorage 的 key，如果为 true, 将会以 URL Hash 为 key
+		 * 持久化，传入 localStorage 的 key，如果为 true, 将会以 URL Hash 为 key，默认读取 `tableDefaults.persistence`（false）
 		 */
-		persistence: { type: [Boolean, String, Object], default: false },
+		persistence: { type: [Boolean, String, Object], default: undefined },
 
 		/**
 		 * v1.18
-		 * 是否用 `Card` 包裹
+		 * 是否用 `Card` 包裹，默认读取 `tableDefaults.cardWrapper`（false）
 		 */
-		cardWrapper: { type: Boolean, default: false },
+		cardWrapper: { type: Boolean, default: undefined },
 	},
 	emits: [
 		/**
@@ -241,11 +241,11 @@ export default defineComponent({
 		 */
 		"cellSubmit",
 	],
-	setup(props, { emit, slots, expose }) {
+	setup(rawProps, { emit, slots, expose }) {
+		const props = useMergedProps(rawProps, "table", tableDefaults);
+
 		const searchRef = ref();
 		const tableRef = ref();
-
-		const tableProvider = inject(NEWBIE_TABLE, () => {});
 
 		const { copy } = useClipboard({ legacy: true });
 
@@ -283,7 +283,7 @@ export default defineComponent({
 				// 翻页数据
 				totalSize: 0,
 				currentPage: persistencePagination.currentPage || 1,
-				pageSize: persistencePagination.pageSize || props.pagination?.pageSize || 20,
+				pageSize: persistencePagination.pageSize || props.pagination?.pageSize || props.pageSize,
 			},
 			id: "",
 			tableSelection: [], // 给外部用
@@ -293,6 +293,15 @@ export default defineComponent({
 			fetchQueue: [], // 请示队列，以最后那个为准
 			searchFormData: {}, // 搜索表单数据
 		});
+
+		watch(
+			() => props.pagination?.pageSize || props.pageSize,
+			nextSize => {
+				if (!persistencePagination.pageSize && nextSize) {
+					state.pagination.pageSize = nextSize;
+				}
+			}
+		);
 
 		/**
 		 * 持久化翻页与滚动
@@ -344,9 +353,9 @@ export default defineComponent({
 			let params = { ...state.searchFormData, ...props.extraData };
 			if (props.pagination) {
 				if (state.pagination.pageSize) {
-					params[tableProvider.pageSizeKey] = state.pagination.pageSize;
+					params[props.pageSizeKey] = state.pagination.pageSize;
 				}
-				params[tableProvider.pageKey] = state.pagination.currentPage;
+				params[props.pageKey] = state.pagination.currentPage;
 			}
 			return params;
 		};
@@ -382,7 +391,7 @@ export default defineComponent({
 				}
 				state.tableKeySelection = [];
 				state.tableSelection = [];
-				const fetched = props.afterFetched || tableProvider.afterFetched;
+				const fetched = props.afterFetched;
 				const result = fetched(res);
 				if (props.pagination) {
 					state.pagination.totalSize = result.totalSize;
@@ -487,7 +496,7 @@ export default defineComponent({
 			} else if (props.columns.length) {
 				columns = props.columns;
 			} else {
-				columns = props.tableProps.columns;
+				columns = props.tableProps.columns || [];
 			}
 			return columns.map(item => {
 				if (item.minWidth) {
