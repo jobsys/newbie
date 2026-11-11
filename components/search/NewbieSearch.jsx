@@ -1,9 +1,10 @@
-import {computed, defineComponent, inject, nextTick, onMounted, reactive, ref, watch,} from "vue";
+import {computed, defineComponent, nextTick, onMounted, reactive, ref, watch,} from "vue";
 
 import createSearchItem from "./components/SearchItem.jsx";
 
 import "./index.less";
-import {NEWBIE_SEARCH} from "../provider/NewbieProvider.jsx";
+import {searchDefaults} from "./config.js";
+import {useNewbieConfig} from "../../hooks/useMergedProps.js";
 import {Button, Modal, Space, Tag, Tooltip} from "antdv-next";
 import {cloneDeep, concat, find, isArray, isBoolean, isFunction, isString, isUndefined, orderBy,} from "lodash-es";
 import {createExpand, createSortable} from "./components";
@@ -82,7 +83,7 @@ export default defineComponent({
 		"search",
 	],
 	setup(props, { expose, emit, slots }) {
-		const searchProvider = inject(NEWBIE_SEARCH, () => {});
+		const searchConfig = useNewbieConfig("search", searchDefaults);
 
 		/********** 持久化配置 **********/
 
@@ -414,8 +415,8 @@ export default defineComponent({
 					if (props.persistence) {
 						persistenceForm[item.key] = { condition, type, value };
 					}
-					//对返回值做预处理
-					const formatter = searchProvider?.valueFormatter?.[item.type];
+					// 按字段类型索引的格式化函数映射，例如 { date: value => ... }
+					const formatter = searchConfig.value?.valueFormatter?.[item.type];
 					if (formatter && isFunction(formatter)) {
 						value = isArray(value) ? value.map(v => formatter(v)) : formatter(value);
 					}
@@ -580,7 +581,7 @@ export default defineComponent({
 				createSearchItem(item, state.queryForm, searchState[item.key], {
 					props,
 					slots,
-					searchProvider,
+					searchProvider: searchConfig.value,
 				})
 			);
 		};

@@ -1,8 +1,8 @@
 import {FormItem, Switch} from "antdv-next";
 
 import * as Fields from "./index.js";
-import {inject, ref} from "vue";
-import {NEWBIE_FORM, NEWBIE_UPLOADER} from "../../provider/NewbieProvider.jsx";
+import {ref} from "vue";
+import {uploaderDefaults} from "../../uploader/config.js";
 import {isBoolean, isFunction, isUndefined} from "lodash-es";
 import {initItemDefaultValue, isOptionalChecked, placeholder} from "../utils.js";
 import {keyPath} from "../model.js";
@@ -24,15 +24,12 @@ const optionalStateMap = new WeakMap();
  * @param formState
  * @return {*|JSX.Element}
  */
-const render = (item, submitForm, { props, slots, formState }) => {
+const render = (item, submitForm, { props, slots, formState, uploaderProvider = uploaderDefaults }) => {
 	const { t } = useI18n();
-	const uploaderProvider = inject(NEWBIE_UPLOADER, () => ({}));
-	const formProvider = inject(NEWBIE_FORM, () => ({}));
 
 	//如果未经过 defaultValue 初始化，则进行初始化
 	if (isUndefined(submitForm[item.key]) && item.key) {
 		submitForm[item.key] = initItemDefaultValue(item, {}, submitForm, {
-			formProvider,
 			uploaderProvider,
 		});
 	}
@@ -90,7 +87,7 @@ const render = (item, submitForm, { props, slots, formState }) => {
 	} else if (item.match) {
 		// 匹配模式, 合并选项后需要移除 match
 		const matchItem = { ...item, ...item.match(submitForm), match: null };
-		return render(matchItem, submitForm, { props, slots, formState });
+		return render(matchItem, submitForm, { props, slots, formState, uploaderProvider });
 	} else {
 		switch (item.type) {
 			case "select":
@@ -235,7 +232,12 @@ const render = (item, submitForm, { props, slots, formState }) => {
 				requiredRule.type = "array";
 				break;
 			case "combiner":
-				renderItem = Fields.createCombiner(item, submitForm, { props, slots });
+				renderItem = Fields.createCombiner(item, submitForm, {
+					props,
+					slots,
+					formState,
+					uploaderProvider,
+				});
 				break;
 			case "computed":
 				// 计算字段由 ComputedField 组件渲染，自带 FormItem 包裹与格式化

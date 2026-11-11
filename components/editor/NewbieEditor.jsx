@@ -1,9 +1,10 @@
-import { defineComponent, onBeforeUnmount, onMounted, ref, shallowRef, inject, watch } from "vue";
+import { defineComponent, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import Editor from "./components/WangEditor.vue";
 import Toolbar from "./components/WangToolbar.vue";
 import { message } from "antdv-next";
 import "./index.less";
-import { NEWBIE_EDITOR } from "../provider/NewbieProvider.jsx";
+import { editorDefaults } from "./config.js";
+import { useNewbieConfig } from "../../hooks/useMergedProps.js";
 import { useFetch, useProcessStatusSuccess, useT } from "../../hooks";
 import { useFormItemChange } from "../../utils/form-item-context.js";
 
@@ -65,7 +66,7 @@ export default defineComponent({
       ...props.config?.toolbarConfig,
     });
 
-    const { uploadUrl } = inject(NEWBIE_EDITOR, () => ({}));
+    const editorConfigRef = useNewbieConfig("editor", editorDefaults);
 
     const editorConfig = ref({
       placeholder:
@@ -77,7 +78,7 @@ export default defineComponent({
             const formData = new FormData();
             formData.append("file", file);
             try {
-              let res = await useFetch().post(uploadUrl, formData);
+              let res = await useFetch().post(editorConfigRef.value.uploadUrl, formData);
               useProcessStatusSuccess(res, () => {
                 const { url, alt, href } = res.result;
                 insertFn(url, alt, href);

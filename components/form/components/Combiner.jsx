@@ -7,7 +7,7 @@ import createFormItem from "./FormItem.jsx";
  * @param formState
  * @returns {JSX.Element}
  */
-const render = (item, submitForm, formState) => {
+const render = (item, submitForm, context) => {
   const children = item.children;
 
   return (
@@ -16,7 +16,7 @@ const render = (item, submitForm, formState) => {
       class={{ ...item.class }}
     >
       {children.map(child => {
-        return createFormItem(child, submitForm, formState);
+        return createFormItem(child, submitForm, context);
       })}
     </div>
   );

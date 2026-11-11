@@ -1,9 +1,11 @@
-import {computed, defineComponent, inject, onMounted, reactive, ref, watch} from "vue";
+import {computed, defineComponent, onMounted, reactive, ref, watch} from "vue";
 import {cloneDeep, every, isArray, isEqual, isFunction, isObject, isString, pick} from "lodash-es";
 import {useFetch, useFormFail, useFormFormat, useI18nJoin, useProcessStatusSuccess,} from "../../hooks";
 import {Button, Card, Form, message, Modal, Skeleton, Space} from "antdv-next";
 import createLayout from "./components/Layout.jsx";
-import {NEWBIE_FORM, NEWBIE_UPLOADER} from "../provider/NewbieProvider.jsx";
+import {formDefaults} from "./config.js";
+import {uploaderDefaults} from "../uploader/config.js";
+import {useNewbieConfig} from "../../hooks/useMergedProps.js";
 import "./index.less";
 import {applyRangeKeys, initItemDefaultValue} from "./utils";
 import {useI18n} from "vue-i18n";
@@ -253,8 +255,8 @@ export default defineComponent({
 			submitFormBackup: {}, //初始化后的表单数据备份，用于重置表单以及脏数据判断
 		});
 
-		const uploaderProvider = inject(NEWBIE_UPLOADER, () => ({}));
-		const formProvider = inject(NEWBIE_FORM, () => ({}));
+		const formConfigRef = useNewbieConfig("form", formDefaults);
+		const uploaderConfigRef = useNewbieConfig("uploader", uploaderDefaults);
 		const formState = {}; // 用于记录各个表单项的状态
 
 		const formConfig = computed(() => {
@@ -268,8 +270,8 @@ export default defineComponent({
 				if (!item.type) {
 					item.type = "input";
 				}
-				if (formProvider?.columns?.[item.type]) {
-					item = { ...formProvider.columns[item.type], ...item };
+				if (formConfigRef.value?.columns?.[item.type]) {
+					item = { ...formConfigRef.value.columns[item.type], ...item };
 				}
 
 				if (!formState[item.key]) {
@@ -375,12 +377,12 @@ export default defineComponent({
 							child,
 							existingData,
 							submitForm,
-							{ uploaderProvider }
+							{ uploaderProvider: uploaderConfigRef.value }
 						);
 					});
 				} else if (item.key) {
 					extractFormData[item.key] = initItemDefaultValue(item, existingData, submitForm, {
-						uploaderProvider,
+						uploaderProvider: uploaderConfigRef.value,
 					});
 				}
 			});
@@ -409,8 +411,11 @@ export default defineComponent({
 						useProcessStatusSuccess(res, () => {
 							if (props.afterFetched && isFunction(props.afterFetched)) {
 								res = props.afterFetched(res);
-							} else if (formProvider.afterFetched && isFunction(formProvider.afterFetched)) {
-								res = formProvider.afterFetched(res);
+							} else if (
+								formConfigRef.value.afterFetched &&
+								isFunction(formConfigRef.value.afterFetched)
+							) {
+								res = formConfigRef.value.afterFetched(res);
 							}
 							initFormData(res);
 						});
@@ -458,7 +463,7 @@ export default defineComponent({
 							)
 						);
 
-						form = useFormFormat(form, formProvider.format || {});
+						form = useFormFormat(form, formConfigRef.value.format || {});
 
 						if (props.beforeSubmit && isFunction(props.beforeSubmit)) {
 							form = await props.beforeSubmit({ formatForm: form, originalForm: submitForm });
@@ -622,6 +627,8 @@ export default defineComponent({
 				slots,
 				formState,
 				fieldVisibility,
+				formProvider: formConfigRef.value,
+				uploaderProvider: uploaderConfigRef.value,
 			});
 
 		const formElem = () => (
