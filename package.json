@@ -57,6 +57,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "fmt": "oxfmt write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepack": "npm run build"
   },
   "devDependencies": {
