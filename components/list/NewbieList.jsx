@@ -1,7 +1,7 @@
 import { computed, defineComponent, ref, watch } from "vue";
 import { usePage, useT } from "../../hooks";
 import { useScroll } from "@vueuse/core";
-import { Spin } from "antdv-next";
+import { Empty, Spin } from "antdv-next";
 import "./index.less";
 
 /**
@@ -57,8 +57,8 @@ export default defineComponent({
     const containerRef = ref(null);
 
     const combinedListProps = computed(() => {
-      const { header, footer, ...rest } = props.listProps || {};
-      return { header, footer, rest };
+      const { header, footer } = props.listProps || {};
+      return { header, footer };
     });
 
     let pagination;
@@ -115,6 +115,12 @@ export default defineComponent({
               slots.renderItem({ item, index })
             )
           : slots.default?.()}
+        {!pagination.value?.loading &&
+        !slots.renderItem &&
+        !slots.default &&
+        !(pagination.value?.items || []).length ? (
+          <Empty class={"newbie-list__empty"} description={useT("common.no-data")} />
+        ) : null}
         {pagination.value?.loading ? (
           <div class={"loading-container"}>
             <Spin />

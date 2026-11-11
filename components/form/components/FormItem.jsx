@@ -90,7 +90,7 @@ const render = (item, submitForm, { props, slots, formState }) => {
 	} else if (item.match) {
 		// 匹配模式, 合并选项后需要移除 match
 		const matchItem = { ...item, ...item.match(submitForm), match: null };
-		return render(matchItem, submitForm, { props, slots });
+		return render(matchItem, submitForm, { props, slots, formState });
 	} else {
 		switch (item.type) {
 			case "select":

@@ -51,6 +51,10 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 
+# Package artifacts
+*.tgz
+*.map
+
 # Temporary files
 *.tmp
 *.temp

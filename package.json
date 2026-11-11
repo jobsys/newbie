@@ -4,10 +4,19 @@
   "description": "Enhanced component library based on antdv-next",
   "keywords": [
     "jobsys",
-    "newbie"
+    "newbie",
+    "vue",
+    "vue3",
+    "antdv-next",
+    "ant-design-vue",
+    "component-library"
   ],
   "license": "ISC",
   "author": "sinceow@163.com",
+  "homepage": "https://github.com/jobsys/newbie#readme",
+  "bugs": {
+    "url": "https://github.com/jobsys/newbie/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/jobsys/newbie"
@@ -15,70 +24,79 @@
   "type": "module",
   "main": "./dist/jobsys-newbie.cjs",
   "module": "./dist/jobsys-newbie.js",
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.cjs",
+    "dist/**/*.css"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     ".": {
       "import": "./dist/jobsys-newbie.js",
-      "require": "./dist/jobsys-newbie.cjs"
+      "require": "./dist/jobsys-newbie.cjs",
+      "default": "./dist/jobsys-newbie.js"
     },
     "./hooks": {
       "import": "./dist/hooks.js",
-      "require": "./dist/hooks.cjs"
+      "require": "./dist/hooks.cjs",
+      "default": "./dist/hooks.js"
     },
     "./directives": {
       "import": "./dist/directives.js",
-      "require": "./dist/directives.cjs"
+      "require": "./dist/directives.cjs",
+      "default": "./dist/directives.js"
     },
-    "./dist/jobsys-newbie.css": {
-      "default": "./dist/jobsys-newbie.css"
-    },
-    "./*": {
-      "import": "./*",
-      "require": "./*"
-    }
+    "./style.css": "./dist/jobsys-newbie.css",
+    "./dist/jobsys-newbie.css": "./dist/jobsys-newbie.css",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "fmt": "oxfmt write ."
-  },
-  "dependencies": {
-    "@vueuse/components": "14.3.0",
-    "@vueuse/core": "14.3.0",
-    "@wangeditor/editor": "5.1.23",
-    "animejs": "4.5.0",
-    "resumablejs": "1.1.0",
-    "signature_pad": "5.1.3",
-    "sm-crypto-v2": "1.15.1",
-    "vue-i18n": "11.4.6",
-    "vuedraggable": "4.1.0"
+    "fmt": "oxfmt write .",
+    "prepack": "npm run build"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "6.0.7",
-    "@vitejs/plugin-vue-jsx": "^5.1.6",
-    "@vue/compiler-sfc": "3.5.39",
-    "autoprefixer": "10.4.21",
-    "globby": "^13.2.2",
-    "less": "4.2.2",
-    "oxfmt": "^0.36.0",
-    "oxlint": "^1.51.0",
-    "postcss": "8.5.1",
-    "vite": "8.1.3",
-    "unplugin-vue-components": "32.1.0",
-    "@antdv-next/icons": "1.1.2",
     "@antdv-next/auto-import-resolver": "1.2.0",
-    "antdv-next": "1.8.1"
+    "@antdv-next/icons": "1.1.2",
+    "@vitejs/plugin-vue": "6.0.10",
+    "@vitejs/plugin-vue-jsx": "5.1.6",
+    "@vue/test-utils": "^2.5.1",
+    "@vueuse/components": "15.0.0",
+    "@vueuse/core": "15.0.0",
+    "@wangeditor/editor": "5.1.23",
+    "animejs": "4.5.0",
+    "antdv-next": "1.8.1",
+    "axios": "1.21.1",
+    "dayjs": "1.11.23",
+    "jsdom": "^31.0.0",
+    "less": "4.9.1",
+    "lodash-es": "4.18.1",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
+    "resumablejs": "1.1.0",
+    "signature_pad": "5.1.4",
+    "sm-crypto-v2": "2.0.0",
+    "unplugin-vue-components": "32.1.0",
+    "vite": "8.3.8",
+    "vitest": "^5.1.0",
+    "vue": "3.5.45",
+    "vue-i18n": "11.4.18",
+    "vuedraggable": "4.1.0"
   },
   "peerDependencies": {
     "@antdv-next/icons": "^1.1.2",
     "antdv-next": "^1.8.1",
-    "axios": "^1.15.0",
-    "dayjs": "^1.11.19",
-    "lodash-es": "^4.17.23",
-    "vue": "^3.5.30"
+    "axios": "^1.21.1",
+    "dayjs": "^1.11.23",
+    "lodash-es": "^4.18.1",
+    "vue": "^3.5.45"
   },
   "engines": {
-    "node": ">=22.13.0"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "packageManager": "pnpm@9.15.4"
 }

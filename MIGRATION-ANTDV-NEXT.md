@@ -120,10 +120,13 @@ const { theme, config, cssVariables } = createNewbieTheme({
 - `Tag` 间距不再写死：普通 Tag 走 ConfigProvider `tag.styles`，CheckableTag 走主题注入的 `--newbie-tag-gap`，随密度变化（6/8/10px）。
 - `NewbieTable` 里给每列加的 `resizable: true` 在 antdv-next 会启用原生列宽拖拽，但表格是 `table-layout: auto`，会告警；该能力在 antdv 4 中本来就没有生效，已移除，保持旧行为。需要列宽拖拽时应显式设置 `tableLayout="fixed"` 并作为新特性引入。
 - `scroll.x: 1000` 保持原值：antdv-next 会同时应用到 header/body 并同步滚动。表头高度、分页高度现在由密度 token 决定（compact/default/loose 分别为 47/47/60 左右），不再按旧版像素对齐。
+- 构建 `external` 改为正则匹配包及其子路径：`antdv-next/dist/form/context` 必须与宿主共用同一份 InjectionKey。`vuedraggable` 改为随库打包，避免消费方解析其源码子路径。
+- `createFormModel` 的扁平视图改为 Proxy：动态字段直接写 `submitForm[key]` 时会自动补 `bind`，无 key 的展示项不会再生成 `undefined` 字段。
+- 发布包使用 `files` 白名单，只发布 `dist` 下的 js/cjs/css；sourcemap、旧 `.tgz`、源码入口不再进入 npm 包。已打包进 `dist` 的依赖移到 `devDependencies`，运行期只保留 `peerDependencies`。
 
 ## 可继续优化的点
 
 - `NewbieForm` 的扁平/嵌套适配层已经统一，后续可以让业务侧逐步改用嵌套数据，减少一层转换。
 - `useFormItemChange` 集中了 antdv 内部 hook 的依赖，后续官方若公开 API 只需改一处。
 - `NewbieList` 不再依赖已移除的 `List`，但 `listProps` 中的 antd 历史配置已失效，建议在 4.0 文档中标注。
-- 构建产物尚未 externalize `@vueuse/*`、`wangeditor` 等依赖，4.0 可以顺手收敛包体积。
+- 已打包的 `@vueuse/*`、`wangeditor` 等依赖现在放在 `devDependencies`；如果后续要减小库产物体积，可以再评估把它们 externalize 成 optional peer。

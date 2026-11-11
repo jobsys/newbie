@@ -875,7 +875,7 @@ export default defineComponent({
 		};
 
 		const handleEditableCell = row => {
-			const { column, text, record } = row;
+			const { column, text, record, index } = row;
 			let editable = column.editable;
 			if (column.editable === true) {
 				editable = { type: "input" };
@@ -984,6 +984,9 @@ export default defineComponent({
 					textElem = editElems();
 				} else if (column.customRender) {
 					textElem = column.customRender(row);
+				} else if (column.render) {
+					// 与非编辑态保持一致的 antd v5 列 render 兼容
+					textElem = column.render(text, record, index);
 				} else {
 					textElem = text;
 				}

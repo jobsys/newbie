@@ -7,8 +7,7 @@ export * from "./components";
 export default {
   install(app) {
     app.use(i18n);
-    for (const componentKey in components) {
-      const component = components[componentKey];
+    for (const component of Object.values(components)) {
       // 只安装真正的组件/插件，跳过 theme 常量、工具函数等导出
       if (component && typeof component.install === "function") {
         app.use(component);

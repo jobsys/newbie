@@ -87,6 +87,25 @@ export default defineComponent({
       return undefined;
     });
 
+    // antdv-next 用 styles 对象描述各区域样式，调用方通过 modalProps.styles
+    // 自定义 header 等区域时，不能把内置的 wrapper/body 配置整块浅覆盖掉
+    const mergedModalProps = computed(() => {
+      const { styles, ...rest } = props.modalProps || {};
+      const styleOverrides = isObject(styles) ? styles : {};
+      return {
+        ...rest,
+        styles: {
+          ...styleOverrides,
+          wrapper: { overflow: "hidden", ...styleOverrides.wrapper },
+          body: {
+            maxHeight: props.height ? genPixel(props.height) : "600px",
+            overflow: "auto",
+            ...styleOverrides.body,
+          },
+        },
+      };
+    });
+
     watch(
       () => props.visible,
       visible => {
@@ -208,12 +227,11 @@ export default defineComponent({
         width={isFullModal.value ? "100%" : genPixel(props.width)}
         open={isVisible.value}
         onUpdate:open={value => (isVisible.value = value)}
-        styles={{ wrapper: { overflow: "hidden" }, body: { maxHeight: props.height ? genPixel(props.height) : "600px", overflow: "auto" } }}
         closable={false}
         destroyOnHidden
         maskClosable={false}
         onCancel={onCloseModal}
-        {...props.modalProps}
+        {...mergedModalProps.value}
       >
         {{
           /**

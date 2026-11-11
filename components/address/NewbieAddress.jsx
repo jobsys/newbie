@@ -114,9 +114,9 @@ export function useAddressFullCode(code, level) {
   code += "";
   if (code && code.length === 6) {
     if (!level) {
-      if (/0000$/.test(code)) {
+      if (code.endsWith("0000")) {
         level = 1;
-      } else if (/00$/.test(code)) {
+      } else if (code.endsWith("00")) {
         level = 2;
       } else {
         level = 3;

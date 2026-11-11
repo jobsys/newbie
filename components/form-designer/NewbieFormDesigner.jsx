@@ -22,6 +22,7 @@ import {
 } from "antdv-next";
 
 import createFormItem from "../form/components/FormItem.jsx";
+import { createFormModel } from "../form/model.js";
 import {
 	CalculatorOutlined,
 	DeleteOutlined,
@@ -95,7 +96,6 @@ export default defineComponent({
 		const rulesUserModified = ref(false); // 标记规则是否被用户修改过
 
 		const state = reactive({
-			submitForm: {},
 			painterItems: [], //由于Draggable只能纯粹Copy原来的数据，需要定义另外一个处理后的数组负责渲染
 			dragOptions: {
 				animation: 200,
@@ -114,6 +114,27 @@ export default defineComponent({
 			rateValue: "",
 			showLogicPanel: false,
 		});
+
+		// 画布预览使用与 NewbieForm 相同的「扁平视图 + 嵌套 model」，
+		// 这样设计器中配置带点号的 key 时，name: keyPath(key) 仍能命中同一个值
+		const canvasModel = createFormModel();
+
+		// 按 key 懒创建表单项状态，避免画布预览中 tag / remote / group / optional
+		// 读取 formState[item.key] 时因为没有状态对象而抛错
+		const canvasFormState = new Proxy(
+			{},
+			{
+				get(target, key) {
+					if (typeof key !== "string") {
+						return undefined;
+					}
+					if (!target[key]) {
+						target[key] = reactive({});
+					}
+					return target[key];
+				},
+			}
+		);
 
 		// track historical max sequence number per type - avoids key reuse after deletion
 		const typeMaxSeq = {};
@@ -345,7 +366,7 @@ export default defineComponent({
 				content: "清空表单后，所有数据将被清空，是否继续？",
 				onOk: () => {
 					state.painterItems = [];
-					state.submitForm = {};
+					canvasModel.replace({});
 				},
 			});
 		};
@@ -418,7 +439,7 @@ export default defineComponent({
 						<Form
 							labelCol={{ span: 24 }}
 							wrapperCol={{ span: 24 }}
-							model={state.submitForm}
+							model={canvasModel.model}
 							labelAlign={"start"}
 							class={"newbie-form"}
 						>
@@ -489,8 +510,8 @@ export default defineComponent({
 															},
 															...element.props,
 														},
-														state.submitForm,
-														{ props: {} }
+														canvasModel.flat,
+														{ props: {}, formState: canvasFormState }
 													)}
 												</div>
 											);
@@ -511,7 +532,7 @@ export default defineComponent({
 								清空表单
 							</Button>
 						</Tooltip>
-						<Space span={8}>
+						<Space size={8}>
 							<Badge count={logicRules.value.length} offset={[-4, 0]}>
 								<Button
 									type={"default"}
@@ -588,7 +609,7 @@ export default defineComponent({
 										availableFields={state.painterItems
 											.filter(p => p.type !== "computed" && p.props.key !== state.currentItem.props.key)
 											.map(p => ({ key: p.props.key, title: p.props.title }))}
-										previewData={state.submitForm}
+										previewData={canvasModel.flat}
 										fieldKey={state.currentItem.props.key}
 									/>
 								</div>
@@ -657,7 +678,7 @@ export default defineComponent({
 														</a>
 													</div>
 												),
-												overlay: () => (
+												popupRender: () => (
 													<Menu onClick={onRateGenerate}>
 														{() => [
 															<MenuItem key={"increase"}>{() => "分数从 1 开始顺序递增"}</MenuItem>,

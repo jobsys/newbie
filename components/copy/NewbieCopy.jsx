@@ -42,7 +42,7 @@ export default defineComponent({
 				await props.copy(props.text);
 			} else {
 				await copy(props.text);
-				message.success(i18n.global.t("table.copy-success"));
+				await message.success(i18n.global.t("table.copy-success"));
 			}
 		};
 

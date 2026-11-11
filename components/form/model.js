@@ -60,22 +60,57 @@ const setIn = (target, path, value) => {
  */
 export function createFormModel() {
 	const model = reactive({});
-	const flat = reactive({});
+	const flatData = reactive({});
 	const keys = new Set();
 
 	const bind = key => {
+		// 空 key 会生成 [undefined] 路径并把值写到 model["undefined"] 上；
+		// "undefined" 是无 key 表单项访问 submitForm[undefined] 时产生的字符串键
+		if (typeof key !== "string" || key === "" || key === "undefined") {
+			return;
+		}
 		if (keys.has(key)) {
 			return;
 		}
 		const path = splitPath(key);
-		Object.defineProperty(flat, key, {
+		if (!path.length) {
+			return;
+		}
+		Object.defineProperty(flatData, key, {
 			enumerable: true,
 			configurable: true,
 			get: () => getIn(model, path),
-			set: value => setIn(model, path, value),
+			set: value => {
+				setIn(model, path, value);
+			},
 		});
 		keys.add(key);
 	};
+
+	/**
+	 * 动态字段（props.form 函数返回的新字段、match 切换出的字段、slot 里直接
+	 * 写入的新 key）可能从未走过 bind，直接赋值只会在扁平对象上留下普通属性，
+	 * 嵌套 model 永远读不到。这里在 set 时自动补一次 bind。
+	 */
+	const flat = new Proxy(flatData, {
+		set(target, key, value) {
+			if (typeof key === "string") {
+				// 无 key 的表单项读写的是 flat["undefined"]，不能建立映射污染 model
+				if (key === "" || key === "undefined") {
+					return true;
+				}
+				if (!keys.has(key)) {
+					bind(key);
+				}
+				// 非法路径（如 "."）无法建立映射，直接忽略
+				if (!keys.has(key)) {
+					return true;
+				}
+			}
+			target[key] = value;
+			return true;
+		},
+	});
 
 	const bindAll = list => list.forEach(key => bind(key));
 

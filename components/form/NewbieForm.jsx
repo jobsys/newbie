@@ -367,6 +367,10 @@ export default defineComponent({
 				//处理组合组件，只允许一层嵌套
 				if (item.type === "combiner") {
 					item.children.forEach(child => {
+						// 无 key 的表单项（纯展示项）不能写成 "undefined" 字段
+						if (!child.key) {
+							return;
+						}
 						extractFormData[child.key] = initItemDefaultValue(
 							child,
 							existingData,
@@ -374,7 +378,7 @@ export default defineComponent({
 							{ uploaderProvider }
 						);
 					});
-				} else {
+				} else if (item.key) {
 					extractFormData[item.key] = initItemDefaultValue(item, existingData, submitForm, {
 						uploaderProvider,
 					});

@@ -41,6 +41,21 @@ const ThemeVariables = defineComponent({
 });
 
 /**
+ * 主题算法是通过函数引用的（如 [antdTheme.defaultAlgorithm]），
+ * JSON.stringify 会把函数序列化成 null，导致 themeKey 不随算法切换变化。
+ * 对函数取名称/源码作为稳定标识，数组则逐项序列化。
+ */
+const serializeThemeValue = value => {
+	if (typeof value === "function") {
+		return value.name || String(value);
+	}
+	if (Array.isArray(value)) {
+		return `[${value.map(serializeThemeValue).join(",")}]`;
+	}
+	return JSON.stringify(value ?? null);
+};
+
+/**
  * 统一主题入口
  *
  * 把密度、主色、Tag 间距等视觉决策收敛到 antdv-next 的 Design Token，
@@ -121,7 +136,7 @@ const NewbieThemeProvider = defineComponent({
 				props.scheme,
 				JSON.stringify(theme.token || {}),
 				JSON.stringify(theme.components || {}),
-				JSON.stringify(theme.algorithm || null),
+				serializeThemeValue(theme.algorithm),
 			].join("|");
 		});
 
