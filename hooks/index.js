@@ -7,3 +7,4 @@ export * from "./usePersistence";
 export * from "./utils";
 export * from "./regex.js";
 export * from "./i18n.js";
+export * from "./useMergedProps.js";
