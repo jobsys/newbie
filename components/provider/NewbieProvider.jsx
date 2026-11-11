@@ -1,50 +1,10 @@
-import { defineComponent, provide, reactive, readonly, toRef, watch } from "vue";
+import { defineComponent, provide, reactive, readonly, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { NEWBIE_CONFIG, mergeConfig } from "./config.js";
 
-// ===== 兼容期：以下 Symbol、LEGACY_DEFAULTS 与旧 provide 在 Phase 8 删除 =====
-export const NEWBIE_LOCALE = Symbol("NEWBIE_LOCALE");
-export const NEWBIE_EDITOR = Symbol("NEWBIE_EDITOR");
-export const NEWBIE_TABLE = Symbol("NEWBIE_TABLE");
-export const NEWBIE_UPLOADER = Symbol("NEWBIE_UPLOADER");
-export const NEWBIE_FORM = Symbol("NEWBIE_FORM");
-export const NEWBIE_SEARCH = Symbol("NEWBIE_SEARCH");
-
+// TODO(next-major): 删除顶层 editor/table/uploader/form/search props，
+// 以及仅为它们服务的 LEGACY_KEYS / legacyProps()。
 const LEGACY_KEYS = ["editor", "table", "uploader", "form", "search"];
-
-const LEGACY_SYMBOLS = {
-	editor: NEWBIE_EDITOR,
-	table: NEWBIE_TABLE,
-	uploader: NEWBIE_UPLOADER,
-	form: NEWBIE_FORM,
-	search: NEWBIE_SEARCH,
-};
-
-// 兼容期保留旧默认值，保证 Phase 4-6 迁移前旧组件行为不变；Phase 8 删除
-const LEGACY_DEFAULTS = {
-	editor: { uploadUrl: "" },
-	table: {
-		page: 1,
-		pageSize: 10,
-		pageKey: "page",
-		pageSizeKey: "pageSize",
-		afterFetched: null,
-	},
-	uploader: {
-		uploadUrl: "",
-		defaultFileItem: {
-			id: "id",
-			name: "name",
-			url: "url",
-			path: "path",
-			thumbUrl: "thumbUrl",
-		},
-		defaultPreview: null,
-	},
-	form: { format: {}, afterFetched: null, columns: {} },
-	search: { maskClass: "", inputClass: "", valueFormatter: null },
-};
-// ===== 兼容期结束 =====
 
 const legacyProps = () =>
 	LEGACY_KEYS.reduce((props, key) => {
@@ -97,15 +57,6 @@ export default defineComponent({
 
 		const config = reactive(toBag());
 		provide(NEWBIE_CONFIG, readonly(config));
-
-		// 兼容期：旧组件仍能注入；Phase 8 删除
-		for (const key of LEGACY_KEYS) {
-			provide(
-				LEGACY_SYMBOLS[key],
-				mergeConfig(LEGACY_DEFAULTS[key], config[key] || {})
-			);
-		}
-		provide(NEWBIE_LOCALE, toRef(props, "locale"));
 
 		watch(
 			toBag,

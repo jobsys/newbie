@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, inject, nextTick } from "vue";
 import { mount } from "@vue/test-utils";
 import i18n from "../../i18n.js";
-import NewbieProvider, { NEWBIE_TABLE } from "../../components/provider/NewbieProvider.jsx";
+import NewbieProvider from "../../components/provider/NewbieProvider.jsx";
 import { NEWBIE_CONFIG } from "../../components/provider/config.js";
 
 const Probe = defineComponent({
@@ -60,19 +60,5 @@ describe("NewbieProvider", () => {
 		await wrapper.setProps({ config: { table: { pageSize: 60 } } });
 		await nextTick();
 		expect(wrapper.find(".probe").text()).toContain('"pageSize":60');
-	});
-
-	it("兼容期内旧 Symbol 仍可注入", () => {
-		const LegacyProbe = defineComponent({
-			setup() {
-				const bag = inject(NEWBIE_TABLE, {});
-				return () => <div class="legacy">{bag.pageSize}</div>;
-			},
-		});
-		const wrapper = mountWith(
-			{ config: { table: { pageSize: 50 } } },
-			() => h(LegacyProbe)
-		);
-		expect(wrapper.find(".legacy").text()).toBe("50");
 	});
 });
