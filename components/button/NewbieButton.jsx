@@ -60,7 +60,7 @@ export default defineComponent({
     },
 
     /**
-     * 原生 [Button](https://www.antdv.com/components/button-cn#api) 配置
+     * 原生 [Button](https://www.antdv-next.com/components/button-cn#props) 配置
      */
     buttonProps: {
       type: Object,

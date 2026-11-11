@@ -25,10 +25,10 @@
 | rowSpan       | 多列布局下占用的行数（如上传组件可占两行），单列布局下无效                                                                   | number                        | -                                     | 1       |
 | break         | 是否新起一行，如果为String则以 Divider 分割                                                                                  | boolean \| string             | -                                     | false   |
 | defaultProps  | 组件的配置                                                                                                                   | object                        | -                                     | {}      |
-| formItemProps | 同原生 [FormItem](https://www.antdv.com/components/form-cn#form-item) 配置, 并可以直接使用 `slots` 属性定义 FormItem 的 slot | object                        | -                                     | {}      |
+| formItemProps | 同原生 [FormItem](https://www.antdv-next.com/components/form-cn#form-item) 配置, 并可以直接使用 `slots` 属性定义 FormItem 的 slot | object                        | -                                     | {}      |
 | defaultValue  | 默认值                                                                                                                       | any                           | -                                     | ""      |
 | children      | 子组件配置                                                                                                                   | array\<NewbieFormItemConfig\> | -                                     | -       |
-| cellProps     | 子组件渲染的[单元格配置](https://www.antdv.com/components/table-cn#column)                                                   | object                        | -                                     | -       |
+| cellProps     | 子组件渲染的[单元格配置](https://www.antdv-next.com/components/table-cn#column)                                                   | object                        | -                                     | -       |
 | rangeKeys     | 区间组件（`date` / `time` 且 `defaultProps.type` 为 `range`）拆分写入的两个字段名，如 `["started_at", "ended_at"]`          | Array\<string\>               | -                                     | -       |
 | customRender  | 自定义渲染函数                                                                                                               | func                          | -                                     | -       |
 
@@ -214,7 +214,7 @@ boolean 值，也可以传入一个函数，函数接收一个参数 `submitForm
 
 ### 如何自定义 FromItem 的属性/slot
 
-`FormItem` 中的 `fromItemProps` 与原生 [FormItem](https://www.antdv.com/components/form-cn#form-item) 的配置相同,
+`FormItem` 中的 `fromItemProps` 与原生 [FormItem](https://www.antdv-next.com/components/form-cn#form-item) 的配置相同,
 并支持直接传入 `slots` 对象, 用于自定义 `FormItem` 的 `slot`，示例如下：
 
 ```js

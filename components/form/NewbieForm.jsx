@@ -114,7 +114,7 @@ export default defineComponent({
 		breakMode: { type: String, default: "divider" },
 
 		/**
-		 * 当 breakMode 为 `divider` 时，divider 的配置[原生分割线配置](https://www.antdv.com/components/divider-cn)
+		 * 当 breakMode 为 `divider` 时，divider 的配置[原生分割线配置](https://www.antdv-next.com/components/divider-cn)
 		 */
 		dividerProps: { type: Object, default: () => ({}) },
 
@@ -231,7 +231,7 @@ export default defineComponent({
 		afterSubmit: { type: Function, default: null },
 
 		/**
-		 * 原生的 [From](https://www.antdv.com/components/form-cn#api) 配置
+		 * 原生的 [Form](https://www.antdv-next.com/components/form-cn#form-props) 配置
 		 */
 		formProps: { type: Object, default: () => ({}) },
 	},

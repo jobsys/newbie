@@ -50,7 +50,7 @@ export default defineComponent({
     beforeClose: { type: [Function, Object], default: null },
 
     /**
-     * 原生 [Modal](https://www.antdv.com/components/modal-cn#api) 或者是 [Drawer](https://www.antdv.com/components/drawer-cn#api) 的配置
+     * 原生 [Modal](https://www.antdv-next.com/components/modal-cn#props) 或者是 [Drawer](https://www.antdv-next.com/components/drawer-cn#props) 的配置
      */
     modalProps: { type: Object, default: () => ({}) },
   },
@@ -145,7 +145,7 @@ export default defineComponent({
       emit("close");
     };
 
-    // 以下代码用于拖动弹窗，来自官方文档， https://www.antdv.com/components/modal-cn#components-modal-demo-modal-render
+    // 以下代码用于拖动弹窗，来自官方文档， https://www.antdv-next.com/components/modal-cn#modal-demo-modal-render
     const { x, y, isDragging } = useDraggable(modalTitleRef);
 
     const startX = ref(0);

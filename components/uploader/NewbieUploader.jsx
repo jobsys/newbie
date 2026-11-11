@@ -94,7 +94,7 @@ export default defineComponent({
 		preview: { type: Function, default: null },
 
 		/**
-		 * 原生 [Uploader](https://www.antdv.com/components/upload-cn#api) 配置
+		 * 原生 [Upload](https://www.antdv-next.com/components/upload-cn#props) 配置
 		 */
 		uploadProps: { type: Object, default: () => ({}) },
 	},
