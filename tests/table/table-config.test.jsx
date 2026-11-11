@@ -54,4 +54,10 @@ describe("NewbieTable 全局配置", () => {
 		await nextTick();
 		expect(wrapper.findComponent(NewbieTable).vm.getQueryData().pageSize).toBe(50);
 	});
+
+	it("未挂 Provider 时使用组件默认值，不会产生 undefined 参数名", () => {
+		const wrapper = mount(NewbieTable, { props: { filterable: false } });
+
+		expect(wrapper.vm.getQueryData()).toEqual({ page: 1, pageSize: 20 });
+	});
 });
