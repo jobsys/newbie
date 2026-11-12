@@ -119,8 +119,8 @@ export default defineComponent({
             context.emit("customAlert", info, type);
             // @ts-ignore
             if (props.defaultConfig.customAlert) {
-              const info = genErrorInfo("customAlert");
-              throw new Error(info);
+              const alertInfo = genErrorInfo("customAlert");
+              throw new Error(alertInfo);
             }
           },
           customPaste: (editor, event) => {

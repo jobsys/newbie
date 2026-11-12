@@ -15,20 +15,14 @@ import {
     CheckboxGroup,
     Col,
     Divider,
-    Dropdown,
-    Flex,
-    Image,
     Input,
     InputNumber,
-    Menu,
-    MenuItem,
     message,
     Modal,
     Row,
     Select,
     Switch,
     Table,
-    Tag,
     Tooltip,
 } from "antdv-next";
 import {cloneDeep, isArray, isEqual, isFunction, isObject, isUndefined,} from "lodash-es";
@@ -36,22 +30,40 @@ import {
     CheckCircleOutlined,
     CloseCircleOutlined,
     CopyOutlined,
-    DownOutlined,
     EditOutlined,
-    FilePdfOutlined,
     InfoCircleOutlined,
-    PictureOutlined,
     SyncOutlined,
 } from "@antdv-next/icons";
 import {parsePersistenceConfig, useFetch, usePersistence, useProcessStatusSuccess, useSm3, useT} from "../../hooks";
 import {tableDefaults} from "./config.js";
 import {useMergedProps} from "../../hooks/useMergedProps.js";
-import NewbieButton from "../button/NewbieButton.jsx";
 import NewbieSearch from "../search/NewbieSearch.jsx";
 import i18n from "../../i18n";
 import {useClipboard} from "@vueuse/core";
 
 import "./index.less";
+
+// 渲染助手已抽到 ./helpers.jsx，这里保留同名导出以兼容旧的深层导入
+export {
+    renderTableActions,
+    renderTableImage,
+    renderTableFile,
+    useTableActions,
+    useTableImage,
+    useTableFile,
+} from "./helpers.jsx";
+
+/**
+ * 获取列的唯一 key
+ * key 与 dataIndex 都可能是数组（嵌套路径），需要统一转成字符串，
+ * 否则自定义列弹窗中 checkbox 的 value 会是数组，无法与 columnKey 的字符串 key 匹配
+ * @param item
+ * @returns {*}
+ */
+const getKey = item => {
+	const key = item.key || item.dataIndex;
+	return isArray(key) ? key.join(".") : key;
+};
 
 /**
  * Newbie 表格组件
@@ -112,21 +124,21 @@ export default defineComponent({
 
 		/**
 		 * v1.18
-		 * 编辑后保存的 URL
+		 * 是否启用单元格编辑，默认读取 `tableDefaults.editable`（false）
 		 */
-		editable: { type: Boolean, default: false },
+		editable: { type: Boolean, default: undefined },
 
 		/**
 		 * v1.18
-		 * 编辑后保存的 URL
+		 * 单元格编辑提交的 URL，默认读取 `tableDefaults.submitUrl`（""）
 		 */
-		submitUrl: { type: String, default: "" },
+		submitUrl: { type: String, default: undefined },
 
 		/**
 		 * v1.18
-		 * 单元格编辑提交的前置方法, 返回一个 Promise
+		 * 单元格编辑提交的前置方法, 返回一个 Promise，默认读取 `tableDefaults.beforeCellSubmit`（null）
 		 */
-		beforeCellSubmit: { type: Function, default: null },
+		beforeCellSubmit: { type: Function, default: undefined },
 
 		/**
 		 * 表格请求方式，默认读取 `tableDefaults.method`（get）
@@ -249,6 +261,14 @@ export default defineComponent({
 
 		const { copy } = useClipboard({ legacy: true });
 
+		/**
+		 * 解析行标识，兼容 rowKey 为函数的情况（F-014）
+		 * @param {object} record
+		 * @returns {*}
+		 */
+		const getRowKey = record =>
+			isFunction(props.rowKey) ? props.rowKey(record) : record?.[props.rowKey];
+
 		const persistenceConf = computed(() => parsePersistenceConfig(props.persistence));
 
 		const persistenceNamespace = computed(() => {
@@ -290,7 +310,7 @@ export default defineComponent({
 			tableKeySelection: [], // 内部用
 			items: [], // 表格内容
 			columnKey: {}, // 自定义列
-			fetchQueue: [], // 请示队列，以最后那个为准
+			lastRequestId: 0, // 最近一次请求的 id，用于丢弃过期响应
 			searchFormData: {}, // 搜索表单数据
 		});
 
@@ -369,8 +389,8 @@ export default defineComponent({
 		const fetchItems = async () => {
 			let data = {},
 				params = getQueryData();
-			const type = new Date().getTime();
-			state.fetchQueue.push(type);
+			// 只认最后一次请求：响应回来时 id 不是最新的就丢弃，避免旧数据覆盖新数据
+			const requestId = ++state.lastRequestId;
 
 			const method = props.method;
 
@@ -382,19 +402,31 @@ export default defineComponent({
 
 			const res = await useFetch(state.tableLoading)[method](props.url, data);
 			useProcessStatusSuccess(res, () => {
-				// 根据队列决定是否处理数据
-				if (!state.fetchQueue.length) {
+				// 过期响应直接丢弃（loading 已由 useFetch 结束）
+				if (requestId !== state.lastRequestId) {
 					return;
-				}
-				if (state.fetchQueue[state.fetchQueue.length - 1] === type) {
-					state.fetchQueue = [];
 				}
 				state.tableKeySelection = [];
 				state.tableSelection = [];
-				const fetched = props.afterFetched;
+				// afterFetched 由 props / Provider / tableDefaults 合并而来，缺省时给出明确报错
+				const fetched = isFunction(props.afterFetched)
+					? props.afterFetched
+					: tableDefaults.afterFetched;
+				if (!isFunction(fetched)) {
+					console.error(
+						"[NewbieTable] 使用 url 时必须提供 afterFetched，且需返回 { items, totalSize }"
+					);
+					return;
+				}
 				const result = fetched(res);
+				if (!result || !isArray(result.items)) {
+					console.error(
+						"[NewbieTable] afterFetched 必须返回 { items, totalSize }，items 需为数组"
+					);
+					return;
+				}
 				if (props.pagination) {
-					state.pagination.totalSize = result.totalSize;
+					state.pagination.totalSize = result.totalSize ?? 0;
 				}
 				state.items = result.items;
 			});
@@ -423,18 +455,6 @@ export default defineComponent({
 			const { persistence, ...formData } = searchData || {};
 			state.searchFormData = formData;
 			doFetch(!persistence);
-		};
-
-		/**
-		 * 获取列的唯一 key
-		 * key 与 dataIndex 都可能是数组（嵌套路径），需要统一转成字符串，
-		 * 否则自定义列弹窗中 checkbox 的 value 会是数组，无法与 columnKey 的字符串 key 匹配
-		 * @param item
-		 * @returns {*}
-		 */
-		const getKey = item => {
-			const key = item.key || item.dataIndex;
-			return isArray(key) ? key.join(".") : key;
 		};
 
 		const tidyColumnsRecursion = columns => {
@@ -498,18 +518,21 @@ export default defineComponent({
 			} else {
 				columns = props.tableProps.columns || [];
 			}
-			return columns.map(item => {
-				if (item.minWidth) {
-					item.RC_TABLE_INTERNAL_COL_DEFINE = {
-						style: {
-							"min-width": `${item.minWidth}px`,
-						},
-					};
-					item.width = item.minWidth;
-				}
-				item.key = getKey(item);
-				return item;
-			});
+			// 不改写调用方传入的列对象，改为返回浅拷贝后的新列（F-021）
+			return columns.map(item => ({
+				...item,
+				key: getKey(item),
+				...(item.minWidth
+					? {
+							width: item.minWidth,
+							RC_TABLE_INTERNAL_COL_DEFINE: {
+								style: {
+									"min-width": `${item.minWidth}px`,
+								},
+							},
+						}
+					: {}),
+			}));
 		});
 
 		const prepareFormColumns = () => {
@@ -720,6 +743,7 @@ export default defineComponent({
 						<NewbieSearch
 							ref={searchRef}
 							persistence={props.persistence}
+							autoQuery={props.autoQuery}
 							filterableColumns={state.filterableColumns}
 							sortableColumns={state.sortableColumns}
 							onSearch={onSearch}
@@ -751,7 +775,8 @@ export default defineComponent({
 			</div>
 		);
 
-		const handleTable = () => {
+		// 用 computed 缓存，避免每次渲染都新建对象导致 antd Table 重置内部状态（F-052）
+		const handleTable = computed(() => {
 			return {
 				bordered: true,
 				size: "middle",
@@ -766,7 +791,7 @@ export default defineComponent({
 				rowKey: props.rowKey,
 				onRow: (record, index) => ({
 					onClick: event => {
-						const isEditing = state.editingData[record[props.rowKey]];
+						const isEditing = state.editingData[getRowKey(record)];
 						if (isEditing) {
 							//如果在编辑就不触发 rowClick, 否则在输入等情况下 Click 操作都会触发，不好避免
 							return;
@@ -776,9 +801,9 @@ export default defineComponent({
 				}),
 				...props.tableProps,
 			};
-		};
+		});
 
-		const handlePagination = () => {
+		const handlePagination = computed(() => {
 			let pagination = !props.pagination
 				? false
 				: isObject(props.pagination)
@@ -811,9 +836,9 @@ export default defineComponent({
 			}
 
 			return pagination;
-		};
+		});
 
-		const handleRowSelection = () => {
+		const handleRowSelection = computed(() => {
 			let rowSelection = !props.rowSelection
 				? null
 				: isObject(props.rowSelection)
@@ -832,18 +857,18 @@ export default defineComponent({
 			}
 
 			return rowSelection;
-		};
+		});
 
 		const onEditTableCell = (editable, record, key, value) => {
-			if (state.editingData[record[props.rowKey]]) {
-				state.editingData[record[props.rowKey]][key] = value;
+			if (state.editingData[getRowKey(record)]) {
+				state.editingData[getRowKey(record)][key] = value;
 			} else {
-				state.editingData[record[props.rowKey]] = { [key]: value };
+				state.editingData[getRowKey(record)] = { [key]: value };
 			}
 		};
 		const onCancelEditTableCell = (record, key) => {
-			if (state.editingData[record[props.rowKey]]) {
-				delete state.editingData[record[props.rowKey]][key];
+			if (state.editingData[getRowKey(record)]) {
+				delete state.editingData[getRowKey(record)][key];
 			}
 		};
 
@@ -854,13 +879,15 @@ export default defineComponent({
 
 			let value = null;
 			if (editable.type === "switch") {
-				value = state.editingSwitchData[record[props.rowKey]][key];
+				value = state.editingSwitchData[getRowKey(record)][key];
 			} else {
-				value = state.editingData[record[props.rowKey]][key];
+				value = state.editingData[getRowKey(record)][key];
 			}
 
+			// rowKey 为函数时无法反推字段名，回退到 tableDefaults.rowKey（id）
+			const rowKeyField = isFunction(props.rowKey) ? tableDefaults.rowKey : props.rowKey;
 			const data = {
-				[props.rowKey]: record[props.rowKey],
+				[rowKeyField]: getRowKey(record),
 				[key]: value,
 			};
 
@@ -894,8 +921,8 @@ export default defineComponent({
 			const value = isUndefined(editable.defaultValue) ? text : editable.defaultValue;
 
 			const isEditing =
-				state.editingData[record[props.rowKey]] &&
-				!isUndefined(state.editingData[record[props.rowKey]][editKey]);
+				state.editingData[getRowKey(record)] &&
+				!isUndefined(state.editingData[getRowKey(record)][editKey]);
 
 			const editIconElem = isEditing ? (
 				<span class={"table-editable-icon editing"}>
@@ -924,7 +951,7 @@ export default defineComponent({
 				if (editable.type === "input") {
 					return (
 						<Input
-							v-model:value={state.editingData[record[props.rowKey]][editKey]}
+							v-model:value={state.editingData[getRowKey(record)][editKey]}
 							style={{ width: "100%" }}
 							{...editable.defaultProps}
 						>
@@ -935,7 +962,7 @@ export default defineComponent({
 				if (editable.type === "number") {
 					return (
 						<InputNumber
-							v-model:value={state.editingData[record[props.rowKey]][editKey]}
+							v-model:value={state.editingData[getRowKey(record)][editKey]}
 							style={{ width: "100%" }}
 							{...editable.defaultProps}
 						>
@@ -946,7 +973,7 @@ export default defineComponent({
 				if (editable.type === "select") {
 					return (
 						<Select
-							v-model:value={state.editingData[record[props.rowKey]][editKey]}
+							v-model:value={state.editingData[getRowKey(record)][editKey]}
 							options={editable.options}
 							style={{ width: "100%" }}
 							{...editable.defaultProps}
@@ -962,18 +989,18 @@ export default defineComponent({
 					checkedChildren: () => editable.options?.[0] || null,
 					unCheckedChildren: () => editable.options?.[1] || null,
 				};
-				if (isUndefined(state.editingSwitchData[record[props.rowKey]])) {
-					state.editingSwitchData[record[props.rowKey]] = {};
+				if (isUndefined(state.editingSwitchData[getRowKey(record)])) {
+					state.editingSwitchData[getRowKey(record)] = {};
 				}
 
-				if (isUndefined(state.editingSwitchData[record[props.rowKey]][editKey])) {
-					state.editingSwitchData[record[props.rowKey]][editKey] = value;
+				if (isUndefined(state.editingSwitchData[getRowKey(record)][editKey])) {
+					state.editingSwitchData[getRowKey(record)][editKey] = value;
 				}
 				return (
 					<div class={"table-editable-wrapper"}>
 						<div class={"table-editable-text"}>
 							<Switch
-								v-model:checked={state.editingSwitchData[record[props.rowKey]][editKey]}
+								v-model:checked={state.editingSwitchData[getRowKey(record)][editKey]}
 								onClick={(checked, e) => e.stopPropagation()}
 								onChange={(checked, e) => {
 									e.stopPropagation();
@@ -1012,12 +1039,12 @@ export default defineComponent({
 		const tableElem = () => {
 			return (
 				<Table
-					rowSelection={handleRowSelection()}
-					pagination={handlePagination()}
+					rowSelection={handleRowSelection.value}
+					pagination={handlePagination.value}
 					loading={state.tableLoading.loading}
 					dataSource={state.items}
 					columns={state.tableColumns}
-					{...handleTable()}
+					{...handleTable.value}
 				>
 					{{
 						headerCell: ({ column }) => {
@@ -1192,169 +1219,3 @@ export default defineComponent({
 		);
 	},
 });
-
-/**
- *
- * 生成表格操作按钮
- * @param {array} actions
- *  action :
- *  {
- *      type: 'Button',
- *      name: '点击'
- *      props: {type: 'primary', icon: h(EditOutlined)},
- *      action: function(){},
- *  }
- */
-export function useTableActions(actions) {
-	if (!actions) return null;
-	if (!isArray(actions)) {
-		actions = [actions];
-	}
-	const actionElems = actions.map(action => {
-		let props = { ...action.props };
-
-		let { type } = action;
-		const { name } = action;
-
-		let ActionComponent = null;
-
-		if (!type || type === "button") {
-			ActionComponent = NewbieButton;
-			props.type = props.type || "text";
-		}
-		// 专为tag做一些样式处理
-		if (type === "a-tag" || type === "tag") {
-			ActionComponent = Tag;
-		}
-
-		if (type === "switch") {
-			ActionComponent = Switch;
-			if (action.name) {
-				props.checkedChildren = action.name?.[0] || "";
-				props.unCheckedChildren = action.name?.[1] || "";
-			}
-			props.checked = action.value;
-			props.disabled = true;
-		}
-
-		if (action.action) {
-			props.onClick = withModifiers(() => action.action(), ["stop"]);
-		}
-		if (action.tooltip) {
-			const title = action.tooltip;
-			return (
-				<Tooltip title={title} transfer={true}>
-					{{
-						default: () => <ActionComponent {...props}>{() => name}</ActionComponent>,
-					}}
-				</Tooltip>
-			);
-		}
-
-		if (action.children?.length) {
-			const menuItems = action.children;
-
-			return (
-				<Dropdown placement={"bottom"} onClick={withModifiers(() => {}, ["stop"])}>
-					{{
-						default: () => (
-							<NewbieButton type={"text"} size={"small"} {...props}>
-								{() => [<DownOutlined style={{ fontSize: "12px" }}></DownOutlined>, name]}
-							</NewbieButton>
-						),
-						popupRender: () => (
-							<Menu>
-								{() =>
-									menuItems.map(item => (
-										<MenuItem>
-											{() => (
-												<NewbieButton
-													type={"text"}
-													style={{ textAlign: "left" }}
-													buttonProps={{ block: true }}
-													onClick={withModifiers(() => item.action(), ["stop"])}
-													{...item.props}
-												>
-													{() => item.name}
-												</NewbieButton>
-											)}
-										</MenuItem>
-									))
-								}
-							</Menu>
-						),
-					}}
-				</Dropdown>
-			);
-		}
-
-		return <ActionComponent {...props}>{{ default: () => name }}</ActionComponent>;
-	});
-	return <div class={"table-actions-wrapper"}>{actionElems}</div>;
-}
-
-/**
- * 生成表格图片预览
- * @param {string | array} images
- * @param {object} [DefaultIcon]
- * @returns {JSX.Element|unknown[]}
- */
-export function useTableImage(images, DefaultIcon) {
-	if (!images) {
-		return (
-			<span style={{ fontSize: "30px" }}>
-				{DefaultIcon ? <DefaultIcon /> : <PictureOutlined />}
-			</span>
-		);
-	}
-
-	if (!isArray(images)) {
-		images = [images];
-	}
-	return (
-		<Flex gap={"small"}>
-			{() =>
-				images.map(img => {
-					const src = img.thumbUrl || img.url || img;
-					return (
-						<Image
-							src={src}
-							preview={{ src: img.url || img.thumbUrl || img }}
-							width={48}
-							height={48}
-						></Image>
-					);
-				})
-			}
-		</Flex>
-	);
-}
-
-/**
- * 生成附件链接
- * @todo i18n
- * @param {string | array} files
- * @param {object} [options]
- * @returns {JSX.Element|unknown[]}
- */
-export function useTableFile(files, options) {
-	const { DefaultIcon, placeholder = "暂无内容", fileName } = options || {};
-	if (!files) {
-		return <span>{placeholder}</span>;
-	}
-
-	if (!isArray(files)) {
-		files = [files];
-	}
-	return files.map((file, index) => {
-		const src = file.url || file;
-		const name = fileName || file.name || (files.length > 1 ? `查看附件${index + 1}` : "查看附件");
-		return (
-			<a href={src} style={{ display: "block" }} target="_blank">
-				<span style={{ fontSize: "14px" }}>
-					{DefaultIcon ? <DefaultIcon /> : <FilePdfOutlined />} {name}
-				</span>
-			</a>
-		);
-	});
-}

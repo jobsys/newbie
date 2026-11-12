@@ -1,5 +1,6 @@
 import {defineComponent, nextTick, ref, watch} from "vue";
 import {Input, Tag, Button, Modal} from "antdv-next";
+import {t, useT} from "../../hooks";
 import {calcFormula, hasSelfReference} from "../form/utils/formula-engine.js";
 
 const { TextArea } = Input;
@@ -22,135 +23,151 @@ const S = {
 	secondary: { color: '#8c8c8c' },
 };
 
-// 函数表数据
+// 函数表数据（说明文案存 i18n key，渲染时再翻译）
 const FUNCTIONS = {
 	math: [
-		['SUM', '[q1], [q2], ...', '求和'], ['AVG', '[q1], [q2], ...', '平均值'],
-		['MAX', '[q1], [q2], [q3]', '最大值'], ['MIN', '[q1], [q2]', '最小值'],
-		['ABS', '[q1]', '绝对值'], ['ROUND', '[q1], 2', '四舍五入到指定位数'],
-		['MOD', '[q1], [q2]', '取模（余数）'], ['POWER', '[q1], [q2]', '幂运算（q1 的 q2 次方）'],
-		['SQRT', '[q1]', '平方根'],
+		['SUM', '[q1], [q2], ...', 'form-designer.formula.fn.sum'],
+		['AVG', '[q1], [q2], ...', 'form-designer.formula.fn.avg'],
+		['MAX', '[q1], [q2], [q3]', 'form-designer.formula.fn.max'],
+		['MIN', '[q1], [q2]', 'form-designer.formula.fn.min'],
+		['ABS', '[q1]', 'form-designer.formula.fn.abs'],
+		['ROUND', '[q1], 2', 'form-designer.formula.fn.round'],
+		['MOD', '[q1], [q2]', 'form-designer.formula.fn.mod'],
+		['POWER', '[q1], [q2]', 'form-designer.formula.fn.power'],
+		['SQRT', '[q1]', 'form-designer.formula.fn.sqrt'],
 	],
 	logic: [
-		['AND', '[a], [b], ...', '逻辑与（全部为真返回 1）'],
-		['OR', '[a], [b], ...', '逻辑或（任一为真返回 1）'],
-		['NOT', '[a]', '逻辑非（取反）'],
-		['XOR', '[a], [b], ...', '异或（奇数个真返回 1）'],
+		['AND', '[a], [b], ...', 'form-designer.formula.fn.and'],
+		['OR', '[a], [b], ...', 'form-designer.formula.fn.or'],
+		['NOT', '[a]', 'form-designer.formula.fn.not'],
+		['XOR', '[a], [b], ...', 'form-designer.formula.fn.xor'],
 	],
 	string: [
-		['CONCAT', '[a], " ", [b]', '字符串拼接'], ['LEN', '[q1]', '字符串长度'],
-		['UPPER', '[q1]', '转大写'], ['LOWER', '[q1]', '转小写'],
+		['CONCAT', '[a], " ", [b]', 'form-designer.formula.fn.concat'],
+		['LEN', '[q1]', 'form-designer.formula.fn.len'],
+		['UPPER', '[q1]', 'form-designer.formula.fn.upper'],
+		['LOWER', '[q1]', 'form-designer.formula.fn.lower'],
 	],
 	date: [
-		['TODAY', '', '返回今天的日期 (YYYY-MM-DD)'],
-		['NOW', '', '返回当前日期时间'],
-		['DATE', '2024, 1, 15', '构造日期'],
-		['YEAR', '[dateField]', '提取年份'],
-		['MONTH', '[dateField]', '提取月份 (1-12)'],
-		['DAY', '[dateField]', '提取日期 (1-31)'],
-		['DATEDIF', '[start], [end], "Y"', '日期差（Y/M/D）'],
+		['TODAY', '', 'form-designer.formula.fn.today'],
+		['NOW', '', 'form-designer.formula.fn.now'],
+		['DATE', '2024, 1, 15', 'form-designer.formula.fn.date'],
+		['YEAR', '[dateField]', 'form-designer.formula.fn.year'],
+		['MONTH', '[dateField]', 'form-designer.formula.fn.month'],
+		['DAY', '[dateField]', 'form-designer.formula.fn.day'],
+		['DATEDIF', '[start], [end], "Y"', 'form-designer.formula.fn.datedif'],
 	],
 	other: [
-		['COUNT', '[q1], [q2], ...', '非空计数'], ['PERCENT', '[q1], [q2]', '百分比 (q1/q2*100)'],
+		['COUNT', '[q1], [q2], ...', 'form-designer.formula.fn.count'],
+		['PERCENT', '[q1], [q2]', 'form-designer.formula.fn.percent'],
 	],
 };
 
-// 简单表格渲染函数
-const renderTable = (rows) => (
+// 简单表格渲染函数（translate 由调用方传入，避免在模块级调用 useT）
+const renderTable = (translate, rows) => (
 	<div style={S.table}>
 		<div style={S.tableHeader}>
-			<div style={{ ...S.tableCell(0, 3), fontWeight: 600, color: '#262626' }}>函数名</div>
-			<div style={{ ...S.tableCell(1, 3), fontWeight: 600, color: '#262626' }}>参数</div>
-			<div style={{ ...S.tableCell(2, 3), fontWeight: 600, color: '#262626' }}>说明</div>
+			<div style={{ ...S.tableCell(0, 3), fontWeight: 600, color: '#262626' }}>
+				{translate('form-designer.formula.function-name')}
+			</div>
+			<div style={{ ...S.tableCell(1, 3), fontWeight: 600, color: '#262626' }}>
+				{translate('form-designer.formula.function-args')}
+			</div>
+			<div style={{ ...S.tableCell(2, 3), fontWeight: 600, color: '#262626' }}>
+				{translate('form-designer.formula.function-desc')}
+			</div>
 		</div>
 		{rows.map((row, i) => (
 			<div key={i} style={S.tableRow(i, rows.length)}>
 				<div style={{ ...S.tableCell(0, 3), color: '#595959', fontWeight: 600 }}>{row[0]}</div>
 				<div style={{ ...S.tableCell(1, 3), color: '#cf1322' }}><code style={S.code}>{row[1]}</code></div>
-				<div style={{ ...S.tableCell(2, 3), color: '#595959' }}>{row[2]}</div>
+				<div style={{ ...S.tableCell(2, 3), color: '#595959' }}>{translate(row[2])}</div>
 			</div>
 		))}
 	</div>
 );
 
-// 帮助弹窗内容
-const renderHelpContent = () => (
+// 帮助弹窗内容（translate 由调用方传入，避免在模块级调用 useT）
+const renderHelpContent = translate => (
 	<div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
 		<div style={{ background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: 6, padding: '12px 16px', marginBottom: 24 }}>
-			<strong>快速开始：</strong>使用方括号引用字段值，如 <code style={S.code}>[radio-1]</code>。支持基本运算和函数调用。
+			<strong>{translate('form-designer.formula.quick-start')}</strong>
+			{translate('form-designer.formula.quick-start-desc')} <code style={S.code}>[radio-1]</code>
+			{translate('form-designer.formula.quick-start-desc-end')}
 		</div>
 
-		<h4 style={S.h4}>基础语法</h4>
+		<h4 style={S.h4}>{translate('form-designer.formula.basic-syntax')}</h4>
 		<div style={S.section}>
-			<h5 style={S.h5}>字段引用</h5>
-			<p style={S.p}>使用方括号引用其他字段的值：</p>
+			<h5 style={S.h5}>{translate('form-designer.formula.field-reference')}</h5>
+			<p style={S.p}>{translate('form-designer.formula.field-reference-desc')}</p>
 			<div style={S.guideBg}>
-				<code style={S.code}>[fieldKey]</code> <span style={S.secondary}>例如：</span>
+				<code style={S.code}>[fieldKey]</code>{' '}
+				<span style={S.secondary}>{translate('form-designer.formula.example-label')}</span>
 				<code style={S.code}>[radio-1]</code> <code style={S.code}>[input-1]</code>
 			</div>
 		</div>
 		<div style={S.section}>
-			<h5 style={S.h5}>算术运算</h5>
+			<h5 style={S.h5}>{translate('form-designer.formula.arithmetic')}</h5>
 			<div style={S.guideBg}>
-				<p style={S.p}><code style={S.code}>[q1] + [q2]</code> — 加法</p>
-				<p style={S.p}><code style={S.code}>[q1] - [q2]</code> — 减法</p>
-				<p style={S.p}><code style={S.code}>[q1] * [q2]</code> — 乘法</p>
-				<p style={S.p}><code style={S.code}>[q1] / [q2]</code> — 除法</p>
-				<p style={{ ...S.p, marginBottom: 0 }}><code style={S.code}>[q1] % 100</code> — 取模</p>
+				<p style={S.p}><code style={S.code}>[q1] + [q2]</code> — {translate('form-designer.formula.add')}</p>
+				<p style={S.p}><code style={S.code}>[q1] - [q2]</code> — {translate('form-designer.formula.subtract')}</p>
+				<p style={S.p}><code style={S.code}>[q1] * [q2]</code> — {translate('form-designer.formula.multiply')}</p>
+				<p style={S.p}><code style={S.code}>[q1] / [q2]</code> — {translate('form-designer.formula.divide')}</p>
+				<p style={{ ...S.p, marginBottom: 0 }}><code style={S.code}>[q1] % 100</code> — {translate('form-designer.formula.modulo')}</p>
 			</div>
 		</div>
 		<div style={S.section}>
-			<h5 style={S.h5}>比较运算</h5>
+			<h5 style={S.h5}>{translate('form-designer.formula.comparison')}</h5>
 			<div style={S.guideBg}>
-				<p style={S.p}><code style={S.code}>==</code> — 等于</p>
-				<p style={S.p}><code style={S.code}>!=</code> — 不等于</p>
-				<p style={{ ...S.p, marginBottom: 0 }}><code style={S.code}>&gt; &lt; &gt;= &lt;=</code> — 大小比较</p>
+				<p style={S.p}><code style={S.code}>==</code> — {translate('form-designer.formula.equals')}</p>
+				<p style={S.p}><code style={S.code}>!=</code> — {translate('form-designer.formula.not-equals')}</p>
+				<p style={{ ...S.p, marginBottom: 0 }}><code style={S.code}>&gt; &lt; &gt;= &lt;=</code> — {translate('form-designer.formula.ordering')}</p>
 			</div>
 		</div>
 
 		<div style={S.sep} />
-		<h4 style={S.h4}>函数</h4>
+		<h4 style={S.h4}>{translate('form-designer.formula.functions')}</h4>
 		<div style={S.section}>
-			<h5 style={S.h5}>条件判断</h5>
+			<h5 style={S.h5}>{translate('form-designer.formula.condition')}</h5>
 			<div style={S.guideBg}>
 				<code style={S.code}>IF([q1] == "A", [q2], 0)</code>
 			</div>
-			<p style={{ ...S.p, ...S.secondary }}>如果 q1 等于 "A"，返回 q2 的值，否则返回 0</p>
+			<p style={{ ...S.p, ...S.secondary }}>{translate('form-designer.formula.if-desc')}</p>
 		</div>
 		<div style={S.section}>
-			<h5 style={S.h5}>数学函数</h5>
-			{renderTable(FUNCTIONS.math)}
+			<h5 style={S.h5}>{translate('form-designer.formula.math-functions')}</h5>
+			{renderTable(translate, FUNCTIONS.math)}
 		</div>
 		<div style={S.section}>
-			<h5 style={S.h5}>逻辑函数</h5>
-			{renderTable(FUNCTIONS.logic)}
+			<h5 style={S.h5}>{translate('form-designer.formula.logic-functions')}</h5>
+			{renderTable(translate, FUNCTIONS.logic)}
 		</div>
 		<div style={S.section}>
-			<h5 style={S.h5}>字符串函数</h5>
-			{renderTable(FUNCTIONS.string)}
+			<h5 style={S.h5}>{translate('form-designer.formula.string-functions')}</h5>
+			{renderTable(translate, FUNCTIONS.string)}
 		</div>
 		<div style={S.section}>
-			<h5 style={S.h5}>日期函数</h5>
-			{renderTable(FUNCTIONS.date)}
+			<h5 style={S.h5}>{translate('form-designer.formula.date-functions')}</h5>
+			{renderTable(translate, FUNCTIONS.date)}
 		</div>
 		<div style={S.section}>
-			<h5 style={S.h5}>其他函数</h5>
-			{renderTable(FUNCTIONS.other)}
+			<h5 style={S.h5}>{translate('form-designer.formula.other-functions')}</h5>
+			{renderTable(translate, FUNCTIONS.other)}
 		</div>
 
 		<div style={S.sep} />
-		<h4 style={S.h4}>常用示例</h4>
+		<h4 style={S.h4}>{translate('form-designer.formula.examples')}</h4>
 		{[
-			['计算总分', 'SUM([q1], [q2], [q3])'],
-			['条件计分', 'IF([radio-1] == "A", 10, 0)'],
-			['百分比计算', 'PERCENT([score], [total])'],
-			['字符串拼接', 'CONCAT([firstName], " ", [lastName])'],
-			['取模判断奇偶', 'IF(MOD([num], 2) == 0, "偶数", "奇数")'],
-			['多条件判断', 'IF(AND([score] >= 60, [attendance] > 80), "通过", "不通过")'],
-			['计算年龄', 'DATEDIF([birthday], TODAY(), "Y")'],
-		].map(([title, code], i) => (
+			['form-designer.formula.example.total', 'SUM([q1], [q2], [q3])'],
+			['form-designer.formula.example.conditional', 'IF([radio-1] == "A", 10, 0)'],
+			['form-designer.formula.example.percent', 'PERCENT([score], [total])'],
+			['form-designer.formula.example.concat', 'CONCAT([firstName], " ", [lastName])'],
+			['form-designer.formula.example.parity', 'IF(MOD([num], 2) == 0, "偶数", "奇数")'],
+			['form-designer.formula.example.multi-condition', 'IF(AND([score] >= 60, [attendance] > 80), "通过", "不通过")'],
+			['form-designer.formula.example.age', 'DATEDIF([birthday], TODAY(), "Y")'],
+		].map(([titleKey, code], i) => (
 			<div key={i} style={S.card}>
-				<div style={{ marginBottom: 8, fontWeight: 600 }}>{title}</div>
+				<div style={{ marginBottom: 8, fontWeight: 600 }}>{translate(titleKey)}</div>
 				<div style={S.cardCode}><code style={S.code}>{code}</code></div>
 			</div>
 		))}
@@ -182,7 +199,7 @@ export default defineComponent({
 
 			// 自引用检测：公式引用了自身字段
 			if (props.fieldKey && hasSelfReference(formula, props.fieldKey)) {
-				error.value = `公式不能引用自身字段 [${props.fieldKey}]，这会导致循环计算`;
+				error.value = t("form-designer.formula.self-reference", {field: props.fieldKey});
 				preview.value = null;
 				return;
 			}
@@ -197,7 +214,7 @@ export default defineComponent({
 					error.value = null;
 				}
 			} catch (e) {
-				error.value = e.message || "公式语法错误";
+				error.value = e.message || t("form-designer.formula.syntax-error");
 				preview.value = null;
 			}
 		};
@@ -276,23 +293,27 @@ export default defineComponent({
 		return () => (
 			<div class="formula-editor">
 				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '8px' }}>
-					<span style={{ fontSize: '14px'}}>计算公式</span>
+					<span style={{ fontSize: '14px'}}>{useT("form-designer.formula.title")}</span>
 					<Button type="link" size="small" onClick={() => { showHelp.value = true; }}>
-						使用说明
+						{useT("form-designer.formula.usage")}
 					</Button>
 				</div>
 				<TextArea
 					ref={textareaRef}
 					value={props.value}
 					onChange={handleInput}
-					placeholder="如: SUM([q1], [q2]) 或点击下面字段自动拼接"
+					placeholder={useT("form-designer.formula.placeholder")}
 					rows={4}
 				/>
 				{error.value && <div style={{ color: '#ff4d4f', marginTop: 4, fontSize: 13 }}>{error.value}</div>}
-				{preview.value !== null && <div style={{ color: '#52c41a', marginTop: 4, fontSize: 13 }}>结果: {String(preview.value)}</div>}
+				{preview.value !== null && (
+					<div style={{ color: '#52c41a', marginTop: 4, fontSize: 13 }}>
+						{useT("form-designer.formula.result", {value: String(preview.value)})}
+					</div>
+				)}
 				{props.availableFields.length > 0 && (
 					<div style={{ marginTop: '8px' }}>
-						<span style={S.secondary}>可用字段：</span>
+						<span style={S.secondary}>{useT("form-designer.formula.available-fields")}</span>
 						{props.availableFields.map(f => (
 							<Tag key={f.key} onClick={() => insertFieldRef(f.key)} style={{ cursor: "pointer", marginTop: 4 }}>
 								{f.title} [{f.key}]
@@ -303,10 +324,10 @@ export default defineComponent({
 				{showHelp.value && (
 					<Modal
 						v-model:open={showHelp.value}
-						title="公式使用说明"
+						title={useT("form-designer.formula.help-title")}
 						width={720}
 					>
-						{renderHelpContent()}
+						{renderHelpContent(useT)}
 					</Modal>
 				)}
 			</div>

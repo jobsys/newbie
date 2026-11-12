@@ -35,7 +35,7 @@ const render = (item, submitForm) => {
       submitForm[item.key][row] = [];
     }
     if (submitForm[item.key][row].includes(value)) {
-      remove(submitForm[item.key][row], item => item === value);
+      remove(submitForm[item.key][row], rowValue => rowValue === value);
     } else {
       submitForm[item.key][row].push(value);
     }

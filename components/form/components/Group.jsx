@@ -20,8 +20,12 @@ import {
   useDayjs,
   useTimeDayjs,
 } from "../../../hooks";
-import { useTableImage } from "../../table";
-import { useI18n } from "vue-i18n";
+import { renderTableImage } from "../../table/helpers.jsx";
+import { useLocale } from "../../../hooks/i18n.js";
+// 显式引入，避免按需引入时被 JSX 编译成 resolveComponent("NewbieForm") 而解析失败。
+// 这里与 NewbieForm → Layout → FormItem → components/index.js → Group 形成循环依赖，
+// 但只在 render 内引用（函数调用期才取值），ESM 的 live binding 可以安全处理。
+import NewbieForm from "../NewbieForm.jsx";
 
 /**
  * 渲染表单组
@@ -33,7 +37,7 @@ import { useI18n } from "vue-i18n";
  * @return {*|JSX.Element}
  */
 const render = (item, submitForm, itemState, context) => {
-  const { t } = useI18n();
+  const { t } = useLocale();
   if (!Object.keys(itemState).length) {
     itemState.editFormRef = null;
     itemState.showEditModal = false;
@@ -41,7 +45,7 @@ const render = (item, submitForm, itemState, context) => {
     itemState.editFormData = {};
   }
 
-  const editFormRef = toRef(itemState.editFormRef);
+  const editFormRef = toRef(itemState, "editFormRef");
 
   const { provider } = context;
   const uploaderProvider = provider.uploaderProvider;
@@ -188,7 +192,7 @@ const render = (item, submitForm, itemState, context) => {
               return record[column.item.key]?.map(tag => <Tag color={"blue"}>{tag}</Tag>);
             } else if (column.item?.type === "uploader") {
               return (
-                <div class={"flex justify-center"}>{useTableImage(record[column.item.key])}</div>
+                <div class={"flex justify-center"}>{renderTableImage(record[column.item.key])}</div>
               );
             } else if (column.item?.type === "time" || column.item?.type === "date") {
               const defaultProps = column.item?.defaultProps || {};

@@ -27,7 +27,9 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.cjs",
-    "dist/**/*.css"
+    "dist/**/*.css",
+    "components/*/README.md",
+    "components/provider/THEME.md"
   ],
   "sideEffects": [
     "**/*.css"
@@ -55,8 +57,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "docs:build": "vite build --mode docs",
+    "docs:preview": "vite preview --mode docs",
     "lint": "oxlint",
     "fmt": "oxfmt write .",
+    "docs:readme": "node scripts/generate-component-readmes.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepack": "npm run build"

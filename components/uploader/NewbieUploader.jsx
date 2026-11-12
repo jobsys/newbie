@@ -1,7 +1,8 @@
 import {computed, defineComponent, onMounted, reactive, watch} from "vue";
 import { Image, ImagePreviewGroup, message, Upload } from "antdv-next";
-import {every, isArray, isEqual, map, pick, random} from "lodash-es";
+import {every, isArray, isEqual, map, random} from "lodash-es";
 import {uploaderDefaults} from "./config.js";
+import {readFileItem, toActualNames} from "./utils.js";
 import {useNewbieConfig} from "../../hooks/useMergedProps.js";
 import {STATUS, useFetch, useT} from "../../hooks";
 import Resumable from "resumablejs";
@@ -158,7 +159,8 @@ export default defineComponent({
 			const fileList = list
 				.filter(item => item.done || !!item[pathKey] || !!item[nameKey])
 				.map(item => ({
-					...pick(item, Object.values(defaultFileItem)),
+					// 写侧统一按“标准名 → 实际名”回写，避免改名后字段丢失
+					...toActualNames(readFileItem(item, defaultFileItem), defaultFileItem),
 					_type: "file",
 					_disk: props.disk,
 				}));
@@ -203,7 +205,7 @@ export default defineComponent({
 					fileList = [fileList];
 				}
 				//如果文件列表相同应该避免重复处理
-				if (!isEqual(map(fileList, pathKey).sort(), map(state.fileList, pathKey).sort())) {
+				if (!isEqual(map(fileList, pathKey).toSorted(), map(state.fileList, pathKey).toSorted())) {
 					prepareFileList(fileList);
 				}
 			}
@@ -248,9 +250,13 @@ export default defineComponent({
 			fileList = fileList
 				.map(item => {
 					if (item.status === "done" && item.response) {
-						const res = item.response;
-						if (res.result[pathKey]) {
-							item = { ...item, ...pick(res.result, Object.values(defaultFileItem)) };
+						// 后端返回值用标准名，落库时按映射写成实际名
+						const result = readFileItem(item.response.result, defaultFileItem);
+						if (result.path) {
+							item = {
+								...item,
+								...toActualNames(result, defaultFileItem),
+							};
 							item.done = true;
 						} else {
 							item.isRemoved = true;

@@ -34,7 +34,7 @@ const render = (item, queryForm, context) => {
   /**
    * 根据条件收集组件实际的值
    */
-  item.collectItem = () => {
+  const collectItem = () => {
     let value = null,
       searchLabel = null;
 
@@ -157,7 +157,7 @@ const render = (item, queryForm, context) => {
     ></DatePicker>
   );
 
-  return { conditions, Component, displayValue, onComponentOpen };
+  return { conditions, Component, displayValue, onComponentOpen, collectItem };
 };
 
 export default render;

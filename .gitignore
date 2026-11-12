@@ -53,6 +53,7 @@ dist-ssr
 .prettiercache
 /.omc
 /dist/
+/dist-docs/
 /.openchamber/
 
 # Local build artifacts

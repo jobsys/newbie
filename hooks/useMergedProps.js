@@ -7,6 +7,10 @@ import { EMPTY_CONFIG, NEWBIE_CONFIG, mergeConfig } from "../components/provider
  * 优先级：实例 props > Provider config[namespace] > 组件 defaults。
  * 返回 Proxy，因此组件内部可以继续写 `props.xxx`，不需要改成 computed。
  *
+ * 隐式契约：只有 prop 声明为 `default: undefined` 时，rawProps 里才没有具体值，
+ * Provider 才能覆盖；声明了 `default: false` / `default: ""` 的 prop 永远优先。
+ * 因此"允许全局配置"的 prop 应把默认值放进 defaults，prop 声明统一用 `default: undefined`。
+ *
  * @param {Object} rawProps defineComponent 传入的 props
  * @param {string} namespace 配置命名空间，如 "table"
  * @param {Object} defaults 组件默认值，同时是该组件支持的全局配置 key 清单

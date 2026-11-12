@@ -8,6 +8,15 @@
 
 let defaultPermissions = [];
 
+/**
+ * 跨 realm 安全的字符串判断，同时兼容 String 包装对象
+ * @param {*} value
+ * @return {boolean}
+ */
+function isStringLike(value) {
+  return typeof value === "string" || Object.prototype.toString.call(value) === "[object String]";
+}
+
 const authDirective = {
   beforeMount(el, binding) {
     let { value } = binding;
@@ -17,7 +26,7 @@ const authDirective = {
       return;
     }
 
-    if (typeof value === "string" || value instanceof String) {
+    if (isStringLike(value)) {
       value = [value];
     }
 
@@ -27,7 +36,7 @@ const authDirective = {
       myPermissions = defaultPermissions;
     }
 
-    if (typeof permissions === "string" || permissions instanceof String) {
+    if (isStringLike(permissions)) {
       permissions = [permissions];
     }
 
@@ -62,7 +71,7 @@ function auth(value, arg) {
     return true;
   }
 
-  if (typeof value === "string" || value instanceof String) {
+  if (isStringLike(value)) {
     value = [value];
   }
 
@@ -72,7 +81,7 @@ function auth(value, arg) {
     myPermissions = defaultPermissions;
   }
 
-  if (typeof permissions === "string" || permissions instanceof String) {
+  if (isStringLike(permissions)) {
     permissions = [permissions];
   }
 

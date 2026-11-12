@@ -1,5 +1,7 @@
 import { defineComponent } from "vue";
 import { Button } from "antdv-next";
+import { useMergedProps } from "../../hooks/useMergedProps.js";
+import { buttonDefaults } from "./config.js";
 
 /**
  * 按钮组件
@@ -15,40 +17,40 @@ export default defineComponent({
      * 按钮类型
      * @values primary, ghost, dashed, link, text ,default
      */
-    type: { type: String, default: "default" },
+    type: { type: String, default: undefined },
 
     /**
      * 按钮大小
      * @values large, middle, small
      */
-    size: { type: String, default: "middle" },
+    size: { type: String, default: undefined },
 
     /**
      * 失效状态
      */
-    disabled: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: undefined },
 
     /**
      * 设置危险按钮
      */
-    danger: { type: Boolean, default: false },
+    danger: { type: Boolean, default: undefined },
 
     /**
      * 按钮标签
      */
-    label: { type: String, default: "" },
+    label: { type: String, default: undefined },
 
     /**
      * 按钮图标，需要使用
      *
      */
-    icon: { type: Object, default: null },
+    icon: { type: Object, default: undefined },
 
     /**
      * 按钮图标位置
      * @values left, right
      */
-    iconPosition: { type: String, default: "left" },
+    iconPosition: { type: String, default: undefined },
 
     /**
      * 请求状态控制器
@@ -56,7 +58,7 @@ export default defineComponent({
      */
     fetcher: {
       type: Object,
-      default: () => ({ loading: false }),
+      default: undefined,
     },
 
     /**
@@ -64,7 +66,7 @@ export default defineComponent({
      */
     buttonProps: {
       type: Object,
-      default: () => ({}),
+      default: undefined,
     },
   },
   emits: [
@@ -74,13 +76,14 @@ export default defineComponent({
      */
     "click",
   ],
-  setup(props, { emit, slots }) {
+  setup(rawProps, { emit, slots }) {
+    const props = useMergedProps(rawProps, "button", buttonDefaults);
     const onClick = e => {
       emit("click", e);
     };
 
     const defaultLabel = () => {
-      return props.label || slots.default();
+      return props.label || slots.default?.() || "";
     };
 
     const defaultSlot = () => {

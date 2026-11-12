@@ -1,4 +1,13 @@
-import { defineComponent, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
+import {
+  computed,
+  defineComponent,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowRef,
+  watch,
+} from "vue";
+import { merge } from "lodash-es";
 import Editor from "./components/WangEditor.vue";
 import Toolbar from "./components/WangToolbar.vue";
 import { message } from "antdv-next";
@@ -7,6 +16,31 @@ import { editorDefaults } from "./config.js";
 import { useNewbieConfig } from "../../hooks/useMergedProps.js";
 import { useFetch, useProcessStatusSuccess, useT } from "../../hooks";
 import { useFormItemChange } from "../../utils/form-item-context.js";
+
+/**
+ * 编辑器内置提示，统一走全局 message
+ * @param {String} info
+ * @param {String} type
+ */
+const customAlert = async (info, type) => {
+  switch (type) {
+    case "success":
+      message.success(info);
+      break;
+    case "info":
+      message.info(info);
+      break;
+    case "warning":
+      message.warning(info);
+      break;
+    case "error":
+      message.error(info);
+      break;
+    default:
+      message.info(info);
+      break;
+  }
+};
 
 /**
  * 富文本编辑器
@@ -61,36 +95,86 @@ export default defineComponent({
     // 内容 HTML
     const valueHtml = ref("");
 
-    const toolbarConfig = ref({
+    const toolbarConfig = computed(() => ({
       excludeKeys: ["group-video", "emotion"],
       ...props.config?.toolbarConfig,
-    });
+    }));
 
     const editorConfigRef = useNewbieConfig("editor", editorDefaults);
 
-    const editorConfig = ref({
-      placeholder:
-        props.placeholder || useT("form.please-input", { title: useT("common.content") }),
-      readOnly: props.disabled || props.readonly,
-      MENU_CONF: {
-        uploadImage: {
-          async customUpload(file, insertFn) {
-            const formData = new FormData();
-            formData.append("file", file);
-            try {
-              let res = await useFetch().post(editorConfigRef.value.uploadUrl, formData);
-              useProcessStatusSuccess(res, () => {
-                const { url, alt, href } = res.result;
-                insertFn(url, alt, href);
-              });
-            } catch (e) {
-              console.log(e);
-            }
-          },
+    // 内置的图片上传处理，用户可通过 config.editorConfig.MENU_CONF 逐项覆盖
+    const defaultMenuConf = {
+      uploadImage: {
+        async customUpload(file, insertFn) {
+          const formData = new FormData();
+          formData.append("file", file);
+          try {
+            const res = await useFetch().post(editorConfigRef.value.uploadUrl, formData);
+            useProcessStatusSuccess(res, () => {
+              const { url, alt, href } = res.result;
+              insertFn(url, alt, href);
+            });
+          } catch (e) {
+            message.error(e?.response?.data?.result || e?.message || "图片上传失败");
+          }
         },
       },
-      ...props.config?.editorConfig,
+    };
+
+    const editorConfig = computed(() => {
+      const { MENU_CONF: userMenuConf, ...userConfig } = props.config?.editorConfig || {};
+      return {
+        placeholder:
+          props.placeholder || useT("form.please-input", { title: useT("common.content") }),
+        readOnly: props.disabled || props.readonly,
+        ...userConfig,
+        // 深合并，用户只配置其它菜单项时仍保留内置 uploadImage；显式覆盖 uploadImage 时以用户为准
+        MENU_CONF: merge({}, defaultMenuConf, userMenuConf || {}),
+      };
     });
+
+    // props.config / disabled / readonly 变化后同步到已创建的编辑器实例
+    watch(
+      editorConfig,
+      config => {
+        try {
+          editorRef.value?.setConfig?.(config);
+        } catch (e) {
+          console.warn("[NewbieEditor] 编辑器配置更新失败", e);
+        }
+      },
+      { deep: true }
+    );
+
+    watch(
+      toolbarConfig,
+      async config => {
+        if (!editorRef.value) return;
+        try {
+          const { DomEditor } = await import("@wangeditor/editor");
+          DomEditor.getToolbar(editorRef.value)?.setConfig?.(config);
+        } catch (e) {
+          console.warn("[NewbieEditor] 工具栏配置更新失败", e);
+        }
+      },
+      { deep: true }
+    );
+
+    watch(
+      () => props.disabled || props.readonly,
+      value => {
+        const editor = editorRef.value;
+        if (!editor) return;
+        if (value) {
+          editor.disable();
+          return;
+        }
+        editor.enable();
+        if (!toolbarElemRef.value) {
+          toolbarElemRef.value = createToolbarElem();
+        }
+      }
+    );
 
     const setContent = content => {
       if (editorRef.value) {
@@ -144,26 +228,6 @@ export default defineComponent({
       if (html !== props.value) {
         emit("update:value", html);
         triggerFieldChange();
-      }
-    };
-
-    const customAlert = async (info, type) => {
-      switch (type) {
-        case "success":
-          message.success(info);
-          break;
-        case "info":
-          message.info(info);
-          break;
-        case "warning":
-          message.warning(info);
-          break;
-        case "error":
-          message.error(info);
-          break;
-        default:
-          message.info(info);
-          break;
       }
     };
 

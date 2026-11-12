@@ -1,4 +1,4 @@
-import {computed, defineComponent, nextTick, onMounted, reactive, ref, watch,} from "vue";
+import {computed, defineComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch,} from "vue";
 
 import createSearchItem from "./components/SearchItem.jsx";
 
@@ -20,6 +20,7 @@ import {
 } from "@antdv-next/icons";
 import {parsePersistenceConfig, usePersistence, useSm3, useT} from "../../hooks";
 import dayjs from "dayjs";
+import {normalizeConditionValue} from "./utils.js";
 
 /**
  * 搜索组件
@@ -125,12 +126,66 @@ export default defineComponent({
 		const formWrapperRef = ref();
 
 		//带有 between 的搜索项则初始化为 [null, null]
-		const betweenKeys = ["number", "date"];
+		const betweenKeys = new Set(["number", "date"]);
 
 		//可以多选的的搜索项则初始化为 []
-		const arrayKeys = ["select", "cascade"];
+		const arrayKeys = new Set(["select", "cascade"]);
 
 		const searchState = {}; // 用于记录各个搜索项的状态
+
+		/********** 自动搜索（F-016） **********/
+
+		const AUTO_QUERY_DELAY = 300;
+
+		let autoQueryTimer = null;
+		// 初始化 / 程序化赋值期间不触发自动搜索，避免默认值和持久化恢复造成重复查询
+		let autoQueryReady = false;
+		let suppressAutoQuery = false;
+
+		const clearAutoQueryTimer = () => {
+			if (autoQueryTimer) {
+				clearTimeout(autoQueryTimer);
+				autoQueryTimer = null;
+			}
+		};
+
+		const scheduleAutoQuery = () => {
+			clearAutoQueryTimer();
+			autoQueryTimer = setTimeout(() => {
+				autoQueryTimer = null;
+				if (!props.autoQuery) return;
+				onSearch();
+			}, AUTO_QUERY_DELAY);
+		};
+
+		/********** 条件值规整（F-050） **********/
+
+		const conditionWatcherStops = [];
+
+		const stopConditionWatchers = () => {
+			while (conditionWatcherStops.length) {
+				conditionWatcherStops.pop()();
+			}
+		};
+
+		/**
+		 * 为每个搜索项注册一次条件监听；搜索项列表变化时重建，组件卸载时停止
+		 */
+		const setupConditionWatchers = () => {
+			stopConditionWatchers();
+			concat(state.fieldColumns, state.expandColumns).forEach(item => {
+				const stop = watch(
+					() => state.queryForm[item.key]?.condition,
+					() => normalizeConditionValue(item, state.queryForm)
+				);
+				conditionWatcherStops.push(stop);
+			});
+		};
+
+		onUnmounted(() => {
+			stopConditionWatchers();
+			clearAutoQueryTimer();
+		});
 
 		/**
 		 * 初始化搜索
@@ -165,9 +220,9 @@ export default defineComponent({
 				//如果展开为多选，那么默认值为 []
 				if (item.expandable) {
 					value = [];
-				} else if (betweenKeys.includes(item.type)) {
+				} else if (betweenKeys.has(item.type)) {
 					value = [null, null];
-				} else if (arrayKeys.includes(item.type)) {
+				} else if (arrayKeys.has(item.type)) {
 					value = [];
 				}
 
@@ -175,7 +230,7 @@ export default defineComponent({
 				if (!isUndefined(persistenceSearchData[item.key])) {
 					const persistenceValue = persistenceSearchData[item.key].value;
 					if (
-						(betweenKeys.includes(item.type) || arrayKeys.includes(item.type)) &&
+						(betweenKeys.has(item.type) || arrayKeys.has(item.type)) &&
 						!isArray(persistenceValue)
 					) {
 						//为空/不为空条件收集的值为 null，保持该类型初始的空值，避免恢复出 [null]
@@ -259,13 +314,19 @@ export default defineComponent({
 			state.fieldColumns = orderBy(fieldColumns, ["sortOrder"], ["desc"]);
 			state.expandColumns = orderBy(expandColumns, ["sortOrder"], ["desc"]);
 			state.sortForm.targetKeys = defaultSortKeys;
+
+			setupConditionWatchers();
 		};
 
 		watch(
 			() => [props.filterableColumns, props.sortableColumns],
 			() => {
+				autoQueryReady = false;
 				init();
-				nextTick(() => updateOverflow());
+				nextTick(() => {
+					updateOverflow();
+					autoQueryReady = true;
+				});
 			},
 			{ immediate: true }
 		);
@@ -275,6 +336,16 @@ export default defineComponent({
 			showRestore.value = false;
 			emit("search", { newbieQuery: getQueryForm(), newbieSort: getSortForm() });
 		};
+
+		// 条件变化后节流触发自动搜索（F-016）
+		watch(
+			() => state.queryForm,
+			() => {
+				if (!autoQueryReady || suppressAutoQuery || !props.autoQuery) return;
+				scheduleAutoQuery();
+			},
+			{ deep: true }
+		);
 
 		const onClear = () => {
 			if (persist.value) persist.value.clear(["search", "sort"]);
@@ -398,8 +469,9 @@ export default defineComponent({
 			state.searchLabels = [];
 
 			concat(state.fieldColumns, state.expandColumns).forEach(item => {
-				let { value, searchLabel } = item.collectItem
-					? item.collectItem({ queryForm: state.queryForm, item })
+				const collectItem = searchState[item.key]?.collectItem;
+				let { value, searchLabel } = collectItem
+					? collectItem({ queryForm: state.queryForm, item })
 					: {};
 				const { condition, type } = state.queryForm[item.key];
 
@@ -431,9 +503,9 @@ export default defineComponent({
 									e?.preventDefault?.();
 									if (state.queryForm[item.key]) {
 										const t = state.queryForm[item.key].type || item.type;
-										if (betweenKeys.includes(t)) {
+										if (betweenKeys.has(t)) {
 											state.queryForm[item.key].value = [null, null];
-										} else if (arrayKeys.includes(t)) {
+										} else if (arrayKeys.has(t)) {
 											state.queryForm[item.key].value = [];
 										} else if (t === "switch") {
 											state.queryForm[item.key].value = undefined;
@@ -463,6 +535,8 @@ export default defineComponent({
 		 * @param {Object} fields
 		 */
 		const setQueryForm = fields => {
+			// 程序化赋值不触发自动搜索，等下一个 tick 恢复
+			suppressAutoQuery = true;
 			Object.keys(fields).forEach(key => {
 				if (state.queryForm[key]) {
 					state.queryForm[key].value = fields[key];
@@ -472,23 +546,22 @@ export default defineComponent({
 					};
 				}
 			});
+			nextTick(() => {
+				suppressAutoQuery = false;
+			});
 		};
 
+		/**
+		 * 获取可直接提交给后端的搜索参数，始终返回 { newbieQuery, newbieSort }
+		 * @return {{newbieQuery: Object, newbieSort: Object}}
+		 */
 		const getSearch = () => {
 			state.searchLabels = [];
 
-			const searchForm = {};
-			const newbieQuery = getQueryForm();
-			const newbieSort = getSortForm();
-
-			if (Object.keys(newbieQuery).length) {
-				searchForm.newbieQuery = newbieQuery;
-			}
-
-			if (Object.keys(newbieSort).length) {
-				searchForm.newbieSort = newbieSort;
-			}
-			return searchForm;
+			return {
+				newbieQuery: getQueryForm(),
+				newbieSort: getSortForm(),
+			};
 		};
 
 		expose({ getQueryForm, setQueryForm, getSortForm, getSearch });
@@ -499,6 +572,9 @@ export default defineComponent({
 
 		const onApplyRestore = () => {
 			if (!persist.value) return;
+
+			// 恢复过程由末尾的 onSearch 统一查询，避免自动搜索重复触发
+			suppressAutoQuery = true;
 
 			// 从 localStorage 加载冷数据
 			const coldForm = persist.value.loadLocal("search", {});
@@ -515,13 +591,13 @@ export default defineComponent({
 				// select/cascade/date 类型的值必须是数组
 				const field = state.queryForm[key];
 				const type = field?.type || item.type || "input";
-				if (betweenKeys.includes(type) || arrayKeys.includes(type)) {
+				if (betweenKeys.has(type) || arrayKeys.has(type)) {
 					if (!isArray(value)) {
 						//为空/不为空条件收集的值为 null，归一化为该类型的空值
 						if (value != null && value !== "") {
 							value = [value];
 						} else {
-							value = betweenKeys.includes(type) ? [null, null] : [];
+							value = betweenKeys.has(type) ? [null, null] : [];
 						}
 					}
 				}
@@ -572,6 +648,9 @@ export default defineComponent({
 
 			showRestore.value = false;
 			onSearch();
+			nextTick(() => {
+				suppressAutoQuery = false;
+			});
 		};
 
 		/********** render **********/
@@ -587,7 +666,7 @@ export default defineComponent({
 		};
 
 		const expandElems = () =>
-			state.expandColumns.map(item => createExpand(item, state.queryForm));
+			state.expandColumns.map(item => createExpand(item, state.queryForm, searchState[item.key]));
 
 		const sortableElem = () =>
 			state.sortColumns.length ? (

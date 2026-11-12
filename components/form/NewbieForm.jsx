@@ -1,5 +1,5 @@
-import {computed, defineComponent, onMounted, reactive, ref, watch} from "vue";
-import {cloneDeep, every, isArray, isEqual, isFunction, isObject, isString, pick} from "lodash-es";
+import {computed, defineComponent, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect} from "vue";
+import {cloneDeep, isArray, isEqual, isFunction, isString} from "lodash-es";
 import {useFetch, useFormFail, useFormFormat, useI18nJoin, useProcessStatusSuccess,} from "../../hooks";
 import {Button, Card, Form, message, Modal, Skeleton, Space} from "antdv-next";
 import createLayout from "./components/Layout.jsx";
@@ -8,11 +8,41 @@ import {uploaderDefaults} from "../uploader/config.js";
 import {useNewbieConfig} from "../../hooks/useMergedProps.js";
 import "./index.less";
 import {applyRangeKeys, initItemDefaultValue} from "./utils";
-import {useI18n} from "vue-i18n";
+import { useLocale } from "../../hooks/i18n.js";
 import {computeVisibility} from "./utils/rule-engine";
 import {normalizeFormConfig} from "./utils/normalize-form-config";
 import {calcFormula} from "./utils/formula-engine";
 import {createFormModel} from "./model";
+
+/**
+ * `data` 支持对象或 JSON 字符串。
+ * 字符串先按 JSON 解析；解析失败或结果不是对象时忽略并告警，
+ * 避免 `{ ...existingData }` 把字符串展开成 `{0: "a", 1: "b"}` 这样的字符索引对象。
+ *
+ * @param {Object|String} data
+ * @return {Object|String} 可用于初始化表单的数据，空值返回 ""
+ */
+const normalizeFormData = data => {
+	if (!isString(data)) {
+		return data || "";
+	}
+
+	if (!data.trim()) {
+		return "";
+	}
+
+	try {
+		const parsed = JSON.parse(data);
+		if (parsed && typeof parsed === "object" && !isArray(parsed)) {
+			return parsed;
+		}
+	} catch {
+		// 解析失败时走下面的告警分支
+	}
+
+	console.warn("NewbieForm: data 不是合法的 JSON 对象字符串，本次数据已忽略");
+	return "";
+};
 
 /**
  * 表单组件
@@ -32,7 +62,7 @@ export default defineComponent({
 
 		/**
 		 * 表单数据，用于初始化表单，并会进行 Watch
-		 *
+		 * 支持对象或 JSON 字符串（字符串会按 JSON 解析，解析失败或不是对象时忽略并告警）
 		 */
 		data: { type: [Object, String], default: "" },
 
@@ -194,7 +224,7 @@ export default defineComponent({
 		 * 表单配置，[见表单项配置](#newbieformitemconfig-表单项配置)
 		 */
 		form: {
-			type: [Array, Function],
+			type: [Array, Function, Object],
 			default() {
 				return [];
 			},
@@ -215,7 +245,11 @@ export default defineComponent({
 		 *
 		 * 提交数据处理函数
 		 * @param {ExposedFormData} data
-		 * @return {Boolean|Object} return false会阻止提交操作，return Object会替换提交的数据
+		 * @return {Boolean|Object|undefined|null} 返回值契约：
+		 * - `false`：阻止本次提交（不会发请求）；
+		 * - 对象：用返回的对象替换提交体；
+		 * - `undefined` / `null`：沿用原提交体（适合只做副作用的场景）。
+		 * 可以为 async 函数。
 		 *
 		 */
 		beforeSubmit: { type: Function, default: null },
@@ -237,7 +271,7 @@ export default defineComponent({
 	},
 	emits: ["success"],
 	setup(props, { expose, slots, emit }) {
-		const { t, locale } = useI18n();
+		const { t, locale } = useLocale();
 
 		const editorRef = ref(null); //总的容器
 
@@ -253,11 +287,26 @@ export default defineComponent({
 			},
 			isInitializing: true, //是否正在初始化
 			submitFormBackup: {}, //初始化后的表单数据备份，用于重置表单以及脏数据判断
+			hiddenValues: {}, // 因条件逻辑被隐藏的字段值，字段重新显示时回填
 		});
 
 		const formConfigRef = useNewbieConfig("form", formDefaults);
 		const uploaderConfigRef = useNewbieConfig("uploader", uploaderDefaults);
 		const formState = {}; // 用于记录各个表单项的状态
+
+		/**
+		 * 字段类型的默认配置（Provider 的 `form.columnPresets`）。
+		 * 兼容旧名 `form.columns`：新名没有配置时回退到旧名，
+		 * 避免已有 Provider 配置失效；这与 NewbieForm 自己的 `columns`（24 栅格布局）互不影响。
+		 */
+		const columnPresets = computed(() => {
+			const config = formConfigRef.value || {};
+			const presets = config.columnPresets || {};
+			if (Object.keys(presets).length) {
+				return presets;
+			}
+			return config.columns || presets;
+		});
 
 		const formConfig = computed(() => {
 			const raw = typeof props.form === "function" ? props.form() : props.form;
@@ -267,18 +316,19 @@ export default defineComponent({
 		const formItems = computed(() => {
 			const items = formConfig.value.fields;
 			return items.map(item => {
-				if (!item.type) {
-					item.type = "input";
-				}
-				if (formConfigRef.value?.columns?.[item.type]) {
-					item = { ...formConfigRef.value.columns[item.type], ...item };
-				}
+				// 渲染期不写回调用方配置：无 type 时只在自己的副本上补默认值
+				const normalizedItem = item.type ? item : { ...item, type: "input" };
 
 				if (!formState[item.key]) {
 					formState[item.key] = reactive({});
 				}
 
-				return item;
+				const preset = columnPresets.value[normalizedItem.type];
+				if (preset) {
+					return { ...preset, ...normalizedItem };
+				}
+
+				return normalizedItem;
 			});
 		});
 
@@ -288,25 +338,36 @@ export default defineComponent({
 			return computeVisibility(rules, submitForm);
 		});
 
-		// 计算字段实时求值：监听 submitForm 变化，自动更新 computed 字段的值
-		// 不通过渲染来触发，而是通过 watcher 直接写入 submitForm
-		watch(
-			() => submitForm,
-			() => {
-				formConfig.value.fields.forEach(item => {
-					if (item.type === "computed" && item.formula) {
-						const result = calcFormula(item.formula, submitForm);
-						if (result && typeof result === "object" && result.error) {
-							// 公式错误，不更新
-						} else {
-							formModel.bind(item.key);
-							submitForm[item.key] = result;
-						}
+		// 计算字段实时求值：读取公式依赖的字段，自动更新 computed 字段的值。
+		// 不能直接 deep watch submitForm：扁平视图是动态 Proxy，初始化前没有任何 key，
+		// watch 建立时采集不到依赖，后续新增的字段不会触发回调。
+		const computeComputedFields = () => {
+			formConfig.value.fields.forEach(item => {
+				if (item.type === "computed" && item.formula) {
+					const result = calcFormula(item.formula, submitForm);
+					if (result && typeof result === "object" && result.error) {
+						// 公式错误，不更新
+					} else {
+						formModel.bind(item.key);
+						submitForm[item.key] = result;
 					}
-				});
-			},
-			{ deep: true }
-		);
+				}
+			});
+		};
+
+		let stopComputedEffect = null;
+
+		const startComputedEffect = () => {
+			stopComputedEffect?.();
+			computeComputedFields();
+			stopComputedEffect = watchEffect(() => {
+				computeComputedFields();
+			});
+		};
+
+		onBeforeUnmount(() => {
+			stopComputedEffect?.();
+		});
 
 		watch(
 			() => props.data,
@@ -315,22 +376,32 @@ export default defineComponent({
 			}
 		);
 
-		watch(
-			fieldVisibility,
-			newVis => {
-				if (Object.keys(newVis).length === 0) return;
-				for (const key of Object.keys(newVis)) {
-					if (!newVis[key]) {
-						formModel.bind(key);
-						submitForm[key] = null;
+		/**
+		 * 按条件逻辑显隐字段：
+		 * 隐藏时把当前值暂存到 state.hiddenValues 再置为 null，
+		 * 字段重新显示时回填暂存值，避免用户已填数据丢失。
+		 */
+		const applyFieldVisibility = () => {
+			const visibility = fieldVisibility.value;
+			if (!visibility || Object.keys(visibility).length === 0) {
+				return;
+			}
+			for (const key of Object.keys(visibility)) {
+				formModel.bind(key);
+				if (!visibility[key]) {
+					// 只暂存第一次隐藏前的值，反复应用同一份显隐结果不会覆盖暂存值
+					if (!Object.prototype.hasOwnProperty.call(state.hiddenValues, key)) {
+						state.hiddenValues[key] = cloneDeep(submitForm[key]);
 					}
+					submitForm[key] = null;
+				} else if (Object.prototype.hasOwnProperty.call(state.hiddenValues, key)) {
+					submitForm[key] = state.hiddenValues[key];
+					delete state.hiddenValues[key];
 				}
-			},
-			{ deep: true }
-		);
+			}
+		};
 
-		// 计算字段由 ComputedField 组件在渲染时实时求值，无需在此写入 submitForm
-		// 这避免了深度 watcher 因写回计算结果而导致的无限循环
+		watch(fieldVisibility, applyFieldVisibility, { deep: true });
 
 		const init = () => {
 			state.isInitializing = false;
@@ -341,8 +412,8 @@ export default defineComponent({
 			let auto = false;
 			if (props.autoLoad && props.fetchUrl) {
 				auto = true;
-				if (props.autoLoad && isObject(props.autoLoad)) {
-					auto = every(Object.values(pick(props.extraData, Object.keys(props.autoLoad))));
+				if (props.autoLoad && isArray(props.autoLoad)) {
+					auto = props.autoLoad.every(key => !!props.extraData[key]);
 				} else if (props.autoLoad && isString(props.autoLoad)) {
 					auto = !!props.extraData[props.autoLoad];
 				}
@@ -360,6 +431,11 @@ export default defineComponent({
 		 * @param {Object} formData 表单数据
 		 */
 		const initFormData = formData => {
+			// data 允许传 JSON 字符串；字符串必须先解析，否则 { ...existingData } 会把字符索引当成字段
+			formData = normalizeFormData(formData);
+			// 数据整体重新加载后，之前暂存的隐藏字段值已失效
+			state.hiddenValues = {};
+
 			// 如果有 FormData, 则从中提取 FormItem 中有定义的数据，并进行初始化后存放于 extractFormData
 			// 无 FromData 则直接使用 FormItem 的 defaultValue
 			let extractFormData = {};
@@ -393,7 +469,9 @@ export default defineComponent({
 			}
 
 			formModel.replace(extractFormData);
-			state.submitFormBackup = cloneDeep(extractFormData);
+			applyFieldVisibility();
+			startComputedEffect();
+			state.submitFormBackup = cloneDeep(submitForm);
 			// 数据重新加载后清掉上一轮校验状态，避免隐藏的旧错误残留
 			editorRef.value?.clearValidate?.();
 		};
@@ -448,6 +526,8 @@ export default defineComponent({
 						);
 
 						for (const item of itemsWithBeforeSubmit) {
+							// 各 beforeSubmit 会依次读取上一步写入 form 的结果，必须按配置顺序串行执行
+							// eslint-disable-next-line no-await-in-loop
 							form[item.key] = await item.beforeSubmit({
 								value: form[item.key],
 								submitForm: form, //将 form 传出去，这样可以增删 form 里的参数
@@ -466,10 +546,16 @@ export default defineComponent({
 						form = useFormFormat(form, formConfigRef.value.format || {});
 
 						if (props.beforeSubmit && isFunction(props.beforeSubmit)) {
-							form = await props.beforeSubmit({ formatForm: form, originalForm: submitForm });
-							// 如果返回 false 则阻止提交
-							if (form === false) {
+							const submitResult = await props.beforeSubmit({
+								formatForm: form,
+								originalForm: submitForm,
+							});
+							// 契约：false 阻止提交；对象替换提交体；undefined / null 沿用原提交体
+							if (submitResult === false) {
 								return resolve();
+							}
+							if (submitResult && typeof submitResult === "object") {
+								form = submitResult;
 							}
 						}
 
@@ -510,6 +596,8 @@ export default defineComponent({
 
 		const reset = () => {
 			editorRef.value?.clearValidate?.();
+			// 重置到初始化数据，隐藏字段的暂存值同样失效
+			state.hiddenValues = {};
 			// 直接按初始化备份重建嵌套模型，避免 antd resetFields 在动态 model 下
 			// 依赖 initialValues 的行为差异（尤其是点号 key）
 			formModel.replace(cloneDeep(state.submitFormBackup));
@@ -568,47 +656,47 @@ export default defineComponent({
 
 		/********** render **********/
 
+		const submitBtn = () => (
+			<Button
+				loading={state.submitFetcher.loading}
+				type={"primary"}
+				// 不能设 htmlType="submit"：原生 submit 会触发 antd Form 内部 validateFields，
+				// 与 onClick 里的 validate 并发竞态，本侧永远 outOfDate 落败导致提交丢失
+				disabled={props.submitDisabled}
+				onClick={() => {
+					if (props.submitConfirmText) {
+						Modal.confirm({
+							content: props.submitConfirmText,
+							onOk() {
+								onSubmit().catch(() => {});
+							},
+						});
+					} else {
+						onSubmit().catch(() => {});
+					}
+				}}
+			>
+				{{
+					default: () =>
+						`${props.submitButtonText || t("common.save")}${state.submitFetcher.loading ? "..." : ""}`,
+				}}
+			</Button>
+		);
+
+		const closeBtn = () => (
+			<Button
+				type={"default"}
+				onClick={() => {
+					if (props.close && isFunction(props.close)) {
+						props.close();
+					}
+				}}
+			>
+				{{ default: () => props.closeButtonText || t("common.close") }}
+			</Button>
+		);
+
 		const submitBtnElem = () => {
-			const submitBtn = () => (
-				<Button
-					loading={state.submitFetcher.loading}
-					type={"primary"}
-					// 不能设 htmlType="submit"：原生 submit 会触发 antd Form 内部 validateFields，
-					// 与 onClick 里的 validate 并发竞态，本侧永远 outOfDate 落败导致提交丢失
-					disabled={props.submitDisabled}
-					onClick={() => {
-						if (props.submitConfirmText) {
-							Modal.confirm({
-								content: props.submitConfirmText,
-								onOk() {
-									onSubmit().catch(() => {});
-								},
-							});
-						} else {
-							onSubmit().catch(() => {});
-						}
-					}}
-				>
-					{{
-						default: () =>
-							`${props.submitButtonText || t("common.save")}${state.submitFetcher.loading ? "..." : ""}`,
-					}}
-				</Button>
-			);
-
-			const closeBtn = () => (
-				<Button
-					type={"default"}
-					onClick={() => {
-						if (props.close && isFunction(props.close)) {
-							props.close();
-						}
-					}}
-				>
-					{{ default: () => props.closeButtonText || t("common.close") }}
-				</Button>
-			);
-
 			return (
 				<Space size={"large"}>
 					{{
@@ -626,7 +714,7 @@ export default defineComponent({
 				props,
 				slots,
 				formState,
-				fieldVisibility,
+				fieldVisibility: fieldVisibility.value,
 				formProvider: formConfigRef.value,
 				uploaderProvider: uploaderConfigRef.value,
 			});

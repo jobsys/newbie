@@ -1,5 +1,5 @@
 import { defineComponent, provide, reactive, readonly, watch } from "vue";
-import { useI18n } from "vue-i18n";
+import { useLocale } from "../../hooks/i18n.js";
 import { NEWBIE_CONFIG, mergeConfig } from "./config.js";
 
 // TODO(next-major): 删除顶层 editor/table/uploader/form/search props，
@@ -71,7 +71,7 @@ export default defineComponent({
 			{ deep: true }
 		);
 
-		const { locale } = useI18n({ useScope: "global" });
+		const { locale } = useLocale({ useScope: "global" });
 		watch(
 			() => props.locale,
 			value => {

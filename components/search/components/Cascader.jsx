@@ -1,7 +1,8 @@
 import { Cascader } from "antdv-next";
-import { computed, ref, watch } from "vue";
-import { find, findIndex, isFunction } from "lodash-es";
+import { computed, ref } from "vue";
+import { find, findIndex } from "lodash-es";
 import { useFindLabelsFromPath, useI18nJoin, useT } from "../../../hooks/index.js";
+import { normalizeOptions } from "../utils.js";
 
 /**
  *
@@ -12,7 +13,7 @@ import { useFindLabelsFromPath, useI18nJoin, useT } from "../../../hooks/index.j
 const render = (item, queryForm, context) => {
   const { searchProvider } = context;
 
-  let options = isFunction(item.options) ? item.options() : item.options;
+  const options = normalizeOptions(item.options);
 
   let conditions = [
     { label: useT("search.equal"), value: "equal" },
@@ -24,16 +25,6 @@ const render = (item, queryForm, context) => {
   if (item.conditions && item.conditions.length) {
     conditions = conditions.filter(condition => item.conditions.includes(condition.value));
   }
-
-  // 为空不消耗值，切到为空时清掉已选的地区，避免残留
-  watch(
-    () => queryForm[item.key].condition,
-    val => {
-      if (val === "null") {
-        queryForm[item.key].value = [];
-      }
-    }
-  );
 
   const displayValue = computed(() => {
     if (queryForm[item.key].condition === "null") {
@@ -48,7 +39,7 @@ const render = (item, queryForm, context) => {
   /**
    * 根据条件收集组件实际的值
    */
-  item.collectItem = () => {
+  const collectItem = () => {
     let value = queryForm[item.key].value || null,
       searchLabel = null;
 
@@ -100,7 +91,7 @@ const render = (item, queryForm, context) => {
       ></Cascader>
     );
 
-  return { conditions, Component, displayValue, onComponentOpen };
+  return { conditions, Component, displayValue, onComponentOpen, collectItem };
 };
 
 export default render;

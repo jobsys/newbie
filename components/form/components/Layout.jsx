@@ -16,10 +16,11 @@ const expandAnimations = new WeakMap();
  * @return {*[]|JSX.Element}
  */
 const render = (formItems, submitForm, submitButtons, context) => {
-	const { props, slots, formState, fieldVisibility } = context;
+	const { props, slots, formState } = context;
+	const visibility = context.fieldVisibility?.value ?? context.fieldVisibility;
 	const getFormItem = item =>
 		createFormItem(
-			{ ...item, visible: fieldVisibility ? fieldVisibility[item.key] !== false : true },
+			{ ...item, visible: visibility ? visibility[item.key] !== false : true },
 			submitForm,
 			context
 		);
@@ -70,9 +71,7 @@ const render = (formItems, submitForm, submitButtons, context) => {
 	staticFormItems.forEach((items, index) => {
 		items.forEach(item => {
 			let columnIndex = item.columnIndex || 0;
-			columnIndex = isNumber(columnIndex)
-				? Math.min(columnIndex, props.columns.length - 1)
-				: columnIndex;
+			columnIndex = isNumber(columnIndex) ? Math.min(columnIndex, columns.length - 1) : columnIndex;
 
 			let span = 0;
 
@@ -96,21 +95,24 @@ const render = (formItems, submitForm, submitButtons, context) => {
 						sortedFormItems[index][i].push("placeholder");
 					}
 				}
-				item.span = span;
 
-				// 默认的 labelCol.span 为 6，如果是 2 列，那么 labelCol.span 应该为 3， 3 列则为 2
-				item.formItemProps = {
-					labelCol: {
-						span:
-							(props.formProps.labelCol?.span || 6) /
-							(columnIndex[columnIndex.length - 1] - columnIndex[0] + 1),
+				// 渲染期不能回写 item（会污染调用方配置并触发递归更新），
+				// 计算出的 span / formItemProps 只放在渲染用的副本上
+				sortedFormItems[index][columnIndex[0]].push({
+					...item,
+					span,
+					// 默认的 labelCol.span 为 6，如果是 2 列，那么 labelCol.span 应该为 3， 3 列则为 2
+					formItemProps: {
+						labelCol: {
+							span:
+								(props.formProps.labelCol?.span || 6) /
+								(columnIndex[columnIndex.length - 1] - columnIndex[0] + 1),
+						},
+						...item.formItemProps,
 					},
-					...item.formItemProps,
-				};
-				sortedFormItems[index][columnIndex[0]].push(item);
+				});
 			} else if (isNumber(columnIndex)) {
-				item.span = columns[columnIndex];
-				sortedFormItems[index][columnIndex].push(item);
+				sortedFormItems[index][columnIndex].push({ ...item, span: columns[columnIndex] });
 			}
 		});
 	});

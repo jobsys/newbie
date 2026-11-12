@@ -35,6 +35,7 @@ import NewbieForm from "../form/NewbieForm.jsx";
 import {getDefaultWidgets} from "./defaultWidgets.jsx";
 import {formItemToProps, propsToFormItem, widgetToProps} from "./widgetProps.js";
 import {genPixel} from "../../utils/style.js";
+import {t, useT} from "../../hooks";
 import GlobalLogicPanel from "./GlobalLogicPanel.jsx";
 import FormulaEditor from "./FormulaEditor.jsx";
 
@@ -252,14 +253,14 @@ export default defineComponent({
 				let optionsValue = "",
 					rateValue = "";
 				const options = state.currentItem?.props[item.key] || [];
-				options.forEach((item, index) => {
-					if (isObject(item)) {
-						optionsValue += item.value;
-						rateValue += item.rate ? String(item.rate) : "";
+				options.forEach((option, optionIndex) => {
+					if (isObject(option)) {
+						optionsValue += option.value;
+						rateValue += option.rate ? String(option.rate) : "";
 					} else {
-						optionsValue += item;
+						optionsValue += option;
 					}
-					if (index < options.length - 1) {
+					if (optionIndex < options.length - 1) {
 						optionsValue += "\n";
 						rateValue += "\n";
 					}
@@ -275,7 +276,7 @@ export default defineComponent({
 
 		const onSubmitOptions = () => {
 			if (!state.optionsValue.trim()) {
-				message.warn("请至少设置一个选项");
+				message.warn(t("form-designer.options-required"));
 				return;
 			}
 			if (!state.currentOptionItem) {
@@ -296,7 +297,7 @@ export default defineComponent({
 			}
 
 			if (!isEqual(options, uniq(options))) {
-				message.warn("选项有重复，请检查数据");
+				message.warn(t("form-designer.options-duplicate"));
 				return;
 			}
 
@@ -310,7 +311,7 @@ export default defineComponent({
 
 		const onSubmitValueOptions = () => {
 			if (!state.optionsValue.trim()) {
-				message.warn("请至少设置一个选项");
+				message.warn(t("form-designer.options-required"));
 				return;
 			}
 			if (!state.currentOptionItem) {
@@ -321,7 +322,7 @@ export default defineComponent({
 			const rates = state.rateValue.split("\n");
 
 			if (!isEqual(options, uniq(options))) {
-				message.warn("选项有重复，请检查数据");
+				message.warn(t("form-designer.options-duplicate"));
 				return;
 			}
 
@@ -362,8 +363,8 @@ export default defineComponent({
 
 		const onClearForm = () => {
 			Modal.confirm({
-				title: "清空表单",
-				content: "清空表单后，所有数据将被清空，是否继续？",
+				title: t("form-designer.clear-form"),
+				content: t("form-designer.clear-form-confirm"),
 				onOk: () => {
 					state.painterItems = [];
 					canvasModel.replace({});
@@ -389,50 +390,50 @@ export default defineComponent({
 			{ deep: true }
 		);
 
-		return () => {
-			const widgetListElems = () =>
-				widgets.value.map(item => {
-					return (
-						<div class={"widget-list-container"}>
-							<div class={"widget-list-title"}>{item.title || "默认"}</div>
-							<Draggable
-								tag={"div"}
-								list={item.children}
-								sort={false}
-								group={{ name: "designer", pull: "clone", put: false }}
-								clone={onCloneWidget}
-								handle={".drag-handle"}
-								class={"widget-list"}
-								itemKey={"name"}
-							>
-								{{
-									item: ({ element }) => (
-										<Button
-											class={"widget-item drag-handle"}
-											onClick={() => onSelectWidget(element)}
-										>
-											{element.icon ? (
-												<span role="img" class={"widget-icon"}>
-													{isFunction(element.icon) ? element.icon() : element.icon}
-												</span>
-											) : null}
-											<span class={"widget-name"}>{element.name}</span>
-										</Button>
-									),
-								}}
-							</Draggable>
-						</div>
-					);
-				});
-
-			const widgetContainerElem = () => {
+		const widgetListElems = () =>
+			widgets.value.map(item => {
 				return (
-					<div class={"newbie-form-designer__widget-container"}>
-						<div class={"widget-container"}>{widgetListElems()}</div>
+					<div class={"widget-list-container"}>
+						<div class={"widget-list-title"}>{item.title || useT("form-designer.default-group")}</div>
+						<Draggable
+							tag={"div"}
+							list={item.children}
+							sort={false}
+							group={{ name: "designer", pull: "clone", put: false }}
+							clone={onCloneWidget}
+							handle={".drag-handle"}
+							class={"widget-list"}
+							itemKey={"name"}
+						>
+							{{
+								item: ({ element }) => (
+									<Button
+										class={"widget-item drag-handle"}
+										onClick={() => onSelectWidget(element)}
+									>
+										{element.icon ? (
+											<span role="img" class={"widget-icon"}>
+												{isFunction(element.icon) ? element.icon() : element.icon}
+											</span>
+										) : null}
+										<span class={"widget-name"}>{element.name}</span>
+									</Button>
+								),
+							}}
+						</Draggable>
 					</div>
 				);
-			};
+			});
 
+		const widgetContainerElem = () => {
+			return (
+				<div class={"newbie-form-designer__widget-container"}>
+					<div class={"widget-container"}>{widgetListElems()}</div>
+				</div>
+			);
+		};
+
+		return () => {
 			const painterContainerElem = () => (
 				<div class="newbie-form-designer__painter-container">
 					<div class="newbie-form-designer__painter-scroll">
@@ -448,7 +449,7 @@ export default defineComponent({
 								<div class={"newbie-form-designer__help-wrapper"}>
 									<p>
 										<SmileTwoTone style={{ marginRight: "4px" }} />
-										请点击或者拖拽左侧组件至下面区域生成表单
+										{useT("form-designer.drag-hint")}
 									</p>
 								</div>
 							)}
@@ -481,12 +482,14 @@ export default defineComponent({
 															class={"op-item"}
 															onClick={withModifiers(() => onDeleteItem(index), ["stop"])}
 														>
-															<Tooltip title={"删除"}>
+															<Tooltip title={useT("common.delete")}>
 																<DeleteOutlined></DeleteOutlined>
 															</Tooltip>
 														</div>
 													</div>
-													{element.props.break ? <Divider>{() => "分页栏"}</Divider> : null}
+													{element.props.break ? (
+														<Divider>{() => useT("form-designer.page-break")}</Divider>
+													) : null}
 													{createFormItem(
 														{
 															formItemSlots: {
@@ -497,10 +500,10 @@ export default defineComponent({
 																			<span class={"item-key"}>[{element.props.key}]</span>
 																			{element.props.title}
 																			{element.type === "computed" ? (
-																				<Tooltip title="计算字段不会展示给填写用户，仅根据表单数据自动计算，可用于统计等用途">
+																				<Tooltip title={useT("form-designer.computed-field-tip")}>
 																					<span class={"item-computed-badge"}>
 																						<CalculatorOutlined style={{ marginRight: 4 }} />
-																						计算字段
+																						{useT("form-designer.computed-field")}
 																					</span>
 																				</Tooltip>
 																			) : null}
@@ -522,14 +525,14 @@ export default defineComponent({
 						</Form>
 					</div>
 					<div class={"newbie-form-designer__painter-toolbar"}>
-						<Tooltip title={"清空表单"}>
+						<Tooltip title={useT("form-designer.clear-form")}>
 							<Button
 								type={"default"}
 								danger
 								icon={<DeleteOutlined />}
 								onClick={onClearForm}
 							>
-								清空表单
+								{useT("form-designer.clear-form")}
 							</Button>
 						</Tooltip>
 						<Space size={8}>
@@ -541,11 +544,11 @@ export default defineComponent({
 										state.showLogicPanel = true;
 									}}
 								>
-									表单逻辑
+									{useT("form-designer.logic")}
 								</Button>
 							</Badge>
 							<Button type={"primary"} icon={<SaveOutlined />} onClick={onSubmit}>
-								保存表单
+								{useT("form-designer.save-form")}
 							</Button>
                         </Space>
 					</div>
@@ -579,7 +582,7 @@ export default defineComponent({
 											<FormItem label={item.title}>
 												{() => (
 													<Button type={"primary"} onClick={() => onEditOptions(item)}>
-														{() => "设置选项"}
+														{() => useT("form-designer.set-options")}
 													</Button>
 												)}
 											</FormItem>
@@ -590,7 +593,7 @@ export default defineComponent({
 											<FormItem label={item.title}>
 												{() => (
 													<Button type={"primary"} onClick={() => onEditOptions(item)}>
-														{() => "设置行标题"}
+														{() => useT("form-designer.set-row-titles")}
 													</Button>
 												)}
 											</FormItem>
@@ -617,26 +620,30 @@ export default defineComponent({
 						]
 					) : (
 						<div class={"empty-props"}>
-							<Empty description={"未选中内容"}></Empty>
+							<Empty description={useT("form-designer.empty-props")}></Empty>
 						</div>
 					)}
 				</div>
 			);
 
 			const optionsEditorElem = () => (
-				<Modal v-model:open={state.showOptionsModal} title={"选项设置"} onOk={onSubmitOptions}>
+				<Modal
+					v-model:open={state.showOptionsModal}
+					title={useT("form-designer.options-title")}
+					onOk={onSubmitOptions}
+				>
 					{() => [
 						<Alert
 							message={
 								props.mode === "quiz"
-									? "每行一个选项，选项不能重复，选项序号A, B, C, D...会自动添加"
-									: "每行一个选项，选项不能重复"
+									? useT("form-designer.options-alert-quiz")
+									: useT("form-designer.options-alert")
 							}
 							style={{ marginBottom: "10px" }}
 						></Alert>,
 						<TextArea
 							v-model:value={state.optionsValue}
-							placeholder={"每行一个选项，如：\n选项一\n选项二"}
+							placeholder={useT("form-designer.options-placeholder")}
 							auto-size={{ minRows: 14, maxRows: 14 }}
 						></TextArea>,
 					]}
@@ -646,22 +653,22 @@ export default defineComponent({
 			const valueOptionsEditorElem = () => (
 				<Modal
 					v-model:open={state.showValueOptionsModal}
-					title={"选项设置"}
+					title={useT("form-designer.options-title")}
 					onOk={onSubmitValueOptions}
 				>
 					{() => [
 						<Alert
-							message={"每行一个选项，且选项不能重复"}
+							message={useT("form-designer.options-alert-strict")}
 							style={{ marginBottom: "10px" }}
 						></Alert>,
 						<Row gutter={8}>
 							{() => [
 								<Col span={14}>
 									{() => [
-										<div>选项</div>,
+										<div>{useT("form.options")}</div>,
 										<TextArea
 											v-model:value={state.optionsValue}
-											placeholder={"每行一个选项，如：\n选项一\n选项二"}
+											placeholder={useT("form-designer.options-placeholder")}
 											auto-size={{ minRows: 14, maxRows: 14 }}
 										></TextArea>,
 									]}
@@ -673,7 +680,7 @@ export default defineComponent({
 												default: () => (
 													<div>
 														<a class="ant-dropdown-link">
-															分值(不填代表0分)
+															{useT("form-designer.score-label")}
 															<DownOutlined style={{ marginLeft: "4px", fontSize: "12px" }} />
 														</a>
 													</div>
@@ -681,9 +688,15 @@ export default defineComponent({
 												popupRender: () => (
 													<Menu onClick={onRateGenerate}>
 														{() => [
-															<MenuItem key={"increase"}>{() => "分数从 1 开始顺序递增"}</MenuItem>,
-															<MenuItem key={"add1"}>{() => "选项分数全部加 1"}</MenuItem>,
-															<MenuItem key={"minus1"}>{() => "选项分数全部减 1"}</MenuItem>,
+															<MenuItem key={"increase"}>
+																{() => useT("form-designer.score-increase")}
+															</MenuItem>,
+															<MenuItem key={"add1"}>
+																{() => useT("form-designer.score-add-one")}
+															</MenuItem>,
+															<MenuItem key={"minus1"}>
+																{() => useT("form-designer.score-minus-one")}
+															</MenuItem>,
 														]}
 													</Menu>
 												),
@@ -691,7 +704,7 @@ export default defineComponent({
 										</Dropdown>,
 										<TextArea
 											v-model:value={state.rateValue}
-											placeholder={"每行一个对应分值，如：\n1\n2"}
+											placeholder={useT("form-designer.score-placeholder")}
 											auto-size={{ minRows: 14, maxRows: 14 }}
 										></TextArea>,
 									]}

@@ -86,6 +86,10 @@ export function tokenize(dsl) {
 					pos++;
 					continue;
 				}
+
+				// 一元负号必须在这里消费掉，否则下面的循环无法推进 pos（会死循环）
+				num = "-";
+				pos++;
 			}
 
 			while (pos < dsl.length && /[\d.]/.test(dsl[pos])) {
@@ -527,7 +531,8 @@ function evaluateFunctionCall(name, argsNodes, formData) {
 
 		// 日期函数
 		case "TODAY":
-			return new Date().toISOString().slice(0, 10);
+			// 用本地日期，避免 UTC+ 时区在凌晨/月初出现差一天
+			return formatLocalDate(new Date());
 
 		case "NOW":
 			return new Date().toISOString();
@@ -543,7 +548,7 @@ function evaluateFunctionCall(name, argsNodes, formData) {
 			if (isNaN(dateObj.getTime())) {
 				return { error: "DATE 函数参数无效" };
 			}
-			return dateObj.toISOString().slice(0, 10);
+			return formatLocalDate(dateObj);
 
 		case "YEAR":
 			if (args.length !== 1) {
@@ -651,6 +656,17 @@ function toString(val) {
  * @param {*} val - 待解析的值
  * @returns {Date} 解析后的 Date 对象，无效时返回 Invalid Date
  */
+const pad2 = num => String(num).padStart(2, "0");
+
+/**
+ * 按本地时区格式化为 YYYY-MM-DD
+ * @param {Date} date
+ * @returns {String}
+ */
+function formatLocalDate(date) {
+	return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
 function parseDate(val) {
 	if (val instanceof Date) return val;
 	if (typeof val === "number") return new Date(val);

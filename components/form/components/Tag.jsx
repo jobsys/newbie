@@ -24,7 +24,7 @@ const render = (item, submitForm, itemState) => {
             closable={!item.disabled}
             style={{ marginBottom: "10px" }}
             onClose={() => {
-              submitForm[item.key] = submitForm[item.key].filter(item => item !== tag);
+              submitForm[item.key] = submitForm[item.key].filter(tagValue => tagValue !== tag);
             }}
           >
             {tag}

@@ -3,6 +3,11 @@ import { computed, ref } from "vue";
 import { Select } from "antdv-next";
 import { useI18nJoin, useT } from "../../../hooks/index.js";
 
+// 空实现，作为渲染结果的一部分返回，供外部统一调用
+const onComponentOpen = () => {
+  //inputRef.value?.focus()
+};
+
 const render = (item, queryForm, context) => {
   const { searchProvider } = context;
 
@@ -29,7 +34,7 @@ const render = (item, queryForm, context) => {
   /**
    * 根据条件收集组件实际的值
    */
-  item.collectItem = () => {
+  const collectItem = () => {
     let value =
       queryForm[item.key].value === undefined ? undefined : queryForm[item.key].value === "checked";
     let searchLabel = null;
@@ -41,10 +46,6 @@ const render = (item, queryForm, context) => {
     }
 
     return { value, searchLabel };
-  };
-
-  const onComponentOpen = () => {
-    //inputRef.value?.focus()
   };
 
   const Component = (
@@ -62,7 +63,7 @@ const render = (item, queryForm, context) => {
     ></Select>
   );
 
-  return { conditions, Component, displayValue, onComponentOpen };
+  return { conditions, Component, displayValue, onComponentOpen, collectItem };
 };
 
 export default render;

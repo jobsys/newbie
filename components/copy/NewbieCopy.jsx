@@ -3,6 +3,8 @@ import {CopyOutlined} from "@antdv-next/icons";
 import {useClipboard} from "@vueuse/core";
 import {message} from "antdv-next";
 import i18n from "../../i18n.js";
+import { useMergedProps } from "../../hooks/useMergedProps.js";
+import { copyDefaults } from "./config.js";
 
 import "./index.less";
 
@@ -18,24 +20,25 @@ export default defineComponent({
 		/**
 		 * 复制内容，默认也作为显示内容
 		 */
-		text: { type: String, default: "" },
+		text: { type: String, default: undefined },
 
 		/**
 		 * true: 复制图标一直显示; false: 仅 hover 时显示
 		 */
-		showIcon: { type: Boolean, default: false },
+		showIcon: { type: Boolean, default: undefined },
 
 		/**
 		 * 自定义渲染内容
 		 */
-		customRender: { type: Function, default: null },
+		customRender: { type: Function, default: undefined },
 
 		/**
 		 * 自定义复制方法
 		 */
-		copy: { type: Function, default: null },
+		copy: { type: Function, default: undefined },
 	},
-	setup(props) {
+	setup(rawProps) {
+		const props = useMergedProps(rawProps, "copy", copyDefaults);
 		const { copy } = useClipboard({ legacy: true });
 		const onClick = async () => {
 			if (props.copy) {

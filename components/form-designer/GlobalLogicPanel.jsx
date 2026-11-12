@@ -14,6 +14,7 @@ import {
 	Space,
 } from "antdv-next";
 import {PlusOutlined} from "@antdv-next/icons";
+import {t, useT} from "../../hooks";
 
 const operatorsByType = {
 	all: ["equals", "notEquals", "isEmpty", "isNotEmpty"],
@@ -22,33 +23,33 @@ const operatorsByType = {
 	multi: ["in", "notIn"],
 };
 
-const operatorLabels = {
-	equals: "等于",
-	notEquals: "不等于",
-	isEmpty: "为空",
-	isNotEmpty: "不为空",
-	gt: "大于",
-	lt: "小于",
-	gte: "大于等于",
-	lte: "小于等于",
-	contains: "包含",
-	notContains: "不包含",
-	startsWith: "开头是",
-	endsWith: "结尾是",
-	in: "已选择",
-	notIn: "未选择",
+// 操作符展示文案的 i18n key，实际文案在 setup / render 中通过 useT 读取
+const operatorLabelKeys = {
+	equals: "form-designer.logic-panel.operators.equals",
+	notEquals: "form-designer.logic-panel.operators.not-equals",
+	isEmpty: "form-designer.logic-panel.operators.is-empty",
+	isNotEmpty: "form-designer.logic-panel.operators.is-not-empty",
+	gt: "form-designer.logic-panel.operators.gt",
+	lt: "form-designer.logic-panel.operators.lt",
+	gte: "form-designer.logic-panel.operators.gte",
+	lte: "form-designer.logic-panel.operators.lte",
+	contains: "form-designer.logic-panel.operators.contains",
+	notContains: "form-designer.logic-panel.operators.not-contains",
+	startsWith: "form-designer.logic-panel.operators.starts-with",
+	endsWith: "form-designer.logic-panel.operators.ends-with",
+	in: "form-designer.logic-panel.operators.in",
+	notIn: "form-designer.logic-panel.operators.not-in",
 };
 
 export default defineComponent({
 	name: "GlobalLogicPanel",
 	props: {
 		rules: { type: Array, default: () => [] },
-		onChange: { type: Function, default: () => {} },
 		availableFields: { type: Array, default: () => [] },
 		open: { type: Boolean, default: false },
-		onClose: { type: Function, default: () => {} },
 	},
-	setup(props) {
+	emits: ["change", "close"],
+	setup(props, {emit}) {
 		const showEditForm = ref(false);
 
 		// 用独立 ref 管理编辑表单状态，避免 Vue reactive proxy 的问题
@@ -123,16 +124,16 @@ export default defineComponent({
 
 		const deleteRule = ruleId => {
 			const newRules = props.rules.filter(r => r.id !== ruleId);
-			props.onChange(newRules);
+			emit("change", newRules);
 		};
 
 		const saveRule = () => {
 			if (!editTargetField.value) {
-				message.warn("请选择目标字段");
+				message.warn(t("form-designer.logic-panel.target-field-required"));
 				return;
 			}
 			if (!editConditions.value || editConditions.value.length === 0) {
-				message.warn("请至少添加一个条件");
+				message.warn(t("form-designer.logic-panel.condition-required"));
 				return;
 			}
 
@@ -152,7 +153,7 @@ export default defineComponent({
 			} else {
 				newRules = [...props.rules, ruleData];
 			}
-			props.onChange(newRules);
+			emit("change", newRules);
 			showEditForm.value = false;
 			resetEditForm();
 		};
@@ -181,13 +182,23 @@ export default defineComponent({
 				? props.availableFields.find(f => f.key === rule.targetField)
 				: null;
 			const targetName = targetField
-				? `${targetField.title}（${targetField.key}）`
-				: rule.targetField || "未知字段";
-			const actionText = rule.action === "show" ? "显示" : "隐藏";
+				? useT("form-designer.logic-panel.field-title", {title: targetField.title, key: targetField.key})
+				: rule.targetField || useT("form-designer.logic-panel.unknown-field");
+			const actionText =
+				rule.action === "show"
+					? useT("form-designer.logic-panel.action-show")
+					: useT("form-designer.logic-panel.action-hide");
 			const conditionCount = rule.conditions?.length || 0;
 			const gateText =
-				(rule.logicGate || "AND").toUpperCase() === "AND" ? "全部满足" : "任一满足";
-			return `当 ${conditionCount} 个条件(${gateText})时，${actionText} ${targetName}`;
+				(rule.logicGate || "AND").toUpperCase() === "AND"
+					? useT("form-designer.logic-panel.gate-all")
+					: useT("form-designer.logic-panel.gate-any");
+			return useT("form-designer.logic-panel.summary", {
+				count: conditionCount,
+				gate: gateText,
+				action: actionText,
+				target: targetName,
+			});
 		};
 
 		const renderEditForm = () => {
@@ -196,17 +207,23 @@ export default defineComponent({
 			return (
 				<div class="rule-edit-form">
 					<Form layout="vertical">
-						<FormItem label="目标字段">
+						<FormItem label={useT("form-designer.logic-panel.target-field")}>
 							<Select
 								value={editTargetField.value}
 								onUpdate:value={val => {
 									editTargetField.value = val;
 								}}
-								placeholder="选择目标字段"
-								options={fieldOptions.value.map(f => ({ label: `${f.key}（${f.title}）`, value: f.key }))}
+								placeholder={useT("form-designer.logic-panel.target-field-placeholder")}
+								options={fieldOptions.value.map(f => ({
+									label: useT("form-designer.logic-panel.field-option-label", {
+										key: f.key,
+										title: f.title,
+									}),
+									value: f.key,
+								}))}
 							/>
 						</FormItem>
-						<FormItem label="动作">
+						<FormItem label={useT("form-designer.logic-panel.action")}>
 							<Radio.Group
 								value={editAction.value}
 								onChange={val => {
@@ -214,22 +231,22 @@ export default defineComponent({
 									editAction.value = val && val.target ? val.target.value : val;
 								}}
 							>
-								<Radio value="show">显示</Radio>
-								<Radio value="hide">隐藏</Radio>
+								<Radio value="show">{useT("form-designer.logic-panel.action-show")}</Radio>
+								<Radio value="hide">{useT("form-designer.logic-panel.action-hide")}</Radio>
 							</Radio.Group>
 						</FormItem>
-						<FormItem label="逻辑门">
+						<FormItem label={useT("form-designer.logic-panel.logic-gate")}>
 							<Radio.Group
 								value={editLogicGate.value}
 								onChange={val => {
 									editLogicGate.value = val && val.target ? val.target.value : val;
 								}}
 							>
-								<Radio value="AND">AND（全部满足）</Radio>
-								<Radio value="OR">OR（任一满足）</Radio>
+								<Radio value="AND">{useT("form-designer.logic-panel.gate-and")}</Radio>
+								<Radio value="OR">{useT("form-designer.logic-panel.gate-or")}</Radio>
 							</Radio.Group>
 						</FormItem>
-						<FormItem label="条件列表">
+						<FormItem label={useT("form-designer.logic-panel.conditions")}>
 							<Space orientation="vertical" style={{ width: "100%" }}>
 								{editConditions.value.map((cond, index) => {
 									const operators = getOperatorsForField(cond.field);
@@ -249,18 +266,29 @@ export default defineComponent({
 															value: "",
 														});
 													}}
-													placeholder="选择字段"
+													placeholder={useT("form-designer.logic-panel.select-field")}
 													style={{ width: "150px" }}
-													options={fieldOptions.value.map(f => ({ label: `${f.key}（${f.title}）`, value: f.key }))}
+													options={fieldOptions.value.map(f => ({
+														label: useT("form-designer.logic-panel.field-option-label", {
+															key: f.key,
+															title: f.title,
+														}),
+														value: f.key,
+													}))}
 												/>
 												<Select
 													value={cond.operator}
 													onUpdate:value={val => {
 														cond.operator = val;
 													}}
-													placeholder="操作符"
+													placeholder={useT("form-designer.logic-panel.operator")}
 													style={{ width: "130px" }}
-													options={operators.map(op => ({ label: operatorLabels[op] || op, value: op }))}
+													options={operators.map(op => ({
+														label: operatorLabelKeys[op]
+															? useT(operatorLabelKeys[op])
+															: op,
+														value: op,
+													}))}
 												/>
 												{valueInputType === "select" ? (
 													<Select
@@ -268,7 +296,7 @@ export default defineComponent({
 														onUpdate:value={val => {
 															cond.value = val;
 														}}
-														placeholder="选择值"
+														placeholder={useT("form-designer.logic-panel.select-value")}
 														style={{ width: "150px" }}
 														options={fieldOptionsList}
 													/>
@@ -278,7 +306,7 @@ export default defineComponent({
 														onUpdate:value={val => {
 															cond.value = val;
 														}}
-														placeholder="输入值"
+														placeholder={useT("form-designer.logic-panel.input-value")}
 														style={{ width: 150 }}
 													/>
 												) : (
@@ -287,43 +315,48 @@ export default defineComponent({
 														onUpdate:value={val => {
 															cond.value = val;
 														}}
-														placeholder="输入值"
+														placeholder={useT("form-designer.logic-panel.input-value")}
 														style={{ width: 150 }}
 													/>
 												)}
 												<Button danger size="small" onClick={() => removeCondition(index)}>
-													删除
+													{useT("common.delete")}
 												</Button>
 											</Space>
 										</div>
 									);
 								})}
 								<Button type="dashed" onClick={addCondition}>
-									+ 添加条件
+									{useT("form-designer.logic-panel.add-condition")}
 								</Button>
 							</Space>
 						</FormItem>
 					</Form>
 					<Space style={{ marginTop: "16px" }}>
 						<Button type="primary" onClick={saveRule}>
-							保存
+							{useT("common.save")}
 						</Button>
-						<Button onClick={cancelEdit}>取消</Button>
+						<Button onClick={cancelEdit}>{useT("common.cancel")}</Button>
 					</Space>
 				</div>
 			);
 		};
 
 		return () => (
-			<Drawer title="表单逻辑" open={props.open} onClose={props.onClose} size={600}>
+			<Drawer
+				title={useT("form-designer.logic")}
+				open={props.open}
+				onClose={() => emit("close")}
+				size={600}
+			>
 				{!showEditForm.value ? (
 					<>
 						<Button type="primary" icon={<PlusOutlined />} onClick={addRule} style={{ marginBottom: "16px" }}>
-							添加规则
+							{useT("form-designer.logic-panel.add-rule")}
 						</Button>
 						{props.rules.length === 0 ? (
 							<div style={{ textAlign: "center", padding: "40px 0", color: "#999" }}>
-								暂无规则，点击"添加规则"开始配置
+								{useT("form-designer.logic-panel.empty")}
 							</div>
 						) : (
 							props.rules.map(rule => (
@@ -331,10 +364,10 @@ export default defineComponent({
 									<div>{formatRuleSummary(rule)}</div>
 									<Space style={{ marginTop: "8px" }}>
 										<Button size="small" onClick={() => editRule(rule)}>
-											编辑
+											{useT("common.edit")}
 										</Button>
 										<Button danger size="small" onClick={() => deleteRule(rule.id)}>
-											删除
+											{useT("common.delete")}
 										</Button>
 									</Space>
 								</Card>

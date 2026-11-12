@@ -14,7 +14,7 @@ export function useLabelFromOptionsValue(value, options) {
   if (!options) {
     return "";
   }
-  const option = options.find(option => option.value === value);
+  const option = options.find(opt => opt.value === value);
   return option ? option.label : "";
 }
 
@@ -133,21 +133,21 @@ export function useFindParentLabels(options, value, adapter) {
 
   const labels = [];
 
-  function findParentLabels(options, value, labels) {
-    for (const option of options) {
-      if (option[adapter.value] === value) {
-        labels.unshift(option[adapter.label]);
+  function findParentLabels(nodes, targetValue, resultLabels) {
+    for (const node of nodes) {
+      if (node[adapter.value] === targetValue) {
+        resultLabels.unshift(node[adapter.label]);
         break;
-      } else if (option[adapter.children]) {
-        const childResult = findParentLabels(option[adapter.children], value, labels);
+      } else if (node[adapter.children]) {
+        const childResult = findParentLabels(node[adapter.children], targetValue, resultLabels);
         if (childResult.length > 0) {
-          labels.unshift(option[adapter.label]);
+          resultLabels.unshift(node[adapter.label]);
           break;
         }
       }
     }
 
-    return labels;
+    return resultLabels;
   }
 
   return findParentLabels(options, value, labels);
@@ -169,21 +169,21 @@ export function useFindParentValues(options, value, adapter) {
 
   const values = [];
 
-  function findParentValues(options, value, values) {
-    for (const option of options) {
-      if (option[adapter.value] === value) {
-        values.unshift(option[adapter.value]);
+  function findParentValues(nodes, targetValue, resultValues) {
+    for (const node of nodes) {
+      if (node[adapter.value] === targetValue) {
+        resultValues.unshift(node[adapter.value]);
         break;
-      } else if (option[adapter.children]) {
-        const childResult = findParentValues(option[adapter.children], value, values);
+      } else if (node[adapter.children]) {
+        const childResult = findParentValues(node[adapter.children], targetValue, resultValues);
         if (childResult.length > 0) {
-          values.unshift(option[adapter.value]);
+          resultValues.unshift(node[adapter.value]);
           break;
         }
       }
     }
 
-    return values;
+    return resultValues;
   }
 
   return findParentValues(options, value, values);
@@ -219,16 +219,42 @@ export function useFindPropertyRecursive(item, propertyKey, nestedKey) {
   });
 }
 
-const localCacheSession = {};
+/**
+ * 内存缓存上限，超出后按最久未使用（LRU）淘汰
+ */
+const LOCAL_CACHE_MAX_SIZE = 200;
+
+/**
+ * 内存缓存：Map 保证按插入顺序遍历，便于实现 LRU
+ * @type {Map<string, *>}
+ */
+const localCacheSession = new Map();
+
 const localSession = {
   setItem(key, value) {
-    localCacheSession[key] = value;
+    // 已存在的 key 先删除，保证 Map 尾部是最近使用的数据
+    if (localCacheSession.has(key)) {
+      localCacheSession.delete(key);
+    }
+    localCacheSession.set(key, value);
+
+    while (localCacheSession.size > LOCAL_CACHE_MAX_SIZE) {
+      const oldestKey = localCacheSession.keys().next().value;
+      localCacheSession.delete(oldestKey);
+    }
   },
   getItem(key) {
-    return localCacheSession[key];
+    if (!localCacheSession.has(key)) {
+      return undefined;
+    }
+    // 命中后移到末尾，标记为最近使用
+    const value = localCacheSession.get(key);
+    localCacheSession.delete(key);
+    localCacheSession.set(key, value);
+    return value;
   },
   removeItem(key) {
-    delete localCacheSession[key];
+    localCacheSession.delete(key);
   },
 };
 

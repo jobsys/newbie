@@ -1,7 +1,7 @@
 import { isArray, isFunction, isObject, isUndefined } from "lodash-es";
 import { useDayjs, useNumber, useTimeDayjs } from "../../hooks";
 import { useAddressFullCode } from "../address/NewbieAddress.jsx";
-import { useI18n } from "vue-i18n";
+import { useLocale } from "../../hooks/i18n.js";
 
 /** 是否有值（null / undefined / 空串都视为无值） */
 const hasValue = value => !isUndefined(value) && value !== null && value !== "";
@@ -186,7 +186,7 @@ const isOptionalChecked = (item, submitForm) => {
  * @returns {string}
  */
 const placeholder = (item, type) => {
-  const { t, locale } = useI18n();
+  const { t, locale } = useLocale();
 
   const title = locale.value === "en_US" ? item.title?.toLowerCase() : item.title;
 

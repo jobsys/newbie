@@ -5,7 +5,9 @@ import { CloseOutlined, CompressOutlined, ExpandOutlined } from "@antdv-next/ico
 import "./index.less";
 import { isFunction, isObject } from "lodash-es";
 import { genPixel } from "../../utils/style";
-import { useT } from "../../hooks/index.js";
+import { t } from "../../hooks/index.js";
+import { useMergedProps } from "../../hooks/useMergedProps.js";
+import { modalDefaults } from "./config.js";
 
 /**
  * 弹窗组件
@@ -22,37 +24,37 @@ export default defineComponent({
      *
      * @values modal, drawer
      */
-    type: { type: String, default: "modal" },
+    type: { type: String, default: undefined },
     /**
      * 可见性控制
      * `v-model:visible`
      */
-    visible: { type: Boolean, default: false },
+    visible: { type: Boolean, default: undefined },
     /**
      * 宽度
      */
-    width: { type: [Number, String], default: 800 },
+    width: { type: [Number, String], default: undefined },
 
     /**
      * 高度，仅当Type为modal时有效
      */
-    height: { type: [Number, String], default: 500 },
+    height: { type: [Number, String], default: undefined },
 
     /**
      * 标题
      */
-    title: { type: String, default: "" },
+    title: { type: String, default: undefined },
 
     /**
      * 为 `Function` 时返回 Promise, resolve(true) 正常关闭，resolve(false) 可阻止关闭；
      * 为 `Object` 时参考 [下方配置 beforeclose](#beforeclose)
      */
-    beforeClose: { type: [Function, Object], default: null },
+    beforeClose: { type: [Function, Object], default: undefined },
 
     /**
      * 原生 [Modal](https://www.antdv-next.com/components/modal-cn#props) 或者是 [Drawer](https://www.antdv-next.com/components/drawer-cn#props) 的配置
      */
-    modalProps: { type: Object, default: () => ({}) },
+    modalProps: { type: Object, default: undefined },
   },
   emits: [
     /**
@@ -69,7 +71,8 @@ export default defineComponent({
     "close",
   ],
 
-  setup(props, { emit, slots }) {
+  setup(rawProps, { emit, slots }) {
+    const props = useMergedProps(rawProps, "modal", modalDefaults);
     const modalTitleRef = ref(null);
     const isFullModal = ref(false);
     const isVisible = ref(false);
@@ -126,10 +129,10 @@ export default defineComponent({
 
         if (showConfirm) {
           Modal.confirm({
-            title: title || useT("common.action-prompt"),
-            content: content || useT("common.close-confirm"),
-            okText: okText || useT("common.confirm"),
-            cancelText: cancelText || useT("common.cancel"),
+            title: title || t("common.action-prompt"),
+            content: content || t("common.close-confirm"),
+            okText: okText || t("common.confirm"),
+            cancelText: cancelText || t("common.cancel"),
             onOk: () => {
               isFullModal.value = false;
               emit("update:visible", false);

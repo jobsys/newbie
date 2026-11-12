@@ -3,16 +3,76 @@ import {FormItem, Switch} from "antdv-next";
 import * as Fields from "./index.js";
 import {ref} from "vue";
 import {uploaderDefaults} from "../../uploader/config.js";
-import {isBoolean, isFunction, isUndefined} from "lodash-es";
+import {isArray, isBoolean, isFunction, isUndefined} from "lodash-es";
 import {initItemDefaultValue, isOptionalChecked, placeholder} from "../utils.js";
 import {keyPath} from "../model.js";
-import {useI18n} from "vue-i18n";
+import { useLocale } from "../../../hooks/i18n.js";
 
 // 存储 optional 字段的 ref 状态
 // key 为 formState[item.key]（reactive 对象，跨渲染稳定）
 // 使用 WeakMap 而非直接存在 reactive 对象上，因为 reactive 会自动解包 ref，
 // 导致取出来的是布尔值而非 ref 对象
 const optionalStateMap = new WeakMap();
+
+// 没有用户规则时复用同一个空数组，避免每次渲染都产生新的 rules 引用
+const EMPTY_RULES = [];
+
+// 编译后的规则按「rules 数组对象身份」缓存：同一份配置只在第一次编译时 new RegExp，
+// 之后每次渲染拿到的是同一个数组引用，antdv Form 不会认为规则变化而重复校验。
+// 注意：直接原地修改 rules 数组内容不会命中缓存，需要替换数组引用。
+const compiledRulesCache = new WeakMap();
+
+// 只有 required、没有自定义 rules 时，按提示文案复用同一个数组引用，避免每次渲染新数组
+const requiredRulesCache = new Map();
+
+/**
+ * @param {String} message
+ * @return {Array} 稳定的必填规则数组
+ */
+const getRequiredRules = message => {
+	let rules = requiredRulesCache.get(message);
+	if (!rules) {
+		rules = [{ required: true, message }];
+		requiredRulesCache.set(message, rules);
+	}
+	return rules;
+};
+
+/**
+ * 编译 rules，并把「必填」变体也缓存下来（必填会改写首条规则，不能直接改缓存里的原数组）
+ * @param {Array|undefined} rules
+ * @param {Boolean} isRequired
+ * @return {Array|null} 未提供规则时返回 null
+ */
+const compileRules = (rules, isRequired) => {
+	if (!isArray(rules) || !rules.length) {
+		return null;
+	}
+
+	let entry = compiledRulesCache.get(rules);
+
+	if (!entry) {
+		entry = {
+			compiled: rules.map(rule =>
+				rule.pattern ? {...rule, pattern: new RegExp(rule.pattern)} : {...rule}
+			),
+			requiredVariant: null,
+		};
+		compiledRulesCache.set(rules, entry);
+	}
+
+	if (!isRequired) {
+		return entry.compiled;
+	}
+
+	if (!entry.requiredVariant) {
+		const requiredVariant = entry.compiled.map(rule => ({...rule}));
+		requiredVariant[0].required = true;
+		entry.requiredVariant = requiredVariant;
+	}
+
+	return entry.requiredVariant;
+};
 
 /**
  *
@@ -25,7 +85,7 @@ const optionalStateMap = new WeakMap();
  * @return {*|JSX.Element}
  */
 const render = (item, submitForm, { props, slots, formState, uploaderProvider = uploaderDefaults }) => {
-	const { t } = useI18n();
+	const { t } = useLocale();
 
 	//如果未经过 defaultValue 初始化，则进行初始化
 	if (isUndefined(submitForm[item.key]) && item.key) {
@@ -34,29 +94,28 @@ const render = (item, submitForm, { props, slots, formState, uploaderProvider = 
 		});
 	}
 
-	let renderItem = null,
-		rules = item.rules?.length
-			? item.rules.map(rule => {
-					if (rule.pattern) {
-						return {
-							...rule,
-							pattern: new RegExp(rule.pattern),
-						};
-					}
-					return { ...rule };
-				})
-			: [],
-		requiredRule = {
-			required: true,
-			message: item.requiredMessage || placeholder(item, "select"),
-		};
-	item.type = item.type ? item.type.toLowerCase() : item.type;
+	let renderItem = null;
+
+	const requiredRule = {
+		required: true,
+		message: item.requiredMessage || placeholder(item, "select"),
+	};
 
 	// 处理 required
 	const isRequired = isFunction(item.required) ? item.required(submitForm) : item.required;
 
-	// 处理 readonly 和 disabled
-	item.readonly = item.readonly || props.readonly;
+	// 规则按配置对象身份缓存，未提供自定义规则时复用稳定引用
+	const rules =
+		compileRules(item.rules, isRequired) ||
+		(isRequired ? getRequiredRules(requiredRule.message) : EMPTY_RULES);
+
+	// 渲染期只读：type / readonly / disabled / placeholder 等派生值写到局部副本，
+	// 不回写调用方传入的表单项配置（与 F-004 同一约定）
+	item = {
+		...item,
+		type: item.type ? item.type.toLowerCase() : item.type,
+		readonly: item.readonly || props.readonly,
+	};
 
 	item.disabled = item.disabled || props.disabled || props.readonly || item.readonly;
 
@@ -249,14 +308,6 @@ const render = (item, submitForm, { props, slots, formState, uploaderProvider = 
 				requiredRule.trigger = "blur";
 				requiredRule.type = "string";
 				break;
-		}
-	}
-
-	if (isRequired) {
-		if (rules.length) {
-			rules[0].required = true;
-		} else {
-			rules.push(requiredRule);
 		}
 	}
 

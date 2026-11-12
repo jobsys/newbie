@@ -53,7 +53,13 @@ const render = (item, queryForm, itemState, context) => {
 		field.Component = slots[item.key]({ item, queryForm, context });
 	}
 
-	const { conditions = [], Component, displayValue = "", onComponentOpen = null } = field;
+	const { conditions = [], Component, displayValue = "", onComponentOpen = null, collectItem } = field;
+
+	// collectItem 由渲染函数提供，存放在搜索项状态上，保持配置对象为纯数据
+	const collect = collectItem || item.collectItem;
+	if (collect) {
+		itemState.collectItem = collect;
+	}
 
 	// Get hidden state from itemState
 	const isHidden = computed(() => itemState.hidden === true);

@@ -1,7 +1,13 @@
-import { computed, ref, watch } from "vue";
-import { every, find, isFunction, isNull, isNumber, isString, isUndefined } from "lodash-es";
+import { computed, ref } from "vue";
+import { every, find, isNull, isUndefined } from "lodash-es";
 import { Select, Space, Tag } from "antdv-next";
 import { useI18nJoin, useT } from "../../../hooks/index.js";
+import { normalizeOptions } from "../utils.js";
+
+// 空实现，作为渲染结果的一部分返回，供外部统一调用
+const onComponentOpen = () => {
+  //inputRef.value?.focus()
+};
 
 /**
  *
@@ -25,8 +31,7 @@ const render = (item, queryForm, context) => {
     conditions = conditions.filter(condition => item.conditions.includes(condition.value));
   }
 
-  let options = isFunction(item.options) ? item.options() : item.options;
-  options = options.map(op => (isString(op) || isNumber(op) ? { value: op, label: op } : op));
+  const options = normalizeOptions(item.options);
 
   const displayValue = computed(() => {
     // 为空/不为空条件不消耗值，持久化恢复的残留选项不参与展示
@@ -46,28 +51,12 @@ const render = (item, queryForm, context) => {
     );
   });
 
-  watch(
-    () => queryForm[item.key].condition,
-    val => {
-      if (["equal", "notEqual"].includes(val)) {
-        queryForm[item.key].value = queryForm[item.key].value?.[0]
-          ? [queryForm[item.key].value[0]]
-          : [];
-      } else if (!["null", "notNull"].includes(val)) {
-        // 从为空/不为空切回带值条件时，清理持久化恢复可能产生的 null 残留
-        queryForm[item.key].value = (queryForm[item.key].value || []).filter(
-          option => !isNull(option) && !isUndefined(option)
-        );
-      }
-    }
-  );
-
   const inputRef = ref(null);
 
   /**
    * 根据条件收集组件实际的值
    */
-  item.collectItem = () => {
+  const collectItem = () => {
     let value = null,
       searchLabel = null;
 
@@ -91,10 +80,6 @@ const render = (item, queryForm, context) => {
       searchLabel = `${item.title}${condition?.label}: ${label}`;
     }
     return { value, searchLabel };
-  };
-
-  const onComponentOpen = () => {
-    //inputRef.value?.focus()
   };
 
   const Component = ["null", "notNull"].includes(queryForm[item.key].condition) ? (
@@ -144,7 +129,7 @@ const render = (item, queryForm, context) => {
     ></Select>
   );
 
-  return { conditions, Component, displayValue, onComponentOpen };
+  return { conditions, Component, displayValue, onComponentOpen, collectItem };
 };
 
 export default render;

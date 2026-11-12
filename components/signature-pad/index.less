@@ -8,11 +8,15 @@
   .newbie-signature-pad__canvas-container {
     width: 100%;
     box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    // 边框放在容器上，画布自身的矩形与绘制区域完全重合，
+    // 避免 1px 边框让笔迹与光标错位。
     .newbie-signature-pad__canvas {
+      display: block;
       width: 100%;
       height: 200px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
     }
   }
 

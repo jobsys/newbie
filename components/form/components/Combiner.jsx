@@ -16,7 +16,8 @@ const render = (item, submitForm, context) => {
       class={{ ...item.class }}
     >
       {children.map(child => {
-        return createFormItem(child, submitForm, context);
+        // 传副本：FormItem 会在渲染期补 type / readonly / disabled 等，不能写回调用方配置
+        return createFormItem({ ...child }, submitForm, context);
       })}
     </div>
   );

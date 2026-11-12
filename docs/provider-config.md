@@ -16,6 +16,16 @@ NewbieProvider 的 config[命名空间]
 - 实例 props 整体覆盖全局值，不做深合并。
 - 全局配置是响应式的：初始化后异步替换 `config`，组件会自动生效。
 
+## 默认值规则（F-031）
+
+**允许全局覆盖的 prop，其默认值必须为 `undefined`，默认值只写在组件自己的 `config.js` 里。**
+
+原因：组件合并时的判断是「实例 prop 不是 `undefined` 才覆盖全局值」。如果 prop 上还写着 `default: false` / `default: ""` / `default: 0` / `default: []`，未传时实例值就已经是具体默认值，Provider 永远覆盖不到。
+
+- 普通 prop 写 `{ type: String, default: undefined }`；数组/对象默认值也放在 `config.js`，不再写工厂函数。
+- Boolean prop 必须保留 `default: undefined`（Vue 只有在**没有**声明 default 时才会把未传值强制成 `false`；声明了 `default: undefined` 时未传值仍是 `undefined`，因此可被全局配置覆盖）。本库已用 `type: Boolean, default: undefined` 覆盖全部 Boolean 可配置项，无需 `[Boolean, Object]` 之类的变通写法。
+- `config.js` 同时是该组件「支持哪些全局配置项」的 schema：没有写进 `config.js` 的 prop 不会被 Provider 影响。
+
 ## 命名空间与可配置项
 
 命名空间默认就是组件名的小驼峰形式，也可以由组件自己决定。
@@ -29,12 +39,12 @@ NewbieProvider 的 config[命名空间]
 | pageSizeKey   | string           | `"pageSize"` | 每页条数请求参数名               |
 | filterable    | boolean          | `true`     | 是否显示搜索栏                     |
 | pagination    | boolean \| object | `true`    | 是否分页；对象表示自定义分页        |
-| autoQuery     | boolean          | `false`    | 保留项，组件内暂未消费             |
+| autoQuery     | boolean          | `false`    | 搜索条件变化后是否自动查询（透传给 NewbieSearch，约 300ms 防抖） |
 | showRefresh   | boolean          | `true`     | 是否显示刷新按钮                   |
 | cardWrapper   | boolean          | `false`    | 是否用 `Card` 包裹                 |
 | method        | string           | `"get"`    | 请求方式                           |
 | rowKey        | string \| function | `"id"`   | 行主键                             |
-| afterFetched  | function         | `null`     | 请求返回数据的处理函数             |
+| afterFetched  | function         | `null`     | 请求返回数据的处理函数，必须返回 `{ items, totalSize }` |
 | persistence   | boolean \| string \| object | `false` | 分页与滚动持久化        |
 
 > `table.page` 已废弃：全局初始页码没有实际意义，实例分页请用 `:pagination="{ current: 1 }"`。
@@ -44,10 +54,10 @@ NewbieProvider 的 config[命名空间]
 | 配置项           | 类型     | 默认值 | 说明                         |
 | ---------------- | -------- | ------ | ---------------------------- |
 | uploadUrl        | string   | `""`   | 上传地址                     |
-| defaultFileItem  | object   | `{ id: "id", name: "name", url: "url", path: "path", thumbUrl: "thumbUrl" }` | 文件字段映射，深合并 |
+| defaultFileItem  | object   | `{ id: "id", name: "name", url: "url", path: "path", thumbUrl: "thumbUrl" }` | 文件字段映射（标准名→实际名），深合并 |
 | defaultPreview   | function | `null` | 非图片文件的默认预览方法     |
 
-`defaultFileItem` 是深合并的，只传 `{ url: "fileUrl" }` 时其余字段保持不变。
+`defaultFileItem` 是“标准名→实际名”的映射，深合并：只传 `{ url: "fileUrl" }` 时其余字段保持不变。
 
 ### form（`NewbieForm`）
 
@@ -55,7 +65,7 @@ NewbieProvider 的 config[命名空间]
 | ------------ | -------- | ------ | ------------------------------------------------ |
 | format       | object   | `{}`   | `useFormFormat` 的格式化配置，如 `{ date: true }` |
 | afterFetched | function | `null` | 远程表单数据获取后的处理函数                     |
-| columns      | object   | `{}`   | 按字段类型索引的默认配置，如 `{ switch: { defaultProps: { size: "small" } } }` |
+| columnPresets | object   | `{}`   | 按字段类型索引的默认配置，如 `{ switch: { defaultProps: { size: "small" } } }`；旧名 `form.columns` 仍兼容 |
 
 ### search（`NewbieSearch`）
 
@@ -70,6 +80,87 @@ NewbieProvider 的 config[命名空间]
 | 配置项    | 类型   | 默认值 | 说明     |
 | --------- | ------ | ------ | -------- |
 | uploadUrl | string | `""`   | 上传地址 |
+
+### modal（`NewbieModal`）
+
+| 配置项      | 类型              | 默认值    | 说明                                                         |
+| ----------- | ----------------- | --------- | ------------------------------------------------------------ |
+| type        | string            | `"modal"` | 弹窗类型，`modal` 或 `drawer`                                 |
+| visible     | boolean           | `false`   | 可见性（受控状态，不建议全局覆盖）                            |
+| width       | number \| string  | `800`     | 宽度                                                         |
+| height      | number \| string  | `500`     | 高度，仅 `type` 为 `modal` 时有效                             |
+| title       | string            | `""`      | 标题                                                         |
+| beforeClose | function \| object | `null`   | 关闭前拦截，函数返回 `Promise<boolean>` 或配置确认弹窗对象    |
+| modalProps  | object            | `{}`      | 原生 Modal / Drawer 配置，深合并                              |
+
+### list（`NewbieList`）
+
+| 配置项      | 类型     | 默认值 | 说明                                                   |
+| ----------- | -------- | ------ | ------------------------------------------------------ |
+| url         | string   | `""`   | 加载数据的 URL                                         |
+| extraData   | object   | `{}`   | 请求附带参数，深合并                                   |
+| height      | number   | `300`  | 列表高度（px）                                         |
+| offset      | number   | `50`   | 滚动到底部前触发加载的距离                             |
+| finishedText | string  | `""`   | 加载完毕文案，空串时使用内置 i18n 文案                 |
+| autoLoad    | boolean  | `true` | 是否在挂载 / url 变化时自动加载第一页                  |
+| useStore    | object   | `null` | 外部 store，需提供 `pagination` 与 `initPagination`     |
+| listProps   | object   | `{}`   | 原生 List 配置，深合并                                 |
+
+### address（`NewbieAddress`）
+
+| 配置项       | 类型                  | 默认值         | 说明                                        |
+| ------------ | --------------------- | -------------- | ------------------------------------------- |
+| value        | string \| number \| array | `[]`       | 当前值（受控状态，不建议全局覆盖）          |
+| level        | number                | `3`            | 生成级别：1 省、2 省市、3 省市区             |
+| disabled     | boolean               | `false`        | 是否禁用                                    |
+| placeholder  | string                | `"请选择地区"` | 占位符                                      |
+| url          | string                | `""`           | 远程数据地址，空时使用本地数据               |
+| afterFetched | function              | `null`         | 远程数据返回后的处理函数                     |
+| dataSource   | array                 | `[]`           | 自定义数据源（优先级最高，不建议全局覆盖）   |
+
+### copy（`NewbieCopy`）
+
+| 配置项       | 类型     | 默认值 | 说明                                        |
+| ------------ | -------- | ------ | ------------------------------------------- |
+| text         | string   | `""`   | 复制内容，同时作为默认显示内容               |
+| showIcon     | boolean  | `false` | `true` 图标常显；`false` 仅 hover 显示        |
+| customRender | function | `null` | 自定义显示内容的渲染函数                     |
+| copy         | function | `null` | 自定义复制方法，参数为待复制文本             |
+
+### password（`NewbiePassword`）
+
+| 配置项       | 类型             | 默认值 | 说明                                                          |
+| ------------ | ---------------- | ------ | ------------------------------------------------------------- |
+| value        | string           | `""`   | 输入框的值（受控状态，不建议全局覆盖）                         |
+| min          | number           | `8`    | 最小长度                                                      |
+| max          | number           | `20`   | 最大长度                                                      |
+| strengthRules | object          | `{}`   | 强度提示策略，可覆盖 `min` / `max` / `require`，深合并         |
+| width        | number \| string | `300`  | 输入框宽度                                                    |
+
+### signaturePad（`NewbieSignaturePad`）
+
+| 配置项    | 类型    | 默认值 | 说明                           |
+| --------- | ------- | ------ | ------------------------------ |
+| title     | string  | `""`   | 弹窗标题                       |
+| readonly  | boolean | `false` | 只读模式，仅显示关闭按钮        |
+| agreement | string  | `""`   | 协议文案，非空时要求勾选后才能保存 |
+| preset    | string  | `""`   | 预置签名图片（Data URL）        |
+
+### button（`NewbieButton`）
+
+| 配置项       | 类型    | 默认值              | 说明                                   |
+| ------------ | ------- | ------------------- | -------------------------------------- |
+| type         | string  | `"default"`         | 按钮类型                               |
+| size         | string  | `"middle"`          | 按钮大小                               |
+| disabled     | boolean | `false`             | 失效状态                               |
+| danger       | boolean | `false`             | 危险按钮                               |
+| label        | string  | `""`                | 按钮文案                               |
+| icon         | object  | `null`              | 按钮图标                               |
+| iconPosition | string  | `"left"`            | 图标位置，`left` 或 `right`             |
+| fetcher      | object  | `{ loading: false }` | 请求状态控制器，深合并                 |
+| buttonProps  | object  | `{}`                | 原生 Button 配置，深合并                |
+
+> `modal.visible`、`address.value`、`address.dataSource`、`password.value` 这类受控状态与数据参数也写在 `config.js` 里（保证默认值只有一个来源），但**不建议**用 Provider 全局覆盖——它们会对所有实例同时生效。
 
 ## 初始化示例
 
@@ -133,8 +224,8 @@ fetch("/api/ui-config")
 
 ```js
 export const signaturePadDefaults = {
-	penColor: "#000",
-	backgroundColor: "#fff",
+	title: "",
+	agreement: "",
 };
 ```
 
@@ -147,10 +238,10 @@ import { signaturePadDefaults } from "./config.js";
 
 export default defineComponent({
 	props: {
-		// 白名单 prop 不要保留 Vue default，Boolean 必须写 default: undefined，
-		// 否则「未传」会被当成 false，永远覆盖全局配置。
-		penColor: { type: String },
-		backgroundColor: { type: String },
+		// 可被全局覆盖的 prop 一律 default: undefined，默认值只写在 config.js，
+		// 否则「未传」会被实例默认值占住，永远覆盖不到全局配置。
+		title: { type: String, default: undefined },
+		agreement: { type: String, default: undefined },
 	},
 	setup(rawProps) {
 		const props = useMergedProps(rawProps, "signaturePad", signaturePadDefaults);
@@ -164,20 +255,20 @@ export default defineComponent({
 import { useNewbieConfig } from "../../hooks/useMergedProps.js";
 
 const signaturePadConfig = useNewbieConfig("signaturePad", signaturePadDefaults);
-// 消费处：signaturePadConfig.value.penColor
+// 消费处：signaturePadConfig.value.title
 ```
 
 3. 使用方无需改动 `NewbieProvider`：
 
 ```vue
-<NewbieProvider :config="{ signaturePad: { penColor: '#c2410c' } }">
+<NewbieProvider :config="{ signaturePad: { title: '电子签名' } }">
 ```
 
 ## 哪些参数不要全局化
 
 - 数据与受控状态：`dataSource`、`columns`（表格列）、`value`、`open`、`loading` 等。
 - 事件、slots、ref。
-- `NewbieForm` 的实例 prop `columns` 是**栅格列宽数组**（默认 `[24]`），与全局 `form.columns`（按字段类型索引的默认配置映射）语义不同，不要混用。
+- `NewbieForm` 的实例 prop `columns` 是**栅格列宽数组**（默认 `[24]`），与全局 `form.columnPresets`（按字段类型索引的默认配置映射）语义不同，不要混用；旧名 `form.columns` 仍兼容。
 
 ## 从旧 API 迁移
 

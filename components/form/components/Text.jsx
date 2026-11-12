@@ -13,7 +13,7 @@ const render = (item, submitForm) => {
 
   if (value) {
     if (isArray(value)) {
-      return value.map(item => <Tag {...item.defaultProps}>{{ default: () => item }}</Tag>);
+      return value.map(tagItem => <Tag {...tagItem.defaultProps}>{{ default: () => tagItem }}</Tag>);
     } else {
       return <Tag {...item.defaultProps}>{{ default: () => value }}</Tag>;
     }

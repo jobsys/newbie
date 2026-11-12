@@ -1,20 +1,20 @@
 import { CheckableTag, Space } from "antdv-next";
 import { ref } from "vue";
-import { find, isFunction, isNumber, isString } from "lodash-es";
-import { useI18nJoin } from "../../../hooks/index.js";
-import { useI18n } from "vue-i18n";
+import { find } from "lodash-es";
+import { useI18nJoin, useLocale } from "../../../hooks/index.js";
+import { normalizeOptions } from "../utils.js";
 
 /**
  *
  * @param {SearchItemConfig} item
  * @param {Object} queryForm
+ * @param {Object} itemState
  */
-const render = (item, queryForm) => {
-  const { t, locale } = useI18n();
-  let options = isFunction(item.options) ? item.options() : item.options;
-  options = options.map(op => (isString(op) || isNumber(op) ? { value: op, label: op } : op));
+const render = (item, queryForm, itemState) => {
+  const { t, locale } = useLocale();
+  const options = normalizeOptions(item.options);
 
-  const checkedOptions = ref(item.options.map(() => false));
+  const checkedOptions = ref(options.map(() => false));
 
   if (queryForm[item.key].value?.length) {
     queryForm[item.key].value.forEach(val => {
@@ -31,9 +31,9 @@ const render = (item, queryForm) => {
 
   const handleChange = index => {
     if (item.expandable === "multiple") {
-      queryForm[item.key].value = checkedOptions.value.map((checked, index) => {
+      queryForm[item.key].value = checkedOptions.value.map((checked, optionIndex) => {
         if (checked) {
-          return options[index].value;
+          return options[optionIndex].value;
         }
       });
     } else {
@@ -52,7 +52,7 @@ const render = (item, queryForm) => {
     }
   };
 
-  item.collectItem = () => {
+  const collectItem = () => {
     let value = null,
       searchLabel = null;
 
@@ -70,6 +70,10 @@ const render = (item, queryForm) => {
     }
     return { value, searchLabel };
   };
+
+  if (itemState) {
+    itemState.collectItem = collectItem;
+  }
 
   return (
     <div class={"newbie-search-expand-item"}>

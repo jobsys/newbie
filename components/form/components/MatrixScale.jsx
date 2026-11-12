@@ -42,7 +42,7 @@ const render = (item, submitForm) => {
     }))
   );
 
-  rows = rows.map(item => ({ row: item }));
+  rows = rows.map(rowValue => ({ row: rowValue }));
 
   if (item.defaultProps?.showScale) {
     let scale = { row: useT("form.scale") };

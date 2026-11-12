@@ -4,6 +4,50 @@ import { useFetch, useProcessStatusSuccess, useT } from "../../../hooks";
 import { genPixel } from "../../../utils/style.js";
 import { placeholder } from "../utils.js";
 
+// 渲染期不能写响应式状态，debounce 与最近一次字段配置缓存到 WeakMap，
+// key 为 formState[item.key]（跨渲染稳定），避免每次渲染新建 debounce 丢失上一次的定时器
+const remoteStateMap = new WeakMap();
+
+/**
+ * 取（或首次创建）远程搜索状态，并记录本次渲染的字段配置
+ * @param {Object} itemState
+ * @param {NewbieFormItemConfig} item
+ * @return {{item: NewbieFormItemConfig, search: Function}}
+ */
+const getRemoteState = (itemState, item) => {
+  let remoteState = remoteStateMap.get(itemState);
+
+  if (!remoteState) {
+    remoteState = { item, search: null };
+    remoteState.search = debounce(async name => {
+      name = name.trim();
+      if (!name) {
+        return;
+      }
+
+      const currentItem = remoteState.item;
+
+      let res = await useFetch(itemState.fetcher)[currentItem.method || "get"](currentItem.url, {
+        params: {
+          [currentItem.keyword || "keyword"]: name,
+          ...currentItem.params,
+        },
+      });
+      useProcessStatusSuccess(res, () => {
+        if (currentItem.onSearch) {
+          res.result = currentItem.onSearch(res.result);
+        }
+        itemState.options = res.result;
+      });
+    }, 1000);
+    remoteStateMap.set(itemState, remoteState);
+  }
+
+  remoteState.item = item;
+
+  return remoteState;
+};
+
 /**
  * 输入框
  *
@@ -41,25 +85,7 @@ const render = (item, submitForm, itemState) => {
     return null;
   }
 
-  const onSearch = debounce(async name => {
-    name = name.trim();
-    if (!name) {
-      return;
-    }
-
-    let res = await useFetch(itemState.fetcher)[method](item.url, {
-      params: {
-        [item.keyword || "keyword"]: name,
-        ...item.params,
-      },
-    });
-    useProcessStatusSuccess(res, () => {
-      if (item.onSearch) {
-        res.result = item.onSearch(res.result);
-      }
-      itemState.options = res.result;
-    });
-  }, 1000);
+  const onSearch = getRemoteState(itemState, item).search;
 
   return (
     <Select

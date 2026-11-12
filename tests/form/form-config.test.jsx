@@ -62,4 +62,55 @@ describe("NewbieForm 全局配置", () => {
 		// 这里只校验配置深合并后表单项仍可正常渲染与初始化。
 		expect(wrapper.findComponent(NewbieForm).vm.getForm()).toHaveProperty("attach");
 	});
+
+	it("computed 字段按公式计算，并在依赖变化后重新计算", async () => {
+		const wrapper = mountForm(
+			{},
+			{
+				form: [
+					{ key: "price", type: "number", defaultValue: 10 },
+					{ key: "qty", type: "number", defaultValue: 2 },
+					{ key: "total", type: "computed", formula: "[price] * [qty]" },
+				],
+			}
+		);
+		await nextTick();
+		await nextTick();
+
+		const formVm = wrapper.findComponent(NewbieForm).vm;
+		expect(formVm.getForm().total).toBe(20);
+
+		formVm.setForm({ price: 3 });
+		await nextTick();
+		await nextTick();
+		expect(formVm.getForm().total).toBe(6);
+	});
+
+	it("支持 { fields, logic } 对象形式的表单配置", async () => {
+		const wrapper = mountForm(
+			{},
+			{
+				form: {
+					fields: [
+						{ key: "mode", type: "radio", options: ["A", "B"], defaultValue: "A" },
+						{ key: "extra", type: "input" },
+					],
+					logic: {
+						rules: [
+							{
+								targetField: "extra",
+								action: "hide",
+								conditions: [{ field: "mode", operator: "notEquals", value: "B" }],
+							},
+						],
+					},
+				},
+			}
+		);
+		await nextTick();
+		await nextTick();
+
+		const formVm = wrapper.findComponent(NewbieForm).vm;
+		expect(formVm.getForm()).toHaveProperty("extra", null);
+	});
 });

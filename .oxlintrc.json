@@ -6,7 +6,31 @@
 	},
 	"rules": {
 		"no-console": "off",
-		"no-debugger": "warn"
+		"no-debugger": "warn",
+		"no-undef": "error",
+		"import/no-unassigned-import": [
+			"warn",
+			{
+				"allow": [
+					"**/*.css",
+					"**/*.less",
+					"**/*.scss"
+				]
+			}
+		],
+		"no-underscore-dangle": [
+			"warn",
+			{
+				"allow": [
+					"_type",
+					"_disk",
+					"_configStatus",
+					"__name",
+					"__quiz_answer",
+					"__quiz_analysis"
+				]
+			}
+		]
 	},
 	"categories": {
 		"correctness": "error",
