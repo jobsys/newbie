@@ -33,6 +33,7 @@ import {
 } from "@antdv-next/icons";
 import NewbieForm from "../form/NewbieForm.jsx";
 import {getDefaultWidgets} from "./defaultWidgets.jsx";
+import {DesignerThemeScope} from "./themeVars.jsx";
 import {formItemToProps, propsToFormItem, widgetToProps} from "./widgetProps.js";
 import {genPixel} from "../../utils/style.js";
 import {t, useT} from "../../hooks";
@@ -716,30 +717,32 @@ export default defineComponent({
 			);
 
 			return (
-				<div class={"newbie-form-designer"} style={{ height: genPixel(props.height) }}>
-					{widgetContainerElem()}
-					{painterContainerElem()}
-					{propsContainerElem()}
-					{optionsEditorElem()}
-					{valueOptionsEditorElem()}
-					<GlobalLogicPanel
-						rules={logicRules.value}
-						onChange={rules => {
-							logicRules.value = rules;
-							rulesUserModified.value = true;
-						}}
-						availableFields={state.painterItems.map(item => ({
-							key: item.key,
-							title: item.props.title || item.name,
-							type: item.type,
-							props: item.props,
-						}))}
-						open={state.showLogicPanel}
-						onClose={() => {
-							state.showLogicPanel = false;
-						}}
-					/>
-				</div>
+				<DesignerThemeScope>
+					<div class={"newbie-form-designer"} style={{ height: genPixel(props.height) }}>
+						{widgetContainerElem()}
+						{painterContainerElem()}
+						{propsContainerElem()}
+						{optionsEditorElem()}
+						{valueOptionsEditorElem()}
+						<GlobalLogicPanel
+							rules={logicRules.value}
+							onChange={rules => {
+								logicRules.value = rules;
+								rulesUserModified.value = true;
+							}}
+							availableFields={state.painterItems.map(item => ({
+								key: item.key,
+								title: item.props.title || item.name,
+								type: item.type,
+								props: item.props,
+							}))}
+							open={state.showLogicPanel}
+							onClose={() => {
+								state.showLogicPanel = false;
+							}}
+						/>
+					</div>
+				</DesignerThemeScope>
 			);
 		};
 	},

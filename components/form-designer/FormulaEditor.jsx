@@ -5,24 +5,6 @@ import {calcFormula, hasSelfReference} from "../form/utils/formula-engine.js";
 
 const { TextArea } = Input;
 
-// 内联样式常量
-const S = {
-	code: { background: '#fff1f0', border: '1px solid #ffccc7', borderRadius: 4, padding: '2px 6px', fontFamily: 'Consolas, Monaco, monospace', fontSize: '13px', color: '#cf1322' },
-	guideBg: { background: '#fafafa', padding: '12px 16px', borderRadius: 6 },
-	table: { border: '1px solid #f0f0f0', borderRadius: 6, overflow: 'hidden', margin: '8px 0 16px' },
-	tableHeader: { display: 'flex', background: '#fafafa', borderBottom: '1px solid #f0f0f0' },
-	tableCell: (i, len) => ({ flex: 1, padding: '8px 12px', borderRight: i < len - 1 ? '1px solid #f0f0f0' : 'none' }),
-	tableRow: (i, total) => ({ display: 'flex', borderBottom: i < total - 1 ? '1px solid #f0f0f0' : 'none' }),
-	sep: { borderBottom: '1px solid #f0f0f0', margin: '16px 0' },
-	section: { marginBottom: 16 },
-	card: { border: '1px solid #f0f0f0', borderRadius: 8, padding: '12px 16px', marginBottom: 12 },
-	cardCode: { background: '#fafafa', padding: '8px 12px', borderRadius: 4 },
-	h4: { fontSize: 16, fontWeight: 600, marginBottom: 12, marginTop: 0 },
-	h5: { fontSize: 14, fontWeight: 600, marginBottom: 8, marginTop: 0 },
-	p: { margin: '0 0 8px', lineHeight: 1.6 },
-	secondary: { color: '#8c8c8c' },
-};
-
 // 函数表数据（说明文案存 i18n key，渲染时再翻译）
 const FUNCTIONS = {
 	math: [
@@ -65,23 +47,25 @@ const FUNCTIONS = {
 
 // 简单表格渲染函数（translate 由调用方传入，避免在模块级调用 useT）
 const renderTable = (translate, rows) => (
-	<div style={S.table}>
-		<div style={S.tableHeader}>
-			<div style={{ ...S.tableCell(0, 3), fontWeight: 600, color: '#262626' }}>
+	<div class="formula-editor__table">
+		<div class="formula-editor__table-header">
+			<div class="formula-editor__table-cell formula-editor__table-head-cell">
 				{translate('form-designer.formula.function-name')}
 			</div>
-			<div style={{ ...S.tableCell(1, 3), fontWeight: 600, color: '#262626' }}>
+			<div class="formula-editor__table-cell formula-editor__table-head-cell">
 				{translate('form-designer.formula.function-args')}
 			</div>
-			<div style={{ ...S.tableCell(2, 3), fontWeight: 600, color: '#262626' }}>
+			<div class="formula-editor__table-cell formula-editor__table-head-cell">
 				{translate('form-designer.formula.function-desc')}
 			</div>
 		</div>
 		{rows.map((row, i) => (
-			<div key={i} style={S.tableRow(i, rows.length)}>
-				<div style={{ ...S.tableCell(0, 3), color: '#595959', fontWeight: 600 }}>{row[0]}</div>
-				<div style={{ ...S.tableCell(1, 3), color: '#cf1322' }}><code style={S.code}>{row[1]}</code></div>
-				<div style={{ ...S.tableCell(2, 3), color: '#595959' }}>{translate(row[2])}</div>
+			<div key={i} class="formula-editor__table-row">
+				<div class="formula-editor__table-cell formula-editor__table-name">{row[0]}</div>
+				<div class="formula-editor__table-cell formula-editor__table-args">
+					<code class="formula-editor__code">{row[1]}</code>
+				</div>
+				<div class="formula-editor__table-cell formula-editor__table-desc">{translate(row[2])}</div>
 			</div>
 		))}
 	</div>
@@ -89,74 +73,74 @@ const renderTable = (translate, rows) => (
 
 // 帮助弹窗内容（translate 由调用方传入，避免在模块级调用 useT）
 const renderHelpContent = translate => (
-	<div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-		<div style={{ background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: 6, padding: '12px 16px', marginBottom: 24 }}>
+	<div class="formula-editor__help-scroll">
+		<div class="formula-editor__quick-start">
 			<strong>{translate('form-designer.formula.quick-start')}</strong>
-			{translate('form-designer.formula.quick-start-desc')} <code style={S.code}>[radio-1]</code>
+			{translate('form-designer.formula.quick-start-desc')} <code class="formula-editor__code">[radio-1]</code>
 			{translate('form-designer.formula.quick-start-desc-end')}
 		</div>
 
-		<h4 style={S.h4}>{translate('form-designer.formula.basic-syntax')}</h4>
-		<div style={S.section}>
-			<h5 style={S.h5}>{translate('form-designer.formula.field-reference')}</h5>
-			<p style={S.p}>{translate('form-designer.formula.field-reference-desc')}</p>
-			<div style={S.guideBg}>
-				<code style={S.code}>[fieldKey]</code>{' '}
-				<span style={S.secondary}>{translate('form-designer.formula.example-label')}</span>
-				<code style={S.code}>[radio-1]</code> <code style={S.code}>[input-1]</code>
+		<h4 class="formula-editor__h4">{translate('form-designer.formula.basic-syntax')}</h4>
+		<div class="formula-editor__section">
+			<h5 class="formula-editor__h5">{translate('form-designer.formula.field-reference')}</h5>
+			<p class="formula-editor__p">{translate('form-designer.formula.field-reference-desc')}</p>
+			<div class="formula-editor__guide">
+				<code class="formula-editor__code">[fieldKey]</code>{' '}
+				<span class="formula-editor__secondary">{translate('form-designer.formula.example-label')}</span>
+				<code class="formula-editor__code">[radio-1]</code> <code class="formula-editor__code">[input-1]</code>
 			</div>
 		</div>
-		<div style={S.section}>
-			<h5 style={S.h5}>{translate('form-designer.formula.arithmetic')}</h5>
-			<div style={S.guideBg}>
-				<p style={S.p}><code style={S.code}>[q1] + [q2]</code> — {translate('form-designer.formula.add')}</p>
-				<p style={S.p}><code style={S.code}>[q1] - [q2]</code> — {translate('form-designer.formula.subtract')}</p>
-				<p style={S.p}><code style={S.code}>[q1] * [q2]</code> — {translate('form-designer.formula.multiply')}</p>
-				<p style={S.p}><code style={S.code}>[q1] / [q2]</code> — {translate('form-designer.formula.divide')}</p>
-				<p style={{ ...S.p, marginBottom: 0 }}><code style={S.code}>[q1] % 100</code> — {translate('form-designer.formula.modulo')}</p>
+		<div class="formula-editor__section">
+			<h5 class="formula-editor__h5">{translate('form-designer.formula.arithmetic')}</h5>
+			<div class="formula-editor__guide">
+				<p class="formula-editor__p"><code class="formula-editor__code">[q1] + [q2]</code> — {translate('form-designer.formula.add')}</p>
+				<p class="formula-editor__p"><code class="formula-editor__code">[q1] - [q2]</code> — {translate('form-designer.formula.subtract')}</p>
+				<p class="formula-editor__p"><code class="formula-editor__code">[q1] * [q2]</code> — {translate('form-designer.formula.multiply')}</p>
+				<p class="formula-editor__p"><code class="formula-editor__code">[q1] / [q2]</code> — {translate('form-designer.formula.divide')}</p>
+				<p class="formula-editor__p formula-editor__p-last"><code class="formula-editor__code">[q1] % 100</code> — {translate('form-designer.formula.modulo')}</p>
 			</div>
 		</div>
-		<div style={S.section}>
-			<h5 style={S.h5}>{translate('form-designer.formula.comparison')}</h5>
-			<div style={S.guideBg}>
-				<p style={S.p}><code style={S.code}>==</code> — {translate('form-designer.formula.equals')}</p>
-				<p style={S.p}><code style={S.code}>!=</code> — {translate('form-designer.formula.not-equals')}</p>
-				<p style={{ ...S.p, marginBottom: 0 }}><code style={S.code}>&gt; &lt; &gt;= &lt;=</code> — {translate('form-designer.formula.ordering')}</p>
+		<div class="formula-editor__section">
+			<h5 class="formula-editor__h5">{translate('form-designer.formula.comparison')}</h5>
+			<div class="formula-editor__guide">
+				<p class="formula-editor__p"><code class="formula-editor__code">==</code> — {translate('form-designer.formula.equals')}</p>
+				<p class="formula-editor__p"><code class="formula-editor__code">!=</code> — {translate('form-designer.formula.not-equals')}</p>
+				<p class="formula-editor__p formula-editor__p-last"><code class="formula-editor__code">&gt; &lt; &gt;= &lt;=</code> — {translate('form-designer.formula.ordering')}</p>
 			</div>
 		</div>
 
-		<div style={S.sep} />
-		<h4 style={S.h4}>{translate('form-designer.formula.functions')}</h4>
-		<div style={S.section}>
-			<h5 style={S.h5}>{translate('form-designer.formula.condition')}</h5>
-			<div style={S.guideBg}>
-				<code style={S.code}>IF([q1] == "A", [q2], 0)</code>
+		<div class="formula-editor__sep" />
+		<h4 class="formula-editor__h4">{translate('form-designer.formula.functions')}</h4>
+		<div class="formula-editor__section">
+			<h5 class="formula-editor__h5">{translate('form-designer.formula.condition')}</h5>
+			<div class="formula-editor__guide">
+				<code class="formula-editor__code">IF([q1] == "A", [q2], 0)</code>
 			</div>
-			<p style={{ ...S.p, ...S.secondary }}>{translate('form-designer.formula.if-desc')}</p>
+			<p class="formula-editor__p formula-editor__secondary">{translate('form-designer.formula.if-desc')}</p>
 		</div>
-		<div style={S.section}>
-			<h5 style={S.h5}>{translate('form-designer.formula.math-functions')}</h5>
+		<div class="formula-editor__section">
+			<h5 class="formula-editor__h5">{translate('form-designer.formula.math-functions')}</h5>
 			{renderTable(translate, FUNCTIONS.math)}
 		</div>
-		<div style={S.section}>
-			<h5 style={S.h5}>{translate('form-designer.formula.logic-functions')}</h5>
+		<div class="formula-editor__section">
+			<h5 class="formula-editor__h5">{translate('form-designer.formula.logic-functions')}</h5>
 			{renderTable(translate, FUNCTIONS.logic)}
 		</div>
-		<div style={S.section}>
-			<h5 style={S.h5}>{translate('form-designer.formula.string-functions')}</h5>
+		<div class="formula-editor__section">
+			<h5 class="formula-editor__h5">{translate('form-designer.formula.string-functions')}</h5>
 			{renderTable(translate, FUNCTIONS.string)}
 		</div>
-		<div style={S.section}>
-			<h5 style={S.h5}>{translate('form-designer.formula.date-functions')}</h5>
+		<div class="formula-editor__section">
+			<h5 class="formula-editor__h5">{translate('form-designer.formula.date-functions')}</h5>
 			{renderTable(translate, FUNCTIONS.date)}
 		</div>
-		<div style={S.section}>
-			<h5 style={S.h5}>{translate('form-designer.formula.other-functions')}</h5>
+		<div class="formula-editor__section">
+			<h5 class="formula-editor__h5">{translate('form-designer.formula.other-functions')}</h5>
 			{renderTable(translate, FUNCTIONS.other)}
 		</div>
 
-		<div style={S.sep} />
-		<h4 style={S.h4}>{translate('form-designer.formula.examples')}</h4>
+		<div class="formula-editor__sep" />
+		<h4 class="formula-editor__h4">{translate('form-designer.formula.examples')}</h4>
 		{[
 			['form-designer.formula.example.total', 'SUM([q1], [q2], [q3])'],
 			['form-designer.formula.example.conditional', 'IF([radio-1] == "A", 10, 0)'],
@@ -166,9 +150,9 @@ const renderHelpContent = translate => (
 			['form-designer.formula.example.multi-condition', 'IF(AND([score] >= 60, [attendance] > 80), "通过", "不通过")'],
 			['form-designer.formula.example.age', 'DATEDIF([birthday], TODAY(), "Y")'],
 		].map(([titleKey, code], i) => (
-			<div key={i} style={S.card}>
-				<div style={{ marginBottom: 8, fontWeight: 600 }}>{translate(titleKey)}</div>
-				<div style={S.cardCode}><code style={S.code}>{code}</code></div>
+			<div key={i} class="formula-editor__card">
+				<div class="formula-editor__card-title">{translate(titleKey)}</div>
+				<div class="formula-editor__card-code"><code class="formula-editor__code">{code}</code></div>
 			</div>
 		))}
 	</div>
@@ -292,8 +276,8 @@ export default defineComponent({
 
 		return () => (
 			<div class="formula-editor">
-				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '8px' }}>
-					<span style={{ fontSize: '14px'}}>{useT("form-designer.formula.title")}</span>
+				<div class="formula-editor__header">
+					<span class="formula-editor__title">{useT("form-designer.formula.title")}</span>
 					<Button type="link" size="small" onClick={() => { showHelp.value = true; }}>
 						{useT("form-designer.formula.usage")}
 					</Button>
@@ -305,17 +289,17 @@ export default defineComponent({
 					placeholder={useT("form-designer.formula.placeholder")}
 					rows={4}
 				/>
-				{error.value && <div style={{ color: '#ff4d4f', marginTop: 4, fontSize: 13 }}>{error.value}</div>}
+				{error.value && <div class="formula-editor__error">{error.value}</div>}
 				{preview.value !== null && (
-					<div style={{ color: '#52c41a', marginTop: 4, fontSize: 13 }}>
+					<div class="formula-editor__result">
 						{useT("form-designer.formula.result", {value: String(preview.value)})}
 					</div>
 				)}
 				{props.availableFields.length > 0 && (
-					<div style={{ marginTop: '8px' }}>
-						<span style={S.secondary}>{useT("form-designer.formula.available-fields")}</span>
+					<div class="formula-editor__fields">
+						<span class="formula-editor__secondary">{useT("form-designer.formula.available-fields")}</span>
 						{props.availableFields.map(f => (
-							<Tag key={f.key} onClick={() => insertFieldRef(f.key)} style={{ cursor: "pointer", marginTop: 4 }}>
+							<Tag key={f.key} onClick={() => insertFieldRef(f.key)} class="formula-editor__field-tag">
 								{f.title} [{f.key}]
 							</Tag>
 						))}

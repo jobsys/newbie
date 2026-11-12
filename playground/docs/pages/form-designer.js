@@ -110,5 +110,10 @@ export default {
 			content:
 				"设计器顶部有“表单逻辑”入口，可为字段配置 show / hide 规则；保存时会写入 `logic.rules`，与 NewbieForm 的条件显隐一致。",
 		},
+		{
+			title: "支持暗色模式吗？",
+			content:
+				"支持。设计器的面板、画布、工具栏、属性面板以及「设置选项」「表单逻辑」「公式使用说明」等弹层，颜色都来自 antdv-next 的 Design Token（以 `--newbie-*` CSS 变量下发），跟随当前主题的明暗切换：\n\n```vue\n<NewbieThemeProvider scheme=\"dark\">\n\t<NewbieFormDesigner :form-items=\"formItems\" />\n</NewbieThemeProvider>\n```\n\n只使用 antdv-next 的 `ConfigProvider` 并配置 `darkAlgorithm` 同样有效；未配置任何主题时回落到浅色。",
+		},
 	],
 };

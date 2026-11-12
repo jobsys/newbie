@@ -355,13 +355,13 @@ export default defineComponent({
 							{useT("form-designer.logic-panel.add-rule")}
 						</Button>
 						{props.rules.length === 0 ? (
-							<div style={{ textAlign: "center", padding: "40px 0", color: "#999" }}>
+							<div class="logic-panel__empty">
 								{useT("form-designer.logic-panel.empty")}
 							</div>
 						) : (
 							props.rules.map(rule => (
 								<Card key={rule.id} size="small" style={{ marginBottom: "8px" }}>
-									<div>{formatRuleSummary(rule)}</div>
+									<div class="logic-panel__rule-summary">{formatRuleSummary(rule)}</div>
 									<Space style={{ marginTop: "8px" }}>
 										<Button size="small" onClick={() => editRule(rule)}>
 											{useT("common.edit")}
