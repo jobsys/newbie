@@ -96,7 +96,14 @@
 							box-sizing: border-box;
 							padding: 10px 11px 16px;
 							font-size: 13px;
-							background: var(--newbie-color-fill-alter, #f3f3f3);
+							// fill-alter 在暗色主题下是半透明的（rgba(255,255,255,0.04)），
+							// 会把底下的搜索项标题等内容透出来，看起来像面板与输入框之间有缝隙。
+							// 这里用不透明的容器色打底再叠加填充色，视觉保持不变但不再透底。
+							background-color: var(--newbie-color-bg-container, #fff);
+							background-image: linear-gradient(
+								var(--newbie-color-fill-alter, #f3f3f3),
+								var(--newbie-color-fill-alter, #f3f3f3)
+							);
 							overflow: hidden;
 							border: 1px solid var(--newbie-color-border, #ddd);
 							border-bottom: none;
