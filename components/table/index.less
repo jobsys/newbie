@@ -1,5 +1,16 @@
 @grey: #f5f5f5;
 
+/**
+ * 固定列 / 斑马纹用到的背景层。
+ * 这些 token 在暗色或自定义主题里通常是半透明填充，必须叠在不透明底上，
+ * 所以统一拆成「底色层 + 状态色层」两层渐变来用。
+ */
+@newbie-table-surface: var(--newbie-color-bg-container, #fff);
+@newbie-table-fill: var(--newbie-color-fill-alter, rgba(0, 0, 0, 0.02));
+@newbie-table-fill-strong: var(--newbie-color-fill-secondary, rgba(0, 0, 0, 0.06));
+@newbie-table-fill-active: var(--newbie-color-primary-bg, rgba(0, 0, 0, 0.04));
+@newbie-table-fill-active-hover: var(--newbie-color-primary-bg-hover, rgba(0, 0, 0, 0.06));
+
 .newbie-table {
     /* 分页行高固定，Append 行与它叠放时以同一个高度做垂直居中 */
 
@@ -73,8 +84,86 @@
             }
         }
 
+        /**
+         * 斑马纹：colorFillAlter 是半透明 token，直接当底色会让单元格变透明。
+         * 这里先用不透明的容器底色打底，再把斑马纹作为渐变叠上去，
+         * 视觉效果与原来一致，但单元格始终不透明。
+         */
         .newbie-table-striped td {
-            background-color: var(--newbie-color-fill-alter, #fafafa);
+            background-color: @newbie-table-surface;
+            background-image: linear-gradient(@newbie-table-fill, @newbie-table-fill);
+        }
+
+        /**
+         * 固定列（position: sticky）必须完全不透明，否则横向滚动时被它盖住的
+         * 单元格文字会透出来。antd 是直接拿 bodyBg / headerBg / rowHoverBg 这些
+         * 背景 token 当固定单元格底色的，而暗色或自定义主题里这些 token 往往是
+         * 半透明填充（colorFillAlter 之类），单一底色就会「穿透」——表头和
+         * hover 行尤其明显。
+         *
+         * 因此这里不依赖这些 token 的不透明度：统一用「页面底色 + 容器底色」
+         * 铺出不透明底，再把状态色作为渐变叠在上面。状态色的透明度保留，
+         * 但下面已经有不透明层，不会再透出下层内容。
+         */
+        .ant-table-cell-fix {
+            /* 兜底：页面底色 + 容器色 */
+            background-color: var(--newbie-color-bg-layout, @newbie-table-surface) !important;
+            background-image: linear-gradient(
+                @newbie-table-surface,
+                @newbie-table-surface
+            ) !important;
+        }
+
+        /* 表头 / 汇总行：容器底色 + 表头填充 */
+        .ant-table-thead .ant-table-cell-fix,
+        .ant-table-summary .ant-table-cell-fix {
+            background-image: linear-gradient(@newbie-table-fill, @newbie-table-fill),
+                linear-gradient(@newbie-table-surface, @newbie-table-surface) !important;
+        }
+
+        /* 排序中的表头：antd 用更深的 fill-secondary，固定列表头要保持一致 */
+        .ant-table-thead th.ant-table-cell-fix.ant-table-column-sort,
+        .ant-table-thead th.ant-table-cell-fix.ant-table-column-sort:hover {
+            background-image: linear-gradient(
+                    @newbie-table-fill-strong,
+                    @newbie-table-fill-strong
+                ),
+                linear-gradient(@newbie-table-surface, @newbie-table-surface) !important;
+        }
+
+        /* 斑马纹行 */
+        .newbie-table-striped .ant-table-cell-fix {
+            background-image: linear-gradient(@newbie-table-fill, @newbie-table-fill),
+                linear-gradient(@newbie-table-surface, @newbie-table-surface) !important;
+        }
+
+        /* 排序中的列 */
+        .ant-table-tbody > tr > td.ant-table-column-sort.ant-table-cell-fix {
+            background-image: linear-gradient(@newbie-table-fill, @newbie-table-fill),
+                linear-gradient(@newbie-table-surface, @newbie-table-surface) !important;
+        }
+
+        /* 悬停行：放在排序列之后，保证 hover 能盖住排序列的底色 */
+        .ant-table-tbody > tr:hover > td.ant-table-cell-fix {
+            background-image: linear-gradient(@newbie-table-fill, @newbie-table-fill),
+                linear-gradient(@newbie-table-surface, @newbie-table-surface) !important;
+        }
+
+        /* 选中行 / 选中且悬停 */
+        .ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix {
+            background-image: linear-gradient(
+                    @newbie-table-fill-active,
+                    @newbie-table-fill-active
+                ),
+                linear-gradient(@newbie-table-surface, @newbie-table-surface) !important;
+        }
+
+        .ant-table-tbody > tr.ant-table-row-selected:hover > td.ant-table-cell-fix {
+            background-image: linear-gradient(
+                    @newbie-table-fill-active-hover,
+                    @newbie-table-fill-active-hover
+                ),
+                linear-gradient(@newbie-table-surface, @newbie-table-surface) !important;
         }
 
         .ant-table-cell .ant-image {

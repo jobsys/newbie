@@ -2,7 +2,7 @@
  * @module Network
  */
 
-import axios, { create } from "axios";
+import axios from "axios";
 import { isReactive, reactive } from "vue";
 
 /**
@@ -209,7 +209,7 @@ export function createFetch(options = {}) {
 		clientConfig.headers = { ...clientConfig.headers, ...headers };
 	}
 
-	const client = instance || create(clientConfig);
+	const client = instance || axios.create(clientConfig);
 	const state = reactive({ loading: false });
 
 	return createRequest(state, { instance: client, timeout, signal, headers });

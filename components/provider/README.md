@@ -68,36 +68,36 @@ const data = Array.from({ length: 12 }, (_, index) => ({
 
 ## 更多示例
 
-| 示例 | 说明 | 源码 |
-| --- | --- | --- |
+| 示例           | 说明                                                                                     | 源码                                                                   |
+| -------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | 覆盖组件默认值 | 这里的 table.pageSize 改为 4、pageSizeKey 改为 page_size，只影响 Provider 子树内的表格。 | [provider/config.vue](../../playground/docs/demos/provider/config.vue) |
 
 ## Props
 
-| 参数 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| config | 任意命名空间的覆盖包，key 由组件自己定义 | `object` | `{}` |
-| locale | vue-i18n 语言；留空表示不修改宿主语言 | `string` | `""` |
+| 参数                                      | 说明                                                              | 类型     | 默认值      |
+| ----------------------------------------- | ----------------------------------------------------------------- | -------- | ----------- |
+| config                                    | 任意命名空间的覆盖包，key 由组件自己定义                          | `object` | `{}`        |
+| locale                                    | vue-i18n 语言；留空表示不修改宿主语言                             | `string` | `""`        |
 | table / uploader / form / search / editor | 旧版顶层配置，仍可用一个版本，会输出弃用警告；新代码请使用 config | `object` | `undefined` |
 
 ## Slots
 
-| 插槽名 | 说明 |
-| --- | --- |
+| 插槽名  | 说明     |
+| ------- | -------- |
 | default | 应用内容 |
 
 ## 内置命名空间
 
 完整配置项见各组件文档的“全局配置”章节。
 
-| 命名空间 | 对应组件 | 常用配置 |
-| --- | --- | --- |
-| table | NewbieTable | `pageSize`、`pageKey`、`pageSizeKey`、`afterFetched`、`persistence` |
-| uploader | NewbieUploader / 表单 uploader 字段 | `uploadUrl`、`defaultFileItem`、`defaultPreview` |
-| form | NewbieForm | `format`、`afterFetched`、`columns` |
-| search | NewbieSearch | `maskClass`、`inputClass`、`valueFormatter` |
-| editor | NewbieEditor | `uploadUrl` |
-| theme | NewbieThemeProvider | 由 Theme Provider 单独处理，见主题文档 |
+| 命名空间 | 对应组件                            | 常用配置                                                            |
+| -------- | ----------------------------------- | ------------------------------------------------------------------- |
+| table    | NewbieTable                         | `pageSize`、`pageKey`、`pageSizeKey`、`afterFetched`、`persistence` |
+| uploader | NewbieUploader / 表单 uploader 字段 | `uploadUrl`、`defaultFileItem`、`defaultPreview`                    |
+| form     | NewbieForm                          | `format`、`afterFetched`、`columns`                                 |
+| search   | NewbieSearch                        | `maskClass`、`inputClass`、`valueFormatter`                         |
+| editor   | NewbieEditor                        | `uploadUrl`                                                         |
+| theme    | NewbieThemeProvider                 | 由 Theme Provider 单独处理，见主题文档                              |
 
 ## 优先级与合并规则
 
@@ -116,9 +116,9 @@ NewbieProvider 的 config[命名空间]
 
 ```vue
 <template>
-  <NewbieProvider :config="config">
-    <App />
-  </NewbieProvider>
+	<NewbieProvider :config="config">
+		<App />
+	</NewbieProvider>
 </template>
 
 <script setup>
@@ -127,8 +127,8 @@ import { reactive } from "vue";
 const config = reactive({});
 
 fetch("/api/ui-config")
-  .then(res => res.json())
-  .then(data => Object.assign(config, data));
+	.then(res => res.json())
+	.then(data => Object.assign(config, data));
 </script>
 ```
 

@@ -1,9 +1,9 @@
 .ant-dropdown-menu-item {
-  &:has(.ant-btn) {
-    &:hover {
-      background: #fff !important;
-    }
-  }
+	&:has(.ant-btn) {
+		&:hover {
+			background: var(--newbie-color-bg-elevated, #fff) !important;
+		}
+	}
 }
 
 /**
@@ -11,5 +11,5 @@
  * 这里用主题层注入的 --newbie-tag-gap 保持两者一致，间距跟随密度。
  */
 .ant-tag.ant-tag-checkable {
-  margin-inline-end: var(--newbie-tag-gap, 8px);
+	margin-inline-end: var(--newbie-tag-gap, 8px);
 }

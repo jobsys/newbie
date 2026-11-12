@@ -4,7 +4,7 @@
 
 > 本文件由 `pnpm docs:readme` 根据 `playground/docs/pages/theme.js` 生成，请修改页面配置后重新生成，不要直接编辑。
 
-> **注意**：antdv-next 1.8.1 的 ConfigProvider 在 theme 变化后不会重新生成组件样式，ThemeProvider 内部通过 key 重建子树；运行时切换主题会重置子树内的组件状态，建议在应用初始化或设置页切换。
+> **注意**：默认走 antdv-next 的 cssVar 热更新，切换主题不会重建子树，业务状态得以保留；antdv-next 1.8.1 的 ConfigProvider 在 theme 变化后不会重新生成组件样式，需要强制刷新时把 remount 设为 true，代价是子树内的组件状态会被重置。
 
 ## 何时使用
 
@@ -42,7 +42,12 @@ app.use(Newbie);
 			<span>密度：</span>
 			<Segmented v-model:value="density" :options="densityOptions" size="small" />
 			<span>主色：</span>
-			<Select v-model:value="primary" :options="colorOptions" size="small" style="width: 120px" />
+			<Select
+				v-model:value="primary"
+				:options="colorOptions"
+				size="small"
+				style="width: 120px"
+			/>
 			<span>暗色：</span>
 			<Switch v-model:checked="dark" size="small" />
 		</Space>
@@ -77,16 +82,7 @@ app.use(Newbie);
 
 <script setup>
 import { ref } from "vue";
-import {
-	Button,
-	DatePicker,
-	Input,
-	Segmented,
-	Select,
-	Space,
-	Switch,
-	Table,
-} from "antdv-next";
+import { Button, DatePicker, Input, Segmented, Select, Space, Switch, Table } from "antdv-next";
 import { NewbieThemeProvider } from "jobsys-newbie";
 
 const density = ref("default");
@@ -130,61 +126,103 @@ const data = [
 
 ## 更多示例
 
-| 示例 | 说明 | 源码 |
-| --- | --- | --- |
+| 示例             | 说明                                                                                                                | 源码                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | 密度、主色与暗色 | 外层控制 density / color-primary / scheme，内层 ThemeProvider 包裹一段组件，切换后所有 token 与组件库样式同步更新。 | [provider/theme.vue](../../playground/docs/demos/provider/theme.vue) |
 
 ## Props
 
-| 参数 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| density | 密度预设 | `compact` \| `default` \| `loose` | `default` |
-| colorPrimary | 品牌主色，其余梯度由算法派生 | `string` | `""` |
-| theme | 额外的 antdv-next theme 配置，与密度预设合并 | `object` | `{}` |
-| locale | antdv-next locale 对象 | `object` | `null` |
-| scheme | 明暗模式 | `light` \| `dark` | `light` |
-| cssVar | 是否启用 CSS 变量，默认 { key: 'newbie' } | `object` \| `boolean` | `null` |
-| tagGap | Tag 间距，不传时跟随密度 | `number` | `null` |
-| layer | 是否使用 @layer 降低 antd 样式优先级 | `boolean` | `false` |
-| hashPriority | 选择器优先级 | `string` | `low` |
+| 参数         | 说明                                                                       | 类型                              | 默认值    |
+| ------------ | -------------------------------------------------------------------------- | --------------------------------- | --------- |
+| density      | 密度预设                                                                   | `compact` \| `default` \| `loose` | `default` |
+| colorPrimary | 品牌主色，其余梯度由算法派生                                               | `string`                          | `""`      |
+| theme        | 额外的 antdv-next theme 配置，与密度预设合并                               | `object`                          | `{}`      |
+| locale       | antdv-next locale 对象                                                     | `object`                          | `null`    |
+| scheme       | 明暗模式                                                                   | `light` \| `dark`                 | `light`   |
+| cssVar       | 是否启用 CSS 变量，默认 { key: 'newbie' }                                  | `object` \| `boolean`             | `null`    |
+| tagGap       | Tag 间距，不传时跟随密度                                                   | `number`                          | `null`    |
+| layer        | 是否使用 @layer 降低 antd 样式优先级                                       | `boolean`                         | `false`   |
+| hashPriority | 选择器优先级                                                               | `string`                          | `low`     |
+| remount      | 主题变化时是否用 key 重建整棵子树；默认 false 走 cssVar 热更新，状态不丢失 | `boolean`                         | `false`   |
 
 ## Slots
 
-| 插槽名 | 说明 |
-| --- | --- |
+| 插槽名  | 说明     |
+| ------- | -------- |
 | default | 应用内容 |
 
 ## createNewbieTheme(options)
 
 主题工厂参数。
 
-| 参数 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| density | 密度预设 | `compact` \| `default` \| `loose` | `default` |
-| colorPrimary | 品牌主色 | `string` | - |
-| token | 额外 token，优先级最高 | `object` | - |
-| components | 额外组件 token | `object` | - |
-| algorithm | 覆盖密度预设的算法 | `array` \| `Function` | - |
-| scheme | 明暗模式 | `light` \| `dark` | `light` |
-| cssVar | 是否启用 CSS 变量 | `object` \| `false` | `{ key: 'newbie' }` |
-| tagGap | Tag 间距 | `number` | 跟随密度 |
+| 参数         | 说明                   | 类型                              | 默认值              |
+| ------------ | ---------------------- | --------------------------------- | ------------------- |
+| density      | 密度预设               | `compact` \| `default` \| `loose` | `default`           |
+| colorPrimary | 品牌主色               | `string`                          | -                   |
+| token        | 额外 token，优先级最高 | `object`                          | -                   |
+| components   | 额外组件 token         | `object`                          | -                   |
+| algorithm    | 覆盖密度预设的算法     | `array` \| `Function`             | -                   |
+| scheme       | 明暗模式               | `light` \| `dark`                 | `light`             |
+| cssVar       | 是否启用 CSS 变量      | `object` \| `false`               | `{ key: 'newbie' }` |
+| tagGap       | Tag 间距               | `number`                          | 跟随密度            |
 
 ## CSS 变量
 
-ThemeProvider 会把当前主题 token 与密度预设写成 CSS 变量。
+ThemeProvider 会把当前主题 token 与密度预设写成 CSS 变量，同时挂到 Provider 子树与 `:root`：dropdown / popover / modal 这类弹层默认 teleport 到 body，只有 `:root` 上的副本能让它们跟随明暗与密度。
 
-| 变量 | 含义 |
-| --- | --- |
-| `--newbie-padding-sm` / `--newbie-padding` / `--newbie-padding-lg` | 小 / 中 / 大间距 |
-| `--newbie-radius` | 圆角 |
-| `--newbie-control-height-sm` | 小号控件高度 |
-| `--newbie-table-pagination-height` | 分页行高 |
-| `--newbie-tag-gap` | Tag 间距 |
-| `--newbie-color-bg-container` | 容器背景 |
-| `--newbie-color-border` / `--newbie-color-border-secondary` | 边框色 |
-| `--newbie-color-fill-alter` | 填充色 |
-| `--newbie-color-text` / `--newbie-color-text-secondary` / `--newbie-color-text-tertiary` | 文本层级 |
-| `--newbie-color-primary` / `--newbie-color-primary-bg` | 主色与主色浅背景 |
+| 变量                                                                                                                                                        | 含义                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `--newbie-padding-sm` / `--newbie-padding` / `--newbie-padding-lg`                                                                                          | 小 / 中 / 大间距           |
+| `--newbie-radius`                                                                                                                                           | 圆角                       |
+| `--newbie-control-height-sm`                                                                                                                                | 小号控件高度               |
+| `--newbie-table-pagination-height`                                                                                                                          | 分页行高                   |
+| `--newbie-tag-gap`                                                                                                                                          | Tag 间距                   |
+| `--newbie-color-bg-layout` / `--newbie-color-bg-container` / `--newbie-color-bg-elevated` / `--newbie-color-bg-spotlight`                                   | 表面色                     |
+| `--newbie-color-fill` / `--newbie-color-fill-secondary` / `--newbie-color-fill-tertiary` / `--newbie-color-fill-quaternary`                                 | 填充色                     |
+| `--newbie-color-fill-alter`                                                                                                                                 | 替代填充色（兼容旧变量名） |
+| `--newbie-color-text` / `--newbie-color-text-secondary` / `--newbie-color-text-tertiary` / `--newbie-color-text-quaternary`                                 | 文本层级                   |
+| `--newbie-color-border` / `--newbie-color-border-secondary` / `--newbie-color-split`                                                                        | 边框与分割线               |
+| `--newbie-color-primary` / `--newbie-color-primary-hover` / `--newbie-color-primary-active` / `--newbie-color-primary-bg` / `--newbie-color-primary-border` | 主色梯度                   |
+| `--newbie-border-radius` / `--newbie-border-radius-lg` / `--newbie-control-height` / `--newbie-font-size`                                                   | 尺寸                       |
+| `--newbie-box-shadow` / `--newbie-box-shadow-secondary`                                                                                                     | 阴影                       |
+
+## applyThemeVariables(target, variables)
+
+把 CSS 变量写到指定 DOM 元素，用于挂到 :root 或任意容器，突破 ConfigProvider 子树的作用域限制；variables 为空时不做任何事。
+
+| 参数      | 说明                                         | 类型          | 默认值 |
+| --------- | -------------------------------------------- | ------------- | ------ |
+| target    | 目标 DOM 元素，如 `document.documentElement` | `HTMLElement` | -      |
+| variables | CSS 变量名 -> 值                             | `object`      | -      |
+
+## useNewbieTheme()
+
+读取当前主题上下文，返回只读对象；没有 NewbieThemeProvider 时返回安全默认值，不会抛异常。
+
+| 字段         | 说明                              | 类型                                |
+| ------------ | --------------------------------- | ----------------------------------- |
+| density      | 当前密度                          | `"compact" \| "default" \| "loose"` |
+| scheme       | 当前明暗模式                      | `"light" \| "dark"`                 |
+| colorPrimary | 当前生效的主色                    | `string`                            |
+| token        | antdv-next 的 token 对象          | `object`                            |
+| theme        | 传给 ConfigProvider 的 theme 配置 | `object`                            |
+
+## NewbieApp
+
+应用外壳：一次性组合 StyleProvider + ConfigProvider + NewbieProvider + antdv-next 的 App（运行时样式容器），并复用同一套密度预设。
+
+| 参数         | 说明                                         | 类型                              | 默认值    |
+| ------------ | -------------------------------------------- | --------------------------------- | --------- |
+| density      | 密度预设                                     | `compact` \| `default` \| `loose` | `default` |
+| colorPrimary | 品牌主色                                     | `string`                          | `""`      |
+| scheme       | 明暗模式                                     | `light` \| `dark`                 | `light`   |
+| theme        | 额外的 antdv-next theme 配置，与密度预设合并 | `object`                          | `{}`      |
+| locale       | antdv-next locale 对象                       | `object`                          | `null`    |
+| configLocale | 组件库内部 i18n 的语言                       | `string`                          | `""`      |
+| config       | 传给 NewbieProvider 的全局配置               | `object`                          | `{}`      |
+| layer        | 是否使用 @layer 降低 antd 样式优先级         | `boolean`                         | `false`   |
+| hashPriority | 选择器优先级                                 | `string`                          | `low`     |
+| remount      | 主题变化时是否用 key 重建整棵子树            | `boolean`                         | `false`   |
 
 ## 只使用主题工厂
 
@@ -194,9 +232,9 @@ ThemeProvider 会把当前主题 token 与密度预设写成 CSS 变量。
 import { createNewbieTheme } from "jobsys-newbie";
 
 const { theme, config, cssVariables } = createNewbieTheme({
-  density: "compact",
-  colorPrimary: "#c2410c",
-  scheme: "dark",
+	density: "compact",
+	colorPrimary: "#c2410c",
+	scheme: "dark",
 });
 ```
 
@@ -214,7 +252,11 @@ const { theme, config, cssVariables } = createNewbieTheme({
 
 ### 切换主题后表单内容为什么被重置？
 
-这是 antdv-next 1.8.1 的限制：ConfigProvider 不会在 theme 变化后重新生成样式。ThemeProvider 用 key 重建子树来保证样式更新，因此子树内的组件状态会重置。建议在设置页或应用初始化时切换。
+默认不会。ThemeProvider 不再无条件用 key 重建子树，而是走 antdv-next 的 cssVar 热更新，子树内的业务状态会保留。只有显式设置 `:remount="true"` 时才会重建子树——这是 antdv-next 1.8.1 下样式一定刷新的兜底手段，代价是表单内容、展开状态等会被清空。
+
+### CSS 变量在弹层里为什么可用？
+
+ThemeProvider 会把 `--newbie-*` 变量同时写到 ConfigProvider 子树与 `:root`，所以 teleport 到 body 的 dropdown / popover / modal 也能读到，不需要业务侧再做兜底。需要把变量挂到别的容器时，仍可用 `applyThemeVariables(target, variables)`。
 
 ### 密度预设具体改了什么？
 

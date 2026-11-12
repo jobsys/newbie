@@ -7,6 +7,7 @@
 - 地址、密码、上传、富文本、手写签名等业务组件
 - 基于 Design Token 的密度、主色、明暗主题
 - 按命名空间合并的全局配置
+- 一站式应用外壳 `NewbieApp`（样式层 + 主题 + 全局配置 + antdv-next App）
 
 ## 安装
 
@@ -69,6 +70,22 @@ app.use(Newbie);
 
 - [Provider 全局配置](./components/provider/README.md)
 - [Theme 主题](./components/provider/THEME.md)
+
+应用入口推荐用 `NewbieApp` 一次性组合样式层、主题、全局配置与 antdv-next 的 App：
+
+```vue
+<template>
+	<NewbieApp :config="providerConfig" density="compact" color-primary="#c2410c">
+		<RouterView />
+	</NewbieApp>
+</template>
+
+<script setup>
+import { NewbieApp } from "jobsys-newbie";
+
+const providerConfig = { table: { pageSize: 50 } };
+</script>
+```
 
 ### 设计与维护
 

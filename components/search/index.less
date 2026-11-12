@@ -3,6 +3,22 @@
 	padding: var(--newbie-padding-sm, 12px);
 	border-radius: var(--newbie-radius, 6px);
 
+	/**
+	 * 搜索弹层内的下拉面板（选择、级联、日期、条件菜单）统一用不透明底色打底。
+	 * colorBgElevated 在部分主题里是半透明的，直接当面板底色会让下方的表格行、
+	 * 表头等内容透出来。这里先铺容器底色、再叠加弹层色，视觉保持不变但不透底。
+	 */
+	.ant-select-dropdown,
+	.ant-cascader-dropdown,
+	.ant-picker-dropdown,
+	.ant-dropdown-menu {
+		background-color: var(--newbie-color-bg-container, #fff);
+		background-image: linear-gradient(
+			var(--newbie-color-bg-elevated, #fff),
+			var(--newbie-color-bg-elevated, #fff)
+		);
+	}
+
 	.newbie-search-query {
 		box-sizing: border-box;
 		display: flex;
@@ -58,7 +74,7 @@
 							cursor: text;
 							width: 200px;
 							height: 30px;
-							border: 1px solid #ccc;
+							border: 1px solid var(--newbie-color-border, #ccc);
 							font-size: 14px;
 
 							&:hover {
@@ -69,7 +85,10 @@
 								display: flex;
 								align-items: center;
 								justify-content: center;
-								background: #eee;
+								// 暗色下沿用容器的文字色，背景必须同步换成暗色填充，
+								// 否则会出现浅色底 + 白色文字的情况。
+								background: var(--newbie-color-fill-secondary, #eee);
+								color: var(--newbie-color-text-secondary, rgba(0, 0, 0, 0.65));
 								font-size: 13px;
 								flex-shrink: 0;
 								width: 60px;
@@ -164,12 +183,12 @@
 			display: flex;
 			align-items: stretch;
 			justify-content: space-between;
-			border-top: 1px solid #eee;
+			border-top: 1px solid var(--newbie-color-split, #eee);
 			border-radius: var(--newbie-radius, 6px);
 			overflow: hidden;
 
 			&:last-child {
-				border-bottom: 1px solid #eee;
+				border-bottom: 1px solid var(--newbie-color-split, #eee);
 			}
 
 			.newbie-search-expand-item-title {
@@ -228,7 +247,7 @@
 	.newbie-search-sortable__sortable-empty {
 		text-align: center;
 		margin-top: 100px;
-		color: rgba(0, 0, 0, 0.25);
+		color: var(--newbie-color-text-quaternary, rgba(0, 0, 0, 0.25));
 		font-size: 14px;
 	}
 
@@ -238,7 +257,7 @@
 		justify-content: space-between;
 		box-sizing: border-box;
 		padding: 4px 20px;
-		border-bottom: 1px dashed #eee;
+		border-bottom: 1px dashed var(--newbie-color-split, #eee);
 
 		.newbie-search-sortable__sortable-item-content {
 			flex-grow: 1;
@@ -268,7 +287,7 @@
 
 			&:hover {
 				.anticon {
-					color: #666;
+					color: var(--newbie-color-text-secondary, #666);
 				}
 			}
 		}
@@ -276,7 +295,7 @@
 
 	.ghost {
 		opacity: 0.5;
-		background: #c8ebfb;
+		background: var(--newbie-color-primary-bg, #c8ebfb);
 	}
 
 	.list-group {

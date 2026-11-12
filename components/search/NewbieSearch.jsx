@@ -779,11 +779,9 @@ export default defineComponent({
 								{() => [
 									showRestore.value ? (
 										<Tag
+											color={"orange"}
 											style={{
 												cursor: "pointer",
-												color: "#92400e",
-												background: "#fff7e6",
-												borderColor: "#ffa940",
 												borderStyle: "dashed",
 											}}
 											onClick={onApplyRestore}

@@ -14,16 +14,16 @@
 - 源码：`components` / `hooks` / `playground` 共 60+ 个文件的 import 已切换。
 - 命名导出适配：`Textarea` → `TextArea`、`RangePicker` → `DateRangePicker`、`List` 移除。
 - 表单：
-  - 新增 `components/form/model.js`：对外保持「扁平对象 + 点号 key」，内部映射到 antdv-next 需要的嵌套 model。
-  - `FormItem` 的 `name` 改为路径数组（`key.split(".")`）。
-  - 移除 6 处 `FormItemRest`（antdv-next 不再自动收集未声明 `name` 的子控件）。
-  - `reset()` 改为按初始化备份重建模型，避免 `resetFields` 在动态 model 下的差异。
-  - 校验失败不再产生未处理的 Promise rejection。
+    - 新增 `components/form/model.js`：对外保持「扁平对象 + 点号 key」，内部映射到 antdv-next 需要的嵌套 model。
+    - `FormItem` 的 `name` 改为路径数组（`key.split(".")`）。
+    - 移除 6 处 `FormItemRest`（antdv-next 不再自动收集未声明 `name` 的子控件）。
+    - `reset()` 改为按初始化备份重建模型，避免 `resetFields` 在动态 model 下的差异。
+    - 校验失败不再产生未处理的 Promise rejection。
 - 弹层：
-  - `Modal`：`bodyStyle` → `styles.body`，`wrapStyle` → `styles.wrapper`，`destroyOnClose` → `destroyOnHidden`。
-  - `Modal` 的 `modalRender` 参数改为直接接收节点（antdv-next 不再是 `{ originVNode }`，这是本次发现的功能性 breaking change）。
-  - `Drawer`：`width` → `size`（数字），非数字宽度保留旧的 `width`。
-  - `Image` 预览：`visible/onVisibleChange` → `open/onOpenChange`。
+    - `Modal`：`bodyStyle` → `styles.body`，`wrapStyle` → `styles.wrapper`，`destroyOnClose` → `destroyOnHidden`。
+    - `Modal` 的 `modalRender` 参数改为直接接收节点（antdv-next 不再是 `{ originVNode }`，这是本次发现的功能性 breaking change）。
+    - `Drawer`：`width` → `size`（数字），非数字宽度保留旧的 `width`。
+    - `Image` 预览：`visible/onVisibleChange` → `open/onOpenChange`。
 - 其他 API：`Dropdown` 的 `overlay` → `popupRender`、`Table.customRow` → `onRow`、`Select.dropdownMatchSelectWidth` → `popupMatchSelectWidth`、`Space.direction` → `orientation`、`Form.labelAlign="left"` → `"start"`。
 - 上传/富文本：`Form.useInjectFormItemContext()` 改为 `utils/form-item-context.js` 统一适配（内部映射到 `triggerChange`）。
 - 包信息：版本改为 `4.0.0-alpha.0`，peerDependencies 指向 `antdv-next` / `@antdv-next/icons`。
@@ -57,9 +57,9 @@ pnpm lint
   返回 `{ theme, config, cssVariables, preset }`。
 - `NewbieThemeProvider`：内置 `StyleProvider` + `ConfigProvider`，默认开启 `cssVar`。
 - 密度预设：
-  - `compact`：`compactAlgorithm` + Table 单元格 padding 8px
-  - `default`：默认算法 + Table padding 12px
-  - `loose`：默认算法 + `controlHeight: 40`、`fontSize: 15`、更大的 padding/radius + Table padding 18px
+    - `compact`：`compactAlgorithm` + Table 单元格 padding 8px
+    - `default`：默认算法 + Table padding 12px
+    - `loose`：默认算法 + `controlHeight: 40`、`fontSize: 15`、更大的 padding/radius + Table padding 18px
 - 主色：`colorPrimary`，其余梯度由算法派生。
 - 明暗：`scheme="dark"`，自动叠加 `darkAlgorithm`。
 - 组件库自己的面板（搜索栏、表格容器、表单折叠面板、列表、弹窗 body）使用 `--newbie-*` CSS 变量，这些变量由当前 token 生成，因此会跟随密度/主色/暗色变化。
@@ -76,8 +76,8 @@ pnpm lint
 
 ```js
 const { theme, config, cssVariables } = createNewbieTheme({
-  density: "compact",
-  colorPrimary: "#c2410c",
+	density: "compact",
+	colorPrimary: "#c2410c",
 });
 ```
 
@@ -91,16 +91,36 @@ const { theme, config, cssVariables } = createNewbieTheme({
 
 暴露的 CSS 变量：
 
-| 变量 | 含义 |
-| --- | --- |
-| `--newbie-padding-sm` / `--newbie-padding` / `--newbie-padding-lg` | 小/中/大间距 |
-| `--newbie-radius` | 圆角 |
-| `--newbie-control-height-sm` | 小号控件高度 |
-| `--newbie-table-pagination-height` | 分页行高（由控件高度推导） |
-| `--newbie-tag-gap` | Tag 间距 |
-| `--newbie-color-bg-container` / `--newbie-color-border` / `--newbie-color-fill-alter` / `--newbie-color-text` / `--newbie-color-text-secondary` / `--newbie-color-text-tertiary` / `--newbie-color-primary` / `--newbie-color-primary-bg` | 当前主题色板 |
+| 变量                                                                                                                                                        | 含义                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `--newbie-padding-sm` / `--newbie-padding` / `--newbie-padding-lg`                                                                                          | 小/中/大间距               |
+| `--newbie-radius`                                                                                                                                           | 圆角                       |
+| `--newbie-control-height-sm`                                                                                                                                | 小号控件高度               |
+| `--newbie-table-pagination-height`                                                                                                                          | 分页行高（由控件高度推导） |
+| `--newbie-tag-gap`                                                                                                                                          | Tag 间距                   |
+| `--newbie-color-bg-layout` / `--newbie-color-bg-container` / `--newbie-color-bg-elevated` / `--newbie-color-bg-spotlight`                                   | 表面色                     |
+| `--newbie-color-fill` / `--newbie-color-fill-secondary` / `--newbie-color-fill-tertiary` / `--newbie-color-fill-quaternary` / `--newbie-color-fill-alter`   | 填充色                     |
+| `--newbie-color-text` / `--newbie-color-text-secondary` / `--newbie-color-text-tertiary` / `--newbie-color-text-quaternary`                                 | 文本层级                   |
+| `--newbie-color-border` / `--newbie-color-border-secondary` / `--newbie-color-split`                                                                        | 边框与分割线               |
+| `--newbie-color-primary` / `--newbie-color-primary-hover` / `--newbie-color-primary-active` / `--newbie-color-primary-bg` / `--newbie-color-primary-border` | 主色梯度                   |
+| `--newbie-border-radius` / `--newbie-border-radius-lg` / `--newbie-control-height` / `--newbie-font-size`                                                   | 尺寸                       |
+| `--newbie-box-shadow` / `--newbie-box-shadow-secondary`                                                                                                     | 阴影                       |
 
-> ⚠️ antdv-next 1.8.1 的 `ConfigProvider` 在 `theme` 变化后不会重新生成组件样式（实测：颜色/控件高度都不会更新）。`NewbieThemeProvider` 内部用 `themeKey` 触发重挂载，因此**运行时切换主题会重建子树**，业务状态会重置。建议在设置页或应用启动时切换；如果必须保留状态，需要等官方修复后移除这个 workaround。
+这些变量同时写进 ConfigProvider 子树与 `:root`，所以 teleport 到 body 的 dropdown / popover / modal 也能读到；需要挂到其它容器时仍可用 `applyThemeVariables(target, variables)`。
+
+> ⚠️ antdv-next 1.8.1 的 `ConfigProvider` 在 `theme` 变化后不会重新生成组件样式。`NewbieThemeProvider` **默认走 cssVar 热更新**（不传 key），切换主题不会重建子树，业务状态得以保留；如果实测样式没有刷新，可以打开 `remount` 让它用 key 重建子树——代价是**子树内的业务状态会被重置**，建议只在应用启动或设置页切换。
+
+## 主题能力补齐（4.0.0-alpha.0）
+
+在迁移验证之后，组件库补齐了 4 项主题相关能力，供主项目接入：
+
+- `NewbieThemeProvider` 新增 `remount`（默认 `false`）：默认不传 key，切换密度/主色/暗色不重建子树；`remount` 为 `true` 时才用 key 重建，是 antdv-next 1.8.1 下样式一定刷新的兜底手段。
+- `theme.js` 导出完整的 `--newbie-*` 变量清单（表面 / 填充 / 文字 / 边框 / 主色 / 尺寸 / 阴影），取值全部来自 antdv-next 的 token，暗色模式自动跟随；旧的 `--newbie-color-*` 变量名保持兼容。
+- 导出 `applyThemeVariables(target, variables)`：把变量写到任意 DOM 元素（如 `document.documentElement`），突破 ConfigProvider 子树的作用域限制；`variables` 为空时不做任何事。
+- 导出 `useNewbieTheme()`：通过 provide/inject 暴露 `density` / `scheme` / `colorPrimary` / `token` / `theme`，没有 Provider 时返回安全默认值。
+- `NewbieThemeProvider` 把 `--newbie-*` 变量同时写到 `:root`：dropdown / popover / modal 等 teleport 到 body 的弹层不再回落到写死的浅色兜底值。
+- 修正下拉菜单项内按钮的悬停底色：原来写死 `#fff`，暗色下整项变白；改为 `--newbie-color-bg-elevated`，跟随明暗。
+- 新增 `NewbieApp`：一次性组合 `StyleProvider` + `ConfigProvider` + `NewbieProvider` + antdv-next 的 `<a-app>`，内部复用 `createNewbieTheme()`，不再重复实现密度预设。
 
 ## 剩余工作（Phase 1）
 
