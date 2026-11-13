@@ -10,6 +10,10 @@
     "confirm": "确定",
     "cancel": "取消",
     "close": "关闭",
+    "fullscreen": "全屏",
+    "exit-fullscreen": "退出全屏",
+    "data-changed": "数据有变动",
+    "discard-confirm": "是否放弃当前编辑内容？",
     "clear": "清除",
     "more": "更多",
     "action-prompt": "操作提示",
@@ -34,6 +38,12 @@
     "search": "搜索",
     "start": "开始",
     "end": "结束"
+  },
+  "file-preview": {
+    "loading": "正在加载文档...",
+    "failed": "文档加载失败",
+    "unsupported": "不支持预览该文件类型",
+    "download": "下载文件"
   },
   "form": {
     "please-select": "请选择{title}",
@@ -75,6 +85,8 @@
     "sort-setting": "排序设置",
     "toggle-more": "展示/关闭更多搜索选项",
     "collapse": "收起",
+    "more-conditions": "更多条件",
+    "collapse-conditions": "收起条件",
     "clear-all-search-items": "清除所有搜索项",
     "search-items": "搜索条件",
     "item-unit": "项",

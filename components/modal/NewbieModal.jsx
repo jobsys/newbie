@@ -1,6 +1,6 @@
-import { computed, defineComponent, ref, watch, watchEffect } from "vue";
+import { computed, defineComponent, provide, ref, shallowReactive, watch, watchEffect } from "vue";
 import { useDraggable } from "@vueuse/core";
-import { Drawer, Modal } from "antdv-next";
+import { Button, Drawer, Modal } from "antdv-next";
 import { CloseOutlined, CompressOutlined, ExpandOutlined } from "@antdv-next/icons";
 import "./index.less";
 import { isFunction, isObject } from "lodash-es";
@@ -8,6 +8,7 @@ import { genPixel } from "../../utils/style";
 import { t } from "../../hooks/index.js";
 import { useMergedProps } from "../../hooks/useMergedProps.js";
 import { modalDefaults } from "./config.js";
+import { NEWBIE_MODAL_ACTIONS } from "./context.js";
 
 /**
  * 弹窗组件
@@ -77,17 +78,62 @@ export default defineComponent({
     const isFullModal = ref(false);
     const isVisible = ref(false);
 
-    // antdv-next Drawer 的 size 只接受数字；百分比/字符串宽度仍走旧的 width
+    // 底部动作区：子组件（如 NewbieForm）把按钮的渲染函数注册进来，
+    // 由 NewbieModal 决定按钮最终出现在 Modal / Drawer 的底部固定区。
+    // 用 shallowReactive 的数组，注册/注销后底部区域会重新渲染。
+    const footerActions = shallowReactive([]);
+    let footerActionSeed = 0;
+
+    provide(NEWBIE_MODAL_ACTIONS, {
+      /**
+       * @param {Function} renderAction 返回按钮节点的渲染函数
+       * @param {Object} [options]
+       * @param {Function} [options.isDirty] 弹层关闭前检查表单是否有脏数据
+       * @param {Function} [options.getConfirm] 脏数据确认框的文案
+       * @return {Function} 注销函数
+       */
+      register(renderAction, options = {}) {
+        const entry = {
+          id: (footerActionSeed += 1),
+          render: renderAction,
+          isDirty: options.isDirty || null,
+          getConfirm: options.getConfirm || null,
+        };
+        footerActions.push(entry);
+        return () => {
+          const index = footerActions.indexOf(entry);
+          if (index > -1) {
+            footerActions.splice(index, 1);
+          }
+        };
+      },
+
+      /**
+       * 请求关闭弹层，统一走 beforeClose / 脏数据确认流程
+       * @param {Object} [options]
+       * @param {Boolean} [options.skipDirty] 调用方已完成脏数据确认时跳过重复确认
+       */
+      requestClose(options) {
+        return onCloseModal(options);
+      },
+    });
+
+    // antdv-next Drawer 用 size 承载宽度：数字转 px，百分比等 CSS 值原样生效，
+    // 不再回退到已废弃的 width
     const drawerSize = computed(() => {
       const raw = props.width;
+      if (raw === undefined || raw === null || raw === "") {
+        return undefined;
+      }
       if (typeof raw === "number") {
         return raw;
       }
       const value = String(raw).trim();
+      // 纯数字或 px 值先转数字，避免 @v-c/drawer 对字符串宽度告警
       if (/^\d+(\.\d+)?(px)?$/i.test(value)) {
         return Number.parseFloat(value);
       }
-      return undefined;
+      return value;
     });
 
     // antdv-next 用 styles 对象描述各区域样式，调用方通过 modalProps.styles
@@ -101,7 +147,12 @@ export default defineComponent({
           ...styleOverrides,
           wrapper: { overflow: "hidden", ...styleOverrides.wrapper },
           body: {
-            maxHeight: props.height ? genPixel(props.height) : "600px",
+            // 全屏时高度交给 flex 布局撑满，不能再被内容区的 maxHeight 截断
+            maxHeight: isFullModal.value
+              ? "none"
+              : props.height
+                ? genPixel(props.height)
+                : "600px",
             overflow: "auto",
             ...styleOverrides.body,
           },
@@ -116,37 +167,6 @@ export default defineComponent({
       },
       { immediate: true } // 添加 immediate 选项
     );
-
-    const onCloseModal = async () => {
-      if (props.beforeClose && isFunction(props.beforeClose) && !(await props.beforeClose())) {
-        return;
-      }
-
-      if (props.beforeClose && isObject(props.beforeClose)) {
-        const { title, content, okText, cancelText, trigger } = props.beforeClose;
-
-        let showConfirm = isFunction(trigger) ? trigger() : trigger;
-
-        if (showConfirm) {
-          Modal.confirm({
-            title: title || t("common.action-prompt"),
-            content: content || t("common.close-confirm"),
-            okText: okText || t("common.confirm"),
-            cancelText: cancelText || t("common.cancel"),
-            onOk: () => {
-              isFullModal.value = false;
-              emit("update:visible", false);
-              emit("close");
-            },
-          });
-          return;
-        }
-      }
-
-      isFullModal.value = false;
-      emit("update:visible", false);
-      emit("close");
-    };
 
     // 以下代码用于拖动弹窗，来自官方文档， https://www.antdv-next.com/components/modal-cn#modal-demo-modal-render
     const { x, y, isDragging } = useDraggable(modalTitleRef);
@@ -164,7 +184,36 @@ export default defineComponent({
       top: 0,
       bottom: 0,
     });
+
+    /**
+     * 丢弃拖动产生的位移。
+     * 全屏 / 退出全屏时窗口尺寸变化，旧的 dragRect 与 translate 都不再适用，
+     * 不清零会出现全屏后弹窗仍被平移到视口外、标题被裁掉的问题。
+     */
+    const resetDrag = () => {
+      startedDrag.value = false;
+      transformX.value = 0;
+      transformY.value = 0;
+      preTransformX.value = 0;
+      preTransformY.value = 0;
+    };
+
+    /**
+     * 切换全屏，全屏状态下禁止拖动
+     * @param {Boolean} value
+     */
+    const setFullscreen = value => {
+      if (isFullModal.value === value) {
+        return;
+      }
+      isFullModal.value = value;
+      resetDrag();
+    };
+
     watch([x, y], () => {
+      if (isFullModal.value) {
+        return;
+      }
       if (!startedDrag.value) {
         startX.value = x.value;
         startY.value = y.value;
@@ -183,7 +232,7 @@ export default defineComponent({
       }
     });
     watchEffect(() => {
-      if (startedDrag.value) {
+      if (!isFullModal.value && startedDrag.value) {
         transformX.value =
           preTransformX.value +
           Math.min(Math.max(dragRect.value.left, x.value), dragRect.value.right) -
@@ -200,75 +249,154 @@ export default defineComponent({
       };
     });
 
+    const finishClose = () => {
+      setFullscreen(false);
+      emit("update:visible", false);
+      emit("close");
+    };
+
+    const onCloseModal = async (options = {}) => {
+      // antdv-next 的关闭事件会把 MouseEvent 传进来，只有显式的 skipDirty 才跳过脏数据检查
+      const skipDirty = options?.skipDirty === true;
+
+      if (props.beforeClose && isFunction(props.beforeClose) && !(await props.beforeClose())) {
+        return;
+      }
+
+      if (props.beforeClose && isObject(props.beforeClose)) {
+        const { title, content, okText, cancelText, trigger } = props.beforeClose;
+
+        let showConfirm = isFunction(trigger) ? trigger() : trigger;
+
+        if (showConfirm) {
+          Modal.confirm({
+            title: title || t("common.action-prompt"),
+            content: content || t("common.close-confirm"),
+            okText: okText || t("common.confirm"),
+            cancelText: cancelText || t("common.cancel"),
+            onOk: finishClose,
+          });
+          return;
+        }
+      }
+
+      // beforeClose 已由调用方自定义时以它为准，避免与抽屉内的表单重复确认
+      if (!skipDirty && !props.beforeClose) {
+        const dirtyEntry = footerActions.find(entry => entry.isDirty?.());
+
+        if (dirtyEntry) {
+          const texts = dirtyEntry.getConfirm?.() || {};
+
+          Modal.confirm({
+            title: t("common.data-changed"),
+            content: t("common.discard-confirm"),
+            okText: t("common.confirm"),
+            cancelText: t("common.cancel"),
+            ...texts,
+            onOk: finishClose,
+          });
+          return;
+        }
+      }
+
+      finishClose();
+    };
+
     const modalTitle = () => (
       <div class="newbie-modal-header">
         <span class="newbie-modal-title" ref={modalTitleRef}>
           {props.title}
         </span>
         <div class="newbie-modal-actions">
-          {isFullModal.value ? (
-            <a onClick={() => (isFullModal.value = false)}>
-              <CompressOutlined style={{ fontSize: "16px" }} />
-            </a>
-          ) : (
-            <a onClick={() => (isFullModal.value = true)}>
-              <ExpandOutlined style={{ fontSize: "16px" }} />
-            </a>
-          )}
-
-          <a onClick={onCloseModal}>
-            <CloseOutlined style={{ fontSize: "20px", marginTop: "2px" }} />
-          </a>
+          <Button
+            class="newbie-modal-action"
+            type="text"
+            size="small"
+            icon={isFullModal.value ? <CompressOutlined /> : <ExpandOutlined />}
+            aria-label={isFullModal.value ? t("common.exit-fullscreen") : t("common.fullscreen")}
+            title={isFullModal.value ? t("common.exit-fullscreen") : t("common.fullscreen")}
+            onClick={() => setFullscreen(!isFullModal.value)}
+          />
+          <Button
+            class="newbie-modal-action"
+            type="text"
+            size="small"
+            icon={<CloseOutlined />}
+            aria-label={t("common.close")}
+            title={t("common.close")}
+            onClick={onCloseModal}
+          />
         </div>
       </div>
     );
 
-    const elemModal = () => (
-      <Modal
-        footer={null}
-        wrapClassName={`newbie-modal ${isFullModal.value ? "full-modal" : ""}`}
-        width={isFullModal.value ? "100%" : genPixel(props.width)}
-        open={isVisible.value}
-        onUpdate:open={value => (isVisible.value = value)}
-        closable={false}
-        destroyOnHidden
-        maskClosable={false}
-        onCancel={onCloseModal}
-        {...mergedModalProps.value}
-      >
-        {{
-          /**
-           * @slot 弹窗内容
-           */
-          default: () => slots.default?.(),
-          title: () => modalTitle(),
-          modalRender: node => <div style={transformStyle.value}>{node}</div>,
-        }}
-      </Modal>
-    );
+    /**
+     * 底部动作区：插槽 footer + 子组件注册的按钮。
+     * 注册项在特定状态下可能返回 null（如 hideButtons），因此按真实渲染结果判断是否显示底部区域。
+     */
+    const renderFooter = () => {
+      const nodes = [slots.footer?.(), ...footerActions.map(entry => entry.render())].filter(Boolean);
+      return nodes.length ? <div class="newbie-modal-footer">{nodes}</div> : null;
+    };
 
-    const elemDrawer = () => (
-      <Drawer
-        title={props.title}
-        open={isVisible.value}
-        onUpdate:open={value => (isVisible.value = value)}
-        closable={false}
-        destroyOnHidden
-        size={drawerSize.value}
-        width={drawerSize.value === undefined ? props.width : undefined}
-        maskClosable={false}
-        onClose={onCloseModal}
-        {...props.modalProps}
-      >
-        {{
-          /**
-           * @slot 弹窗内容
-           */
-          default: () => slots.default?.(),
-          extra: () => <CloseOutlined onClick={onCloseModal} />,
-        }}
-      </Drawer>
-    );
+    const elemModal = () => {
+      const footer = renderFooter() ?? mergedModalProps.value.footer ?? null;
+
+      return (
+        <Modal
+          wrapClassName={`newbie-modal${isFullModal.value ? " full-modal" : ""}`}
+          width={isFullModal.value ? "100%" : genPixel(props.width)}
+          open={isVisible.value}
+          closable={false}
+          destroyOnHidden
+          maskClosable={false}
+          onCancel={onCloseModal}
+          {...mergedModalProps.value}
+          footer={footer}
+        >
+          {{
+            /**
+             * @slot 弹窗内容
+             */
+            default: () => slots.default?.(),
+            title: () => modalTitle(),
+            modalRender: node => (
+              <div class="newbie-modal-drag" style={transformStyle.value}>
+                {node}
+              </div>
+            ),
+          }}
+        </Modal>
+      );
+    };
+
+    const elemDrawer = () => {
+      const footer = renderFooter() ?? props.modalProps?.footer ?? undefined;
+
+      return (
+        <Drawer
+          title={props.title}
+          open={isVisible.value}
+          destroyOnHidden
+          size={drawerSize.value}
+          maskClosable={false}
+          // 关闭按钮放到标题栏右侧（antdv-next 默认在标题左侧），
+          // 调用方仍可通过 modalProps.closable 覆盖
+          closable={{ placement: "end" }}
+          onClose={onCloseModal}
+          {...props.modalProps}
+          footer={footer}
+        >
+          {{
+            /**
+             * @slot 弹窗内容
+             */
+            default: () => slots.default?.(),
+            ...(slots.extra ? { extra: () => slots.extra() } : {}),
+          }}
+        </Drawer>
+      );
+    };
 
     return () => (
       <div class="newbie-modal">

@@ -45,7 +45,8 @@ NewbieProvider 的 config[命名空间]
 | method        | string           | `"get"`    | 请求方式                           |
 | rowKey        | string \| function | `"id"`   | 行主键                             |
 | afterFetched  | function         | `null`     | 请求返回数据的处理函数，必须返回 `{ items, totalSize }` |
-| persistence   | boolean \| string \| object | `false` | 分页与滚动持久化        |
+| persistence   | boolean \| string \| object | `false` | 分页与自定义列显隐持久化 |
+| searchPersistence | boolean \| string \| object | -     | 内部 NewbieSearch 的持久化配置，不传时沿用 `persistence` |
 
 > `table.page` 已废弃：全局初始页码没有实际意义，实例分页请用 `:pagination="{ current: 1 }"`。
 
@@ -58,6 +59,16 @@ NewbieProvider 的 config[命名空间]
 | defaultPreview   | function | `null` | 非图片文件的默认预览方法     |
 
 `defaultFileItem` 是“标准名→实际名”的映射，深合并：只传 `{ url: "fileUrl" }` 时其余字段保持不变。
+
+### filePreview（`NewbieFilePreview`）
+
+| 配置项     | 类型                          | 默认值 | 说明                                   |
+| ---------- | ----------------------------- | ------ | -------------------------------------- |
+| renderer   | object \| function            | `null` | 文档渲染器组件，如 `@file-viewer/vue3` 的 `FileViewer` |
+| options    | object                        | `{}`   | 传给渲染器的配置                       |
+| width      | number \| string              | `1080` | 弹窗宽度                               |
+| height     | number \| string              | `"78vh"` | 弹窗内容高度                         |
+| modalProps | object                        | `{}`   | 透传给 antdv-next Modal 的配置         |
 
 ### form（`NewbieForm`）
 

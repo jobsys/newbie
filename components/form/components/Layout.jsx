@@ -16,7 +16,7 @@ const expandAnimations = new WeakMap();
  * @return {*[]|JSX.Element}
  */
 const render = (formItems, submitForm, submitButtons, context) => {
-	const { props, slots, formState } = context;
+	const { props, slots, formState, hideInlineButtons } = context;
 	const visibility = context.fieldVisibility?.value ?? context.fieldVisibility;
 	const getFormItem = item =>
 		createFormItem(
@@ -309,7 +309,7 @@ const render = (formItems, submitForm, submitButtons, context) => {
 
 	if (fixedFormElems.length) {
 		const submitButtonWrapper =
-			props.disabled || props.readonly || props.hideButtons ? null : (
+			hideInlineButtons || props.disabled || props.readonly || props.hideButtons ? null : (
 				<div class={"newbie-form__submit-wrapper"}>
 					<Divider />
 					<Row>
@@ -333,7 +333,7 @@ const render = (formItems, submitForm, submitButtons, context) => {
 		);
 	} else {
 		const submitButtonWrapper =
-			props.disabled || props.readonly || props.hideButtons ? null : (
+			hideInlineButtons || props.disabled || props.readonly || props.hideButtons ? null : (
 				<div class={"newbie-form__submit-wrapper"}>
 					<Divider />
 					<Row gutter={16}>

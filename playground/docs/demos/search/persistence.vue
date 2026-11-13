@@ -22,7 +22,7 @@ import { Card, Segmented, Space } from "antdv-next";
 import { NewbieSearch } from "../../../../components/index.js";
 
 const mode = ref("memory");
-const result = ref("输入搜索条件并搜索，然后切换页面或刷新查看效果");
+const result = ref("输入搜索条件并搜索；内存模式在同一会话内切换页面/重新挂载后自动恢复，localStorage 模式需点“恢复上次查询”");
 
 const modes = [
 	{ label: "关闭", value: "off" },

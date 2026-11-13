@@ -318,6 +318,7 @@ const render = (item, submitForm, itemState, context) => {
           ref={editFormRef}
           form={childrenItems}
           closable={false}
+          buttonsInFooter={true}
           data={itemState.editFormData}
           beforeSubmit={onSubmitEditItem}
           onClose={async () => {

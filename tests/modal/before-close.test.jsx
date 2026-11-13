@@ -23,7 +23,7 @@ describe("NewbieModal beforeClose", () => {
 		});
 		await nextTick();
 
-		const closeButton = document.querySelector(".newbie-modal-actions a:last-child");
+		const closeButton = document.querySelector(".newbie-modal-actions .newbie-modal-action:last-child");
 		expect(closeButton).not.toBeNull();
 		closeButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 		await nextTick();
@@ -52,7 +52,7 @@ describe("NewbieModal beforeClose", () => {
 		});
 		await nextTick();
 
-		const closeButton = document.querySelector(".newbie-modal-actions a:last-child");
+		const closeButton = document.querySelector(".newbie-modal-actions .newbie-modal-action:last-child");
 		expect(closeButton).not.toBeNull();
 		closeButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 		await nextTick();

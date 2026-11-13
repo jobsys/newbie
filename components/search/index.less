@@ -21,41 +21,25 @@
 
 	.newbie-search-query {
 		box-sizing: border-box;
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
 
 		.newbie-search-form {
-			flex-grow: 1;
-
 			.newbie-search-form-wrapper {
+				display: grid;
+				align-items: start;
+				row-gap: 10px;
+
+				// OnClickOutside 会额外包一层无类名 div，让它不参与网格布局，
+				// 否则隐藏的搜索项会留下 0 高度的空网格行和行间距
+				> div:not(.newbie-search-operation) {
+					display: contents;
+				}
+
 				.newbie-search-item {
 					position: relative;
-					transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+					min-width: 0;
 
 					&.hidden {
-						opacity: 0;
-						transform: translateY(-10px);
-						visibility: hidden;
-						height: 0 !important;
-						overflow: visible !important;
-						min-height: 0 !important;
-						padding-top: 0 !important;
-						padding-bottom: 0 !important;
-						margin-top: 0 !important;
-						margin-bottom: 0 !important;
-						pointer-events: none;
-
-						// Hide the mask/content but allow popup panels to escape
-						.newbie-search-mask {
-							display: none;
-						}
-
-						// Ensure popup panels can render above other content
-						.newbie-search-popup-panel {
-							visibility: visible;
-							z-index: 1000;
-						}
+						display: none;
 					}
 
 					.newbie-search-mask {
@@ -72,7 +56,7 @@
 							overflow: hidden;
 							border-radius: var(--newbie-radius, 6px);
 							cursor: text;
-							width: 200px;
+							width: 100%;
 							height: 30px;
 							border: 1px solid var(--newbie-color-border, #ccc);
 							font-size: 14px;
@@ -167,12 +151,21 @@
 		}
 
 		.newbie-search-operation {
-			width: 280px;
-			margin: 20px 0 0 20px;
-			flex-shrink: 0;
-			padding: 0 10px;
 			box-sizing: border-box;
 			justify-content: flex-end;
+			padding: 3px 6px;
+			border-radius: var(--newbie-radius, 6px);
+			background: var(--newbie-color-fill-alter, #f3f3f3);
+			white-space: nowrap;
+
+			.newbie-search-toggle {
+				padding-inline: 4px;
+				color: var(--newbie-color-text-secondary, rgba(0, 0, 0, 0.65));
+
+				&:hover {
+					color: var(--newbie-color-primary, #1677ff);
+				}
+			}
 		}
 	}
 
@@ -232,12 +225,27 @@
 		border-radius: 4px;
 		margin-top: 12px;
 
-
 		.newbie-search-label-content {
 			flex-grow: 1;
 		}
-	}
 
+		// 搜索条件标签跟随主题色，不使用 antd 固定的蓝色预设
+		.newbie-search-label-tag {
+			color: var(--newbie-color-primary, #1677ff);
+			background: var(--newbie-color-primary-bg, #e6f4ff);
+			border-color: var(--newbie-color-primary-border, #91caff);
+
+			.ant-tag-close-icon {
+				color: inherit;
+				opacity: 0.65;
+				transition: opacity 0.2s;
+
+				&:hover {
+					opacity: 1;
+				}
+			}
+		}
+	}
 }
 
 .newbie-search-sortable {

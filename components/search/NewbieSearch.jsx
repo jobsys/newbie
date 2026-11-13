@@ -9,18 +9,26 @@ import {Button, Modal, Space, Tag, Tooltip} from "antdv-next";
 import {cloneDeep, concat, find, isArray, isBoolean, isFunction, isString, isUndefined, orderBy,} from "lodash-es";
 import {createExpand, createSortable} from "./components";
 import {
-	ArrowsAltOutlined,
 	ClearOutlined,
+	DownOutlined,
 	FallOutlined,
 	HistoryOutlined,
 	OrderedListOutlined,
 	RiseOutlined,
 	SearchOutlined,
-	ShrinkOutlined,
+	UpOutlined,
 } from "@antdv-next/icons";
-import {parsePersistenceConfig, usePersistence, useSm3, useT} from "../../hooks";
+import {usePersistenceScope, useT} from "../../hooks";
 import dayjs from "dayjs";
 import {normalizeConditionValue} from "./utils.js";
+import {
+	applySearchSnapshot,
+	createSearchSnapshot,
+	isEmptySearchSnapshot,
+	isSearchSnapshot,
+	readSearchSort,
+	SEARCH_STATE_KEY,
+} from "./persistence.js";
 
 /**
  * 搜索组件
@@ -72,7 +80,10 @@ export default defineComponent({
 		gutter: { type: [String, Number], default: 16 },
 
 		/**
-		 * 持久化，传入 localStorage 的 key，如果为 true, 将会以 URL Hash 为 key
+		 * 持久化配置
+		 * - boolean / string：开启持久化，字符串作为 key
+		 * - { key?, storage?: 'memory'|'local', restore?: 'auto'|'manual' }
+		 *   不传 key 时以当前路由为 key；restore 控制冷数据是自动恢复还是交给恢复入口
 		 */
 		persistence: { type: [Boolean, String, Object], default: false },
 	},
@@ -88,21 +99,10 @@ export default defineComponent({
 
 		/********** 持久化配置 **********/
 
-		const persistenceConf = computed(() => parsePersistenceConfig(props.persistence));
-		const enableLocalStorage = computed(() => persistenceConf.value.storage === "local");
-
-		const persistenceNamespace = computed(() => {
-			if (!persistenceConf.value.enabled) return null;
-			const { key } = persistenceConf.value;
-			if (!key) return `search_${useSm3(location.href)}`;
-			return `search_${useSm3(location.pathname + "_" + key)}`;
-		});
-
-		const persist = computed(() => {
-			const ns = persistenceNamespace.value;
-			if (!ns) return null;
-			return usePersistence(ns, { storage: persistenceConf.value.storage });
-		});
+		const { store: persist, restore: restorePolicy } = usePersistenceScope(
+			"search",
+			() => props.persistence
+		);
 
 		/********** 状态 **********/
 
@@ -124,6 +124,45 @@ export default defineComponent({
 		});
 
 		const formWrapperRef = ref();
+
+		/********** 自适应列布局 **********/
+
+		// 单个搜索项的最小宽度，用于计算一行能放下几列
+		const MIN_ITEM_WIDTH = 220;
+
+		// 操作区（更多/清除/排序/搜索）在首行占用的列数
+		const ACTION_COLUMNS = 2;
+
+		const columnCount = ref(4);
+
+		const gapSize = computed(() => {
+			if (typeof props.gutter === "number") return `${props.gutter}px`;
+			const gap = String(props.gutter ?? "").trim();
+			if (/^\d+(\.\d+)?$/.test(gap)) return `${gap}px`;
+			return gap || "0px";
+		});
+
+		const queryStyle = computed(() => ({
+			gridTemplateColumns: `repeat(${columnCount.value}, minmax(0, 1fr))`,
+			columnGap: gapSize.value,
+		}));
+
+		// 宽屏时操作区放在首行右侧并占两列，窄屏时独占一行排在搜索项之后
+		const operationStyle = computed(() => {
+			const columns = columnCount.value;
+			if (columns > ACTION_COLUMNS) {
+				return {
+					gridRow: 1,
+					gridColumn: `${columns - ACTION_COLUMNS + 1} / -1`,
+					justifySelf: "end",
+					alignSelf: "end",
+				};
+			}
+			return {
+				gridColumn: "1 / -1",
+				justifySelf: "end",
+			};
+		});
 
 		//带有 between 的搜索项则初始化为 [null, null]
 		const betweenKeys = new Set(["number", "date"]);
@@ -185,6 +224,8 @@ export default defineComponent({
 		onUnmounted(() => {
 			stopConditionWatchers();
 			clearAutoQueryTimer();
+			resizeObserver?.disconnect();
+			if (overflowFrame !== null) cancelAnimationFrame(overflowFrame);
 		});
 
 		/**
@@ -197,9 +238,13 @@ export default defineComponent({
 			const sortColumns = [];
 			const defaultSortKeys = [];
 
-			// localStorage 模式不加载冷数据，默认值始终优先；冷数据只在用户点"应用"时使用
-			const persistenceSearchData = persist.value && !enableLocalStorage.value ? persist.value.load("form", {}) : {};
-			const persistenceSortData = persist.value && !enableLocalStorage.value ? persist.value.load("sort", {}) : {};
+			// 内存层始终恢复；只有 restore=auto 时才自动套用 localStorage 冷数据
+			const snapshot = persist.value
+				? restorePolicy.value === "auto"
+					? persist.value.read(SEARCH_STATE_KEY, null)
+					: persist.value.readHot(SEARCH_STATE_KEY, null)
+				: null;
+			const persistedSort = readSearchSort(snapshot);
 
 			props.filterableColumns.forEach(column => {
 				const item = cloneDeep(column);
@@ -227,20 +272,7 @@ export default defineComponent({
 				}
 
 				//默认值处理
-				if (!isUndefined(persistenceSearchData[item.key])) {
-					const persistenceValue = persistenceSearchData[item.key].value;
-					if (
-						(betweenKeys.has(item.type) || arrayKeys.has(item.type)) &&
-						!isArray(persistenceValue)
-					) {
-						//为空/不为空条件收集的值为 null，保持该类型初始的空值，避免恢复出 [null]
-						if (persistenceValue != null && persistenceValue !== "") {
-							value = [persistenceValue];
-						}
-					} else {
-						value = persistenceValue;
-					}
-				} else if (!isUndefined(item.defaultValue)) {
+				if (!isUndefined(item.defaultValue)) {
 					if (isFunction(item.defaultValue)) {
 						value = item.defaultValue();
 					} else {
@@ -249,9 +281,7 @@ export default defineComponent({
 				}
 
 				//默认搜索条件
-				if (!isUndefined(persistenceSearchData[item.key])) {
-					condition = persistenceSearchData[item.key].condition;
-				} else if (item.conditions && item.conditions.length === 1) {
+				if (item.conditions && item.conditions.length === 1) {
 					condition = item.conditions[0];
 				} else if (item.defaultCondition) {
 					if (isFunction(item.defaultCondition)) {
@@ -298,16 +328,17 @@ export default defineComponent({
 			props.sortableColumns.forEach(column => {
 				const item = cloneDeep(column);
 
-				if (!isUndefined(persistenceSortData[column.key])) {
+				if (!isUndefined(persistedSort[column.key])) {
 					defaultSortKeys.push(column.key);
-					item.direction = persistenceSortData[column.key];
-				}
-
-				if (column.direction === "asc" || column.direction === "desc") {
+					item.direction = persistedSort[column.key];
+				} else if (column.direction === "asc" || column.direction === "desc") {
 					defaultSortKeys.push(column.key);
 				}
 				sortColumns.push(item);
 			});
+
+			// 快照保存的是表单态，直接覆盖默认值与条件，不再按类型猜测值结构
+			applySearchSnapshot(snapshot, form);
 
 			state.queryForm = form;
 			state.sortColumns = orderBy(sortColumns, ["sortOrder"], ["desc"]);
@@ -334,7 +365,14 @@ export default defineComponent({
 		const onSearch = () => {
 			state.openSortable = false;
 			showRestore.value = false;
-			emit("search", { newbieQuery: getQueryForm(), newbieSort: getSortForm() });
+
+			const payload = { newbieQuery: getQueryForm(), newbieSort: getSortForm() };
+			// 只持久化"最后一次真正执行的查询"，读取函数不再产生写入副作用
+			persist.value?.write(
+				SEARCH_STATE_KEY,
+				createSearchSnapshot(state.queryForm, payload.newbieSort)
+			);
+			emit("search", payload);
 		};
 
 		// 条件变化后节流触发自动搜索（F-016）
@@ -348,7 +386,7 @@ export default defineComponent({
 		);
 
 		const onClear = () => {
-			if (persist.value) persist.value.clear(["search", "sort"]);
+			persist.value?.clear([SEARCH_STATE_KEY]);
 			showRestore.value = false;
 			init();
 		};
@@ -363,22 +401,26 @@ export default defineComponent({
 		const updateOverflow = () => {
 			if (!formWrapperRef.value) return;
 			const container = formWrapperRef.value;
-			const firstItem = container.querySelector(".newbie-search-item");
+			const gap = parseFloat(props.gutter) || 0;
 
-			let perRow = state.fieldColumns.length; // 默认：全部可见
-
-			if (firstItem && state.fieldColumns.length > 0) {
-				const itemWidth = firstItem.getBoundingClientRect().width;
-				if (itemWidth > 0) {
-					const containerWidth = container.getBoundingClientRect().width;
-					const gap = Number(props.gutter) || 0;
-					perRow = Math.max(1, Math.floor((containerWidth + gap) / (itemWidth + gap)));
-				}
+			const containerWidth = container.getBoundingClientRect().width;
+			// 按容器宽度计算可容纳的列数；容器尚未完成布局时保留上一次结果
+			if (containerWidth > 0) {
+				columnCount.value = Math.max(
+					1,
+					Math.floor((containerWidth + gap) / (MIN_ITEM_WIDTH + gap))
+				);
 			}
 
-			// 折叠时只显示 perRow 个，展开时显示全部
-			const visibleCount = state.isFormExpanded ? state.fieldColumns.length : perRow;
-			state.overflowCount = state.fieldColumns.length - visibleCount;
+			// 折叠时只显示首行，宽屏首行需要给操作区留出列
+			const firstRowCount =
+				columnCount.value > ACTION_COLUMNS
+					? columnCount.value - ACTION_COLUMNS
+					: columnCount.value;
+			const visibleCount = state.isFormExpanded
+				? state.fieldColumns.length
+				: Math.max(1, firstRowCount);
+			state.overflowCount = Math.max(0, state.fieldColumns.length - visibleCount);
 
 			// 逐条设置 item 的 hidden 状态
 			// 注意：如果某个 item 的面板正在显示中，则不隐藏它，避免下拉面板被裁剪
@@ -393,24 +435,40 @@ export default defineComponent({
 			});
 		};
 
+		let resizeObserver = null;
+		let overflowFrame = null;
+
+		// 合并多次测量请求，避免在 ResizeObserver 回调里同步改动布局造成循环告警
+		const scheduleOverflowUpdate = () => {
+			if (overflowFrame !== null) return;
+			overflowFrame = requestAnimationFrame(() => {
+				overflowFrame = null;
+				updateOverflow();
+			});
+		};
+
+		watch(
+			() => props.gutter,
+			() => nextTick(() => scheduleOverflowUpdate())
+		);
+
 		onMounted(() => {
-			if (persist.value && !enableLocalStorage.value) {
-				// 内存模式：自动恢复上次搜索条件（同 SPA 导航）
+			const store = persist.value;
+			if (store && restorePolicy.value === "auto") {
+				// 自动恢复：init() 已把快照写回 queryForm，这里只负责触发首次查询
 				emit("search", {
 					persistence: true,
-					newbieQuery: getQueryForm(),
-					newbieSort: getSortForm(),
+					...getSearch(),
 				});
-			} else if (persist.value && enableLocalStorage.value) {
-				if (persist.value.hasLocalData("search")) {
-					// 冷存储模式：如果有上次保存的条件，显示恢复入口
-					showRestore.value = true;
-				}
-				// 默认条件优先：发出带默认值的搜索，但不保存到持久化（避免覆盖冷数据）
+			} else if (store) {
+				// 手动恢复：内存已有本次会话的状态时不提示；空快照也不值得给一个恢复入口
+				const coldSnapshot = store.readCold(SEARCH_STATE_KEY, null);
+				showRestore.value =
+					!store.hasHot(SEARCH_STATE_KEY) &&
+					!isEmptySearchSnapshot(coldSnapshot);
 				emit("search", {
 					persistence: true,
-					newbieQuery: getQueryForm(true),
-					newbieSort: getSortForm(true),
+					...getSearch(),
 				});
 			} else if (props.persistence) {
 				// 异常兜底：persistence prop 已配置但实例不可用（理论上不应进入此分支）
@@ -421,13 +479,20 @@ export default defineComponent({
 					newbieSort: {},
 				});
 			}
-			// 初始测量（等待 DOM 就绪）
-			requestAnimationFrame(() => updateOverflow());
+			// 初始测量：同步一次，避免后台标签页暂停 rAF 时搜不出折叠状态
+			updateOverflow();
+			scheduleOverflowUpdate();
+
+			// 容器宽度变化时重新计算列数（侧边栏收放、窗口缩放等）
+			if (typeof ResizeObserver !== "undefined" && formWrapperRef.value) {
+				resizeObserver = new ResizeObserver(() => scheduleOverflowUpdate());
+				resizeObserver.observe(formWrapperRef.value);
+			}
 		});
 
 		/********** exposes **********/
 
-		const getSortForm = (skipSave = false) => {
+		const getSortForm = () => {
 			const form = {};
 
 			state.sortForm.targetKeys.forEach(key => {
@@ -453,9 +518,6 @@ export default defineComponent({
 				);
 			});
 
-			if (persist.value && !skipSave) {
-				persist.value.save("sort", form);
-			}
 			return form;
 		};
 
@@ -463,9 +525,8 @@ export default defineComponent({
 		 * 获取表单实时数据
 		 * @return {*}
 		 */
-		const getQueryForm = (skipSave = false) => {
+		const getQueryForm = () => {
 			const form = {};
-			const persistenceForm = {}; //由于 Form 里的值会按 Provider 进行格式化，但这里需要的是原始值，所以记录多一次
 			state.searchLabels = [];
 
 			concat(state.fieldColumns, state.expandColumns).forEach(item => {
@@ -484,9 +545,6 @@ export default defineComponent({
 					condition === "null" ||
 					condition === "notNull"
 				) {
-					if (props.persistence) {
-						persistenceForm[item.key] = { condition, type, value };
-					}
 					// 按字段类型索引的格式化函数映射，例如 { date: value => ... }
 					const formatter = searchConfig.value?.valueFormatter?.[item.type];
 					if (formatter && isFunction(formatter)) {
@@ -497,7 +555,7 @@ export default defineComponent({
 					state.searchLabels.push(
 						searchLabel ? (
 							<Tag
-								color={"blue"}
+								class={"newbie-search-label-tag"}
 								closable
 								onClose={e => {
 									e?.preventDefault?.();
@@ -522,10 +580,6 @@ export default defineComponent({
 					);
 				}
 			});
-
-			if (persist.value && !skipSave) {
-				persist.value.save("search", persistenceForm);
-			}
 
 			return form;
 		};
@@ -571,78 +625,26 @@ export default defineComponent({
 		const showRestore = ref(false);
 
 		const onApplyRestore = () => {
-			if (!persist.value) return;
+			const store = persist.value;
+			if (!store) return;
 
-			// 恢复过程由末尾的 onSearch 统一查询，避免自动搜索重复触发
+			const snapshot = store.readCold(SEARCH_STATE_KEY, null);
+			if (!isSearchSnapshot(snapshot) || !applySearchSnapshot(snapshot, state.queryForm)) {
+				showRestore.value = false;
+				return;
+			}
+
+			// 恢复过程由末尾的 onSearch 统一查询并持久化，避免自动搜索重复触发
 			suppressAutoQuery = true;
 
-			// 从 localStorage 加载冷数据
-			const coldForm = persist.value.loadLocal("search", {});
-			const coldSort = persist.value.loadLocal("sort", {});
-
-			// 同步到内存
-			persist.value.save("search", coldForm);
-			persist.value.save("sort", coldSort);
-
-			// 应用到表单 state
-			Object.keys(coldForm).forEach(key => {
-				const item = coldForm[key];
-				let value = item.value;
-				// select/cascade/date 类型的值必须是数组
-				const field = state.queryForm[key];
-				const type = field?.type || item.type || "input";
-				if (betweenKeys.has(type) || arrayKeys.has(type)) {
-					if (!isArray(value)) {
-						//为空/不为空条件收集的值为 null，归一化为该类型的空值
-						if (value != null && value !== "") {
-							value = [value];
-						} else {
-							value = betweenKeys.has(type) ? [null, null] : [];
-						}
-					}
-				}
-
-				if (field) {
-					field.value = value;
-					if (item.condition) field.condition = item.condition;
-				} else {
-					state.queryForm[key] = {
-						value,
-						condition: item.condition || "equal",
-						type,
-					};
-				}
-			});
-
-			// 类型转换：恢复后的数据需要经过 init() 中的类型处理
-			// date 字段：ISO 字符串 → dayjs 对象
-			// switch 字段：布尔值 → "checked"/"unchecked"
-			Object.keys(state.queryForm).forEach(key => {
-				const field = state.queryForm[key];
-				if (!field || !field.type) return;
-				if (field.type === "date" && field.value != null) {
-					field.value = isArray(field.value)
-						? field.value.map(v => (isString(v) ? dayjs(new Date(v)) : v))
-						: isString(field.value)
-							? dayjs(new Date(field.value))
-							: field.value;
-				} else if (field.type === "switch" && field.value != null) {
-					field.value = isBoolean(field.value)
-						? field.value
-							? "checked"
-							: "unchecked"
-						: undefined;
-				}
-			});
-
 			// 应用冷排序数据到 sortForm
+			const persistedSort = readSearchSort(snapshot);
 			const sortTargetKeys = [];
-			Object.keys(coldSort).forEach(key => {
-				sortTargetKeys.push(key);
+			Object.keys(persistedSort).forEach(key => {
 				const sortItem = find(state.sortColumns, { key });
-				if (sortItem) {
-					sortItem.direction = coldSort[key];
-				}
+				if (!sortItem) return;
+				sortItem.direction = persistedSort[key];
+				sortTargetKeys.push(key);
 			});
 			state.sortForm.targetKeys = sortTargetKeys;
 
@@ -687,84 +689,82 @@ export default defineComponent({
 				<div class={"newbie-search"}>
 					<div class={"newbie-search-query"}>
 						<div class={"newbie-search-form"}>
-							<div class={`newbie-search-form-wrapper`} ref={formWrapperRef}>
+							<div
+								class={"newbie-search-form-wrapper"}
+								ref={formWrapperRef}
+								style={queryStyle.value}
+							>
+								{searchElems()}
 								<Space
-									size={[props.gutter, 10]}
-									wrap
-									style={{ marginBottom: 0 }}
+									class={"newbie-search-operation"}
+									style={operationStyle.value}
 								>
-									{() => searchElems()}
+									{() => [
+										state.overflowCount > 0 || state.isFormExpanded ? (
+											<Tooltip title={useT("search.toggle-more")}>
+												{() => (
+													<Button
+														type={"text"}
+														class={"newbie-search-toggle"}
+														icon={
+															state.isFormExpanded ? (
+																<UpOutlined />
+															) : (
+																<DownOutlined />
+															)
+														}
+														onClick={onToggleMore}
+													>
+														{() =>
+															state.isFormExpanded
+																? useT("search.collapse-conditions")
+																: useT("search.more-conditions")
+														}
+													</Button>
+												)}
+											</Tooltip>
+										) : null,
+										<Tooltip title={useT("search.clear-all-search-items")}>
+											{() => (
+												<Button
+													type={"dashed"}
+													icon={<ClearOutlined />}
+													onClick={onClear}
+												>
+													{() =>
+														props.sortableColumns.length
+															? ""
+															: useT("common.clear")
+													}
+												</Button>
+											)}
+										</Tooltip>,
+										props.sortableColumns.length ? (
+											<Tooltip title={useT("search.sort-setting")}>
+												{() => (
+													<Button
+														type={
+															state.sortForm.targetKeys.length
+																? "primary"
+																: "default"
+														}
+														icon={<OrderedListOutlined />}
+														onClick={() => (state.openSortable = true)}
+													></Button>
+												)}
+											</Tooltip>
+										) : null,
+										<Button
+											type={"primary"}
+											icon={<SearchOutlined />}
+											onClick={onSearch}
+										>
+											{() => useT("common.search")}
+										</Button>,
+									]}
 								</Space>
 							</div>
 						</div>
-
-						<Space class={"newbie-search-operation"}>
-							{() => [
-								state.overflowCount > 0 || state.isFormExpanded ? (
-									<Tooltip title={useT("search.toggle-more")}>
-										{() => (
-											<Button
-												type={"link"}
-												icon={
-													state.isFormExpanded ? (
-														<ShrinkOutlined />
-													) : (
-														<ArrowsAltOutlined />
-													)
-												}
-												onClick={onToggleMore}
-											>
-												{() =>
-													state.isFormExpanded
-														? useT("search.collapse")
-														: useT("common.more") +
-															"(" +
-															state.overflowCount +
-															")"
-												}
-											</Button>
-										)}
-									</Tooltip>
-								) : null,
-								<Tooltip title={useT("search.clear-all-search-items")}>
-									{() => (
-										<Button
-											type={"dashed"}
-											icon={<ClearOutlined />}
-											onClick={onClear}
-										>
-											{() =>
-												props.sortableColumns.length
-													? ""
-													: useT("common.clear")
-											}
-										</Button>
-									)}
-								</Tooltip>,
-								props.sortableColumns.length ? (
-									<Tooltip title={useT("search.sort-setting")}>
-										{() => (
-											<Button
-												type={
-													state.sortForm.targetKeys.length
-														? "primary"
-														: "default"
-												}
-												icon={<OrderedListOutlined />}
-												onClick={() => (state.openSortable = true)}
-											></Button>
-										)}
-									</Tooltip>
-								) : null,
-								<Button
-									type={"primary"}
-									icon={<SearchOutlined />}
-									onClick={onSearch}
-								>
-									{() => useT("common.search")}
-								</Button>,
-							]}
-						</Space>
 					</div>
 					{state.expandColumns?.length ? (
 						<div class={"newbie-search-expand"}>{expandElems()}</div>

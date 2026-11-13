@@ -3,6 +3,7 @@ import "./style.less";
 export * from "./address";
 export * from "./button";
 export * from "./editor";
+export * from "./file-preview";
 export * from "./form";
 export * from "./list";
 export * from "./modal";

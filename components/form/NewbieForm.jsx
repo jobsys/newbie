@@ -1,5 +1,5 @@
-import {computed, defineComponent, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect} from "vue";
-import {cloneDeep, isArray, isEqual, isFunction, isString} from "lodash-es";
+import {computed, defineComponent, inject, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect} from "vue";
+import {cloneDeep, isArray, isEqual, isFunction, isObject, isString} from "lodash-es";
 import {useFetch, useFormFail, useFormFormat, useI18nJoin, useProcessStatusSuccess,} from "../../hooks";
 import {Button, Card, Form, message, Modal, Skeleton, Space} from "antdv-next";
 import createLayout from "./components/Layout.jsx";
@@ -13,6 +13,7 @@ import {computeVisibility} from "./utils/rule-engine";
 import {normalizeFormConfig} from "./utils/normalize-form-config";
 import {calcFormula} from "./utils/formula-engine";
 import {createFormModel} from "./model";
+import {NEWBIE_MODAL_ACTIONS} from "../modal/context.js";
 
 /**
  * `data` 支持对象或 JSON 字符串。
@@ -123,6 +124,21 @@ export default defineComponent({
 		hideButtons: { type: Boolean, default: false },
 
 		/**
+		 * 是否把保存 / 关闭按钮交给外层 NewbieModal 渲染（固定在 Modal / Drawer 底部）
+		 * 仅在 NewbieForm 位于 NewbieModal 内时生效；不满足时按钮仍渲染在表单底部
+		 */
+		buttonsInFooter: { type: Boolean, default: false },
+
+		/**
+		 * 关闭前检测脏数据（表单有未保存修改时二次确认）
+		 * - `true`：使用默认文案
+		 * - `Object`：`{ title, content, okText, cancelText }` 自定义确认框文案
+		 *
+		 * 在 NewbieModal 内时，弹层右上角关闭、点击遮罩等关闭方式也会走同一套确认。
+		 */
+		confirmOnClose: { type: [Boolean, Object], default: false },
+
+		/**
 		 * 是否禁用表单
 		 */
 		disabled: { type: Boolean, default: false },
@@ -158,6 +174,12 @@ export default defineComponent({
 		 * 如有 fixed 列，默认 fixed 列的宽度为 6，可自定义
 		 */
 		fixedColumns: { type: Number, default: 6 },
+
+		/**
+		 * 表单 Label 是否自动换行
+		 * 默认开启，超长 Label 会换行显示而不是被截断
+		 */
+		labelWrap: { type: Boolean, default: true },
 
 		/**
 		 * 是否用 `Card` 包裹
@@ -293,6 +315,64 @@ export default defineComponent({
 		const formConfigRef = useNewbieConfig("form", formDefaults);
 		const uploaderConfigRef = useNewbieConfig("uploader", uploaderDefaults);
 		const formState = {}; // 用于记录各个表单项的状态
+
+		/**
+		 * 底部按钮：NewbieModal 提供注册通道时，按钮由弹层渲染在底部固定区，
+		 * 表单内部不再重复渲染一份。
+		 */
+		const modalActions = inject(NEWBIE_MODAL_ACTIONS, null);
+
+		/** 保存 / 关闭按钮是否由弹层底部渲染 */
+		const showFooterButtons = computed(
+			() =>
+				!!modalActions &&
+				props.buttonsInFooter &&
+				!props.disabled &&
+				!props.readonly &&
+				!props.hideButtons
+		);
+
+		/** 是否需要向 NewbieModal 注册：底部按钮 或 关闭前脏数据检查 */
+		const useModalChannel = computed(
+			() => !!modalActions && (props.buttonsInFooter || !!props.confirmOnClose)
+		);
+
+		const getCloseConfirm = () => {
+			const config = isObject(props.confirmOnClose) ? props.confirmOnClose : {};
+			return {
+				title: config.title || t("common.data-changed"),
+				content: config.content || t("common.discard-confirm"),
+				okText: config.okText || t("common.confirm"),
+				cancelText: config.cancelText || t("common.cancel"),
+			};
+		};
+
+		let unregisterModalChannel = null;
+
+		watch(
+			useModalChannel,
+			value => {
+				if (value && !unregisterModalChannel) {
+					unregisterModalChannel = modalActions.register(
+						() => (showFooterButtons.value ? submitBtnElem() : null),
+						{
+							// 弹层自身的关闭（右上角 / 遮罩 / ESC）复用同一套脏数据判断
+							isDirty: () => !!props.confirmOnClose && isDirty(),
+							getConfirm: getCloseConfirm,
+						}
+					);
+				} else if (!value && unregisterModalChannel) {
+					unregisterModalChannel();
+					unregisterModalChannel = null;
+				}
+			},
+			{ immediate: true }
+		);
+
+		onBeforeUnmount(() => {
+			unregisterModalChannel?.();
+			unregisterModalChannel = null;
+		});
 
 		/**
 		 * 字段类型的默认配置（Provider 的 `form.columnPresets`）。
@@ -683,15 +763,34 @@ export default defineComponent({
 			</Button>
 		);
 
+		/**
+		 * 关闭表单：优先调用调用方的 close；在弹层底部渲染且未传 close 时交给 NewbieModal 关闭
+		 */
+		const closeForm = () => {
+			if (props.close && isFunction(props.close)) {
+				props.close();
+				return;
+			}
+			if (showFooterButtons.value) {
+				// 脏数据已在表单侧确认过，避免弹层再弹一次确认框
+				modalActions.requestClose?.({ skipDirty: true });
+			}
+		};
+
+		const onCloseClick = () => {
+			if (!props.confirmOnClose || !isDirty()) {
+				closeForm();
+				return;
+			}
+
+			Modal.confirm({
+				...getCloseConfirm(),
+				onOk: closeForm,
+			});
+		};
+
 		const closeBtn = () => (
-			<Button
-				type={"default"}
-				onClick={() => {
-					if (props.close && isFunction(props.close)) {
-						props.close();
-					}
-				}}
-			>
+			<Button type={"default"} onClick={onCloseClick}>
 				{{ default: () => props.closeButtonText || t("common.close") }}
 			</Button>
 		);
@@ -717,6 +816,7 @@ export default defineComponent({
 				fieldVisibility: fieldVisibility.value,
 				formProvider: formConfigRef.value,
 				uploaderProvider: uploaderConfigRef.value,
+				hideInlineButtons: showFooterButtons.value,
 			});
 
 		const formElem = () => (
@@ -725,6 +825,7 @@ export default defineComponent({
 				ref={editorRef}
 				class={`newbie-form`}
 				labelCol={{ span: 6 }}
+				labelWrap={props.labelWrap}
 				scrollToFirstError={true}
 				{...props.formProps}
 			>

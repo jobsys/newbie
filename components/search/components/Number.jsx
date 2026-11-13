@@ -2,6 +2,7 @@ import { InputNumber, Tag } from "antdv-next";
 import { every, find, isNumber } from "lodash-es";
 import { computed, ref } from "vue";
 import { useI18nJoin, useT } from "../../../hooks/index.js";
+import { splitNumberAddons, withNumberAddons } from "../../../utils/inputNumber.jsx";
 
 /**
  *
@@ -87,16 +88,22 @@ const render = (item, queryForm, context) => {
     return queryForm[item.key].value[0];
   });
 
+  const { props: inputProps, addonBefore, addonAfter } = splitNumberAddons(item.inputProps);
+
   let Component = [
-    <InputNumber
-      ref={inputRef}
-      v-model:value={queryForm[item.key].value[0]}
-      style={{ width: "200px" }}
-      class={`${searchProvider.inputClass || ""}`}
-      placeholder={useI18nJoin(useT("common.search"), item.title)}
-      onBlur={onBlur}
-      {...item.inputProps}
-    ></InputNumber>,
+    withNumberAddons(
+      <InputNumber
+        ref={inputRef}
+        v-model:value={queryForm[item.key].value[0]}
+        style={{ width: "200px" }}
+        class={`${searchProvider.inputClass || ""}`}
+        placeholder={useI18nJoin(useT("common.search"), item.title)}
+        onBlur={onBlur}
+        {...inputProps}
+      ></InputNumber>,
+      addonBefore,
+      addonAfter
+    ),
   ];
 
   if (queryForm[item.key].condition === "between") {
@@ -104,14 +111,18 @@ const render = (item, queryForm, context) => {
       <div style={{ display: "flex", alignItems: "center" }}>
         {Component.concat([
           <span style={{ margin: "0 8px" }}>-</span>,
-          <InputNumber
-            v-model:value={queryForm[item.key].value[1]}
-            style={{ width: "200px" }}
-            class={`${searchProvider.inputClass || ""}`}
-            placeholder={useT("form.please-input")}
-            onBlur={onBlur}
-            {...item.inputProps}
-          ></InputNumber>,
+          withNumberAddons(
+            <InputNumber
+              v-model:value={queryForm[item.key].value[1]}
+              style={{ width: "200px" }}
+              class={`${searchProvider.inputClass || ""}`}
+              placeholder={useT("form.please-input")}
+              onBlur={onBlur}
+              {...inputProps}
+            ></InputNumber>,
+            addonBefore,
+            addonAfter
+          ),
         ])}
       </div>
     );

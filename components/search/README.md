@@ -112,7 +112,7 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 | 展开单选与多选 | expandable 为 true 时展开单选，为 "multiple" 时展开多选；多选条件的值会自动使用 include。 | [search/expandable.vue](../../playground/docs/demos/search/expandable.vue) |
 | 排序设置 | sortableColumns 会生成排序设置入口，搜索时通过 newbieSort 返回字段与方向。 | [search/sortable.vue](../../playground/docs/demos/search/sortable.vue) |
 | 自定义搜索项 | customRender 返回 displayValue 等展示信息，配合以 item.key 命名的插槽渲染真正的输入组件。 | [search/custom.vue](../../playground/docs/demos/search/custom.vue) |
-| 持久化 | persistence 支持内存与 localStorage 两种存储，保存搜索条件与排序；localStorage 模式会提供“恢复上次查询”入口。 | [search/persistence.vue](../../playground/docs/demos/search/persistence.vue) |
+| 持久化 | persistence 支持内存与 localStorage 两层存储，保存搜索条件与排序；localStorage 默认不自动套用，可通过“恢复上次查询”入口应用，也可配置 restore: 'auto' 自动恢复。 | [search/persistence.vue](../../playground/docs/demos/search/persistence.vue) |
 
 ## Props
 
@@ -123,7 +123,7 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 | disableConditions | 是否全局禁用条件选择 | `boolean` | `false` |
 | autoQuery | 条件变化后是否自动搜索（约 300ms 防抖，初始化与 `setQueryForm` 不会触发） | `boolean` | `false` |
 | gutter | 搜索项间距 | `number` \| `string` | `16` |
-| persistence | 持久化配置，支持布尔、字符串 key 或 { key, storage } | `boolean` \| `string` \| `{ key?: string; storage?: 'memory' \| 'local' }` | `false` |
+| persistence | 持久化配置。`restore` 控制冷数据（localStorage）的使用方式：`manual` 显示“恢复上次查询”入口，`auto` 在挂载时自动恢复；不传时 localStorage 为 `manual`、内存为 `auto` | `boolean` \| `string` \| `{ key?: string; storage?: 'memory' \| 'local'; restore?: 'auto' \| 'manual' }` | `false` |
 
 ## Events
 
@@ -141,9 +141,9 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 
 | 方法 | 说明 | 参数 |
 | --- | --- | --- |
-| getQueryForm | 获取当前搜索条件，格式为 { key: { condition, type, value } } | `(skipSave?: boolean) => object` |
+| getQueryForm | 获取当前搜索条件，格式为 { key: { condition, type, value } }；只读，不会写入持久化 | `() => object` |
 | setQueryForm | 设置搜索项的值 | `(fields: Record<string, any>) => void` |
-| getSortForm | 获取排序结果，格式为 { key: 'asc' \| 'desc' } | `(skipSave?: boolean) => object` |
+| getSortForm | 获取排序结果，格式为 { key: 'asc' \| 'desc' }；只读，不会写入持久化 | `() => object` |
 | getSearch | 获取可直接提交给后端的 { newbieQuery, newbieSort }，始终包含这两个字段（空对象也保留） | `() => { newbieQuery: object; newbieSort: object }` |
 
 ## SearchItemConfig
@@ -218,4 +218,8 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 
 ### 持久化的 key 如何生成？
 
-不传 key 时使用当前 URL hash 的 SM3 摘要；传字符串时使用 `location.pathname + key` 的摘要，避免不同页面互相覆盖。
+不传 key 时使用当前 URL 的 SM3 摘要；传字符串时使用 `location.pathname + key` 的摘要，避免不同页面互相覆盖。存储键带版本前缀（如 `nbp_v2_table_<hash>_state`），快照结构升级后旧数据会自动失效。
+
+### 内存与 localStorage 的恢复策略有什么不同？
+
+读取顺序固定为“内存 → localStorage（命中后回填内存）→ 默认值”。内存数据总是自动恢复，因此同一 SPA 内切换页面不会丢失条件；localStorage 属于跨会话冷数据，搜索栏默认只显示“恢复上次查询”入口（`restore: 'manual'`），避免旧条件悄悄影响本次查询，也可以通过 `{ storage: 'local', restore: 'auto' }` 改为自动恢复。

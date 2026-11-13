@@ -44,7 +44,7 @@ export default {
 			id: "persistence",
 			title: "持久化",
 			description:
-				"persistence 支持内存与 localStorage 两种存储，保存搜索条件与排序；localStorage 模式会提供“恢复上次查询”入口。",
+				"persistence 支持内存与 localStorage 两层存储，保存搜索条件与排序；localStorage 默认不自动套用，可通过“恢复上次查询”入口应用，也可配置 restore: 'auto' 自动恢复。",
 			file: "search/persistence.vue",
 		},
 	],
@@ -82,8 +82,9 @@ export default {
 			},
 			{
 				name: "persistence",
-				description: "持久化配置，支持布尔、字符串 key 或 { key, storage }",
-				type: "`boolean` | `string` | `{ key?: string; storage?: 'memory' | 'local' }`",
+				description:
+					"持久化配置。`restore` 控制冷数据（localStorage）的使用方式：`manual` 显示“恢复上次查询”入口，`auto` 在挂载时自动恢复；不传时 localStorage 为 `manual`、内存为 `auto`",
+				type: "`boolean` | `string` | `{ key?: string; storage?: 'memory' | 'local'; restore?: 'auto' | 'manual' }`",
 				default: "`false`",
 			},
 		],
@@ -104,8 +105,9 @@ export default {
 		methods: [
 			{
 				name: "getQueryForm",
-				description: "获取当前搜索条件，格式为 { key: { condition, type, value } }",
-				params: "`(skipSave?: boolean) => object`",
+				description:
+					"获取当前搜索条件，格式为 { key: { condition, type, value } }；只读，不会写入持久化",
+				params: "`() => object`",
 			},
 			{
 				name: "setQueryForm",
@@ -114,8 +116,8 @@ export default {
 			},
 			{
 				name: "getSortForm",
-				description: "获取排序结果，格式为 { key: 'asc' | 'desc' }",
-				params: "`(skipSave?: boolean) => object`",
+				description: "获取排序结果，格式为 { key: 'asc' | 'desc' }；只读，不会写入持久化",
+				params: "`() => object`",
 			},
 			{
 				name: "getSearch",
@@ -208,7 +210,12 @@ export default {
 		{
 			title: "持久化的 key 如何生成？",
 			content:
-				"不传 key 时使用当前 URL hash 的 SM3 摘要；传字符串时使用 `location.pathname + key` 的摘要，避免不同页面互相覆盖。",
+				"不传 key 时使用当前 URL 的 SM3 摘要；传字符串时使用 `location.pathname + key` 的摘要，避免不同页面互相覆盖。存储键带版本前缀（如 `nbp_v2_table_<hash>_state`），快照结构升级后旧数据会自动失效。",
+		},
+		{
+			title: "内存与 localStorage 的恢复策略有什么不同？",
+			content:
+				"读取顺序固定为“内存 → localStorage（命中后回填内存）→ 默认值”。内存数据总是自动恢复，因此同一 SPA 内切换页面不会丢失条件；localStorage 属于跨会话冷数据，搜索栏默认只显示“恢复上次查询”入口（`restore: 'manual'`），避免旧条件悄悄影响本次查询，也可以通过 `{ storage: 'local', restore: 'auto' }` 改为自动恢复。",
 		},
 	],
 };

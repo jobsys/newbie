@@ -6,7 +6,7 @@
 			<RadioButton value="memory">内存</RadioButton>
 			<RadioButton value="local">localStorage</RadioButton>
 		</RadioGroup>
-		<span class="demo-tip">刷新页面后观察列显隐与分页状态</span>
+		<span class="demo-tip">刷新页面后观察分页与自定义列显隐；冷数据会自动恢复</span>
 	</Space>
 
 	<NewbieTable

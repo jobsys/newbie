@@ -4,6 +4,17 @@
     white-space: pre-line;
   }
 
+  /***** Label 自动换行 *****/
+
+  // antd 的 labelWrap 只放开 white-space，label 本身仍是固定高度；
+  // 这里改成按内容撑高，避免多行 Label 溢出到下一行表单。
+  .ant-form-item-label.ant-form-item-label-wrap>label {
+    height: auto;
+    min-height: var(--ant-form-label-height, 32px);
+    white-space: normal;
+    word-break: break-word;
+  }
+
   .newbie-form__submit-wrapper {
   }
 

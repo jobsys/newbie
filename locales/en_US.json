@@ -10,6 +10,10 @@
     "confirm": "Confirm",
     "cancel": "Cancel",
     "close": "Close",
+    "fullscreen": "Fullscreen",
+    "exit-fullscreen": "Exit fullscreen",
+    "data-changed": "Unsaved changes",
+    "discard-confirm": "Discard the current edits?",
     "clear": "Clear",
     "more": "More",
     "action-prompt": "Tips",
@@ -34,6 +38,12 @@
     "search": "Search",
     "start": "Start",
     "end": "End"
+  },
+  "file-preview": {
+    "loading": "Loading document...",
+    "failed": "Failed to load the document",
+    "unsupported": "This file type cannot be previewed",
+    "download": "Download file"
   },
   "form": {
     "please-select": "Please select {title}",
@@ -75,6 +85,8 @@
     "sort-setting": "Sort setting",
     "toggle-more": "Show/Hide More Search Options",
     "collapse": "Collapse",
+    "more-conditions": "More conditions",
+    "collapse-conditions": "Collapse conditions",
     "clear-all-search-items": "Clear all search items",
     "search-items": "Search",
     "item-unit": "item",

@@ -40,6 +40,13 @@ export default {
 				"modalProps 会透传给 antdv-next Modal / Drawer；styles.body 会与组件内置的高度和滚动配置合并。",
 			file: "modal/modal-props.vue",
 		},
+		{
+			id: "form-drawer",
+			title: "Drawer + Form 固定底部按钮",
+			description:
+				"NewbieForm 设置 buttonsInFooter 后，保存 / 关闭按钮由 NewbieModal 渲染在 Drawer 底部固定区，表单内容单独滚动；confirmOnClose 会在存在未保存修改时二次确认。",
+			file: "modal/form-drawer.vue",
+		},
 	],
 	api: {
 		props: [
@@ -95,6 +102,15 @@ export default {
 				name: "default",
 				description: "弹层内容",
 			},
+			{
+				name: "footer",
+				description:
+					"底部固定区内容，Modal 与 Drawer 都会渲染；NewbieForm 的 buttonsInFooter 也会把按钮注册到同一区域",
+			},
+			{
+				name: "extra",
+				description: "Drawer 标题栏右侧内容（Modal 不支持，Modal 标题栏右侧为全屏 / 关闭按钮）",
+			},
 		],
 		methods: [],
 		types: [
@@ -122,12 +138,22 @@ export default {
 		{
 			title: "如何自定义底部按钮？",
 			content:
-				"组件默认 `footer={null}`，底部按钮由内容自行提供；也可以传入 `modalProps.footer` 覆盖。",
+				"不传 `footer` 插槽时 Modal 不渲染底部区域；需要自定义时使用 `footer` 插槽。`NewbieForm` 放在弹层内并设置 `buttonsInFooter`，保存 / 关闭按钮会自动注册到该区域，按钮逻辑仍由表单负责。",
+		},
+		{
+			title: "Drawer 里的表单按钮为什么固定在底部？",
+			content:
+				"按钮渲染在 Drawer 的 `footer` 区域，不随内容滚动。按钮的提交状态、校验、i18n 与关闭回调都来自 `NewbieForm`，`NewbieModal` 只负责位置，因此表单不需要知道自己是放在 Modal 还是 Drawer 里。",
+		},
+		{
+			title: "Drawer 表单有未保存修改时如何拦截关闭？",
+			content:
+				"给 `NewbieForm` 设置 `confirmOnClose`：点底部的关闭按钮时先用 `isDirty()` 判断，没有修改直接关闭，有修改弹出「数据有变动 / 是否放弃当前编辑内容？」确认框（`title` / `content` / `okText` / `cancelText` 可自定义）。同一个表单在 `NewbieModal` 内时，右上角关闭、点击遮罩和 ESC 也会复用这套判断；已配置 `beforeClose` 时以 `beforeClose` 为准，避免重复确认。",
 		},
 		{
 			title: "Modal 全屏后内容高度不对？",
 			content:
-				"全屏通过 `wrapClassName` 上的 `full-modal` 类实现，内容区最大高度仍由 `height` 控制。可以结合 `modalProps.styles.body` 调整。",
+				"全屏通过 `wrapClassName` 上的 `full-modal` 类实现：面板容器（`.ant-modal-container`）用 flex 撑满视口，内容区自动解除 `height` 限制并独立滚动；进入 / 退出全屏时会清除拖动位移，全屏状态下标题栏不可拖动。",
 		},
 	],
 };

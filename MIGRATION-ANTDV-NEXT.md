@@ -133,6 +133,7 @@ const { theme, config, cssVariables } = createNewbieTheme({
 
 - `Input.TextArea` / `Input.Password` 仍然可用（antdv-next 保留了复合组件），2.0 前再切到独立导入。
 - `Input` 的 `addonBefore` / `addonAfter` 在 1.8 下仍可用，实测无警告；货币/单位字段保持原样。
+- `InputNumber` 的 `addonBefore` / `addonAfter` 在 1.8 已废弃并会打印 “Please use Space.Compact instead”，数字字段改为由库内统一包装 `Space.Compact` + `Space.Addon` 渲染，同时兼容 `prepend` / `append` 写法。
 - `Transfer` 的 `listStyle` 实测无警告，暂不改为 `styles.section`。
 - `NewbieTable` 的单元格渲染新增 `column.render(text, record, index)` 兼容分支，方便后续按 antdv-next 的列 API 写新代码。
 - `NewbieUploader` 的进度条 `strokeWidth` 已改为 `size`。

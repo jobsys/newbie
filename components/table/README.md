@@ -80,7 +80,7 @@ const onRowClick = ({ record }) => {
 | 可编辑单元格 | 开启 editable 后，列上配置 editable 即可编辑。beforeCellSubmit 可在保存前做异步处理，不传时请求 submitUrl。 | [table/editable.vue](../../playground/docs/demos/table/editable.vue) |
 | 操作列与单元格能力 | onCopy、onClick、tooltip、renderTableActions、renderTableImage、renderTableFile 覆盖常见单元格交互。 | [table/operations.vue](../../playground/docs/demos/table/operations.vue) |
 | 行选择与展开 | rowSelection、rowKey、expandRender、expandedRowKeys 直接映射到 antdv-next Table 的对应能力。 | [table/selection.vue](../../playground/docs/demos/table/selection.vue) |
-| 持久化 | persistence 支持内存与 localStorage，保存列显隐、分页等状态；切换配置时可通过 key 重新挂载表格。 | [table/persistence.vue](../../playground/docs/demos/table/persistence.vue) |
+| 持久化 | persistence 支持内存与 localStorage，保存分页与自定义列显隐；冷数据默认自动恢复，切换配置时可通过 key 重新挂载表格。 | [table/persistence.vue](../../playground/docs/demos/table/persistence.vue) |
 | 自定义插槽 | title、extra、prepend、functional、append 分别对应标题、卡片右上角、搜索前、工具栏和底部区域。 | [table/slots.vue](../../playground/docs/demos/table/slots.vue) |
 | 嵌套字段 | dataIndex 支持 a.b.c 字符串或数组；key 也可以使用数组，customRender 仍然可以完全接管单元格。 | [table/nested.vue](../../playground/docs/demos/table/nested.vue) |
 | 空数据 | 空数据时会展示内置空状态；工具栏、搜索栏与分页仍然按配置渲染，适合“新增第一条记录”的场景。 | [table/empty.vue](../../playground/docs/demos/table/empty.vue) |
@@ -110,7 +110,8 @@ const onRowClick = ({ record }) => {
 | expandRender | 展开行内容渲染函数 | `Function` | `null` |
 | expandedRowKeys | 展开的行 key | `string[]` | `null` |
 | showRefresh | 是否显示刷新按钮 | `boolean` | `true` |
-| persistence | 持久化配置 | `boolean` \| `string` \| `{ key?: string; storage?: 'memory' \| 'local' }` | `false` |
+| persistence | 持久化配置，保存分页与自定义列显隐；冷数据（localStorage）默认自动恢复 | `boolean` \| `string` \| `{ key?: string; storage?: 'memory' \| 'local'; restore?: 'auto' \| 'manual' }` | `false` |
+| searchPersistence | 内部 NewbieSearch 的持久化配置；不传时沿用 persistence，但冷数据默认交给“恢复上次查询”入口 | `boolean` \| `string` \| `{ key?: string; storage?: 'memory' \| 'local'; restore?: 'auto' \| 'manual' }` | - |
 | cardWrapper | 是否用 Card 包裹 | `boolean` | `false` |
 
 ## Events
@@ -219,7 +220,8 @@ const onRowClick = ({ record }) => {
 | method | 请求方式 | `get` \| `post` | `get` |
 | rowKey | 行主键 | `string` \| `Function` | `id` |
 | afterFetched | 数据处理函数，返回值契约同 props.afterFetched | `Function` | `null` |
-| persistence | 持久化配置 | `boolean` \| `string` \| `object` | `false` |
+| persistence | 持久化配置，保存分页与自定义列显隐 | `boolean` \| `string` \| `object` | `false` |
+| searchPersistence | 内部 NewbieSearch 的持久化配置，不传时沿用 persistence | `boolean` \| `string` \| `object` | - |
 
 ## 远程数据与工具函数
 
@@ -280,6 +282,10 @@ renderTableFile(files, { fileName, placeholder, DefaultIcon }); // 附件链接
 ### 为什么 beforeCellSubmit 后没有触发 cellSubmit 事件？
 
 `cellSubmit` 只在使用内置 `submitUrl` 保存并成功后触发。使用 `beforeCellSubmit` 或列级 `editable.beforeCellSubmit` 时，由业务自行完成保存与提示。
+
+### 持久化保存了什么？
+
+表格只保存视图状态：分页（当前页、每页条数）与自定义列显隐，不保存表格数据，也不保存 `totalSize`。内存模式在当前 SPA 会话内生效；localStorage 模式跨会话生效，挂载时自动恢复。恢复的页码超过实际页数时会自动回落到最后一页。内部搜索栏的持久化可用 `searchPersistence` 单独配置，其冷数据默认显示“恢复上次查询”入口。
 
 ### 表格列宽拖拽为什么没有生效？
 

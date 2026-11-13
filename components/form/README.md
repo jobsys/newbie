@@ -146,6 +146,8 @@ const form = [
 | closeButtonText | 关闭按钮文字 | `string` | `关闭` |
 | closeButtonFirst | 关闭按钮是否在提交按钮前面 | `boolean` | `false` |
 | hideButtons | 是否隐藏底部按钮 | `boolean` | `false` |
+| buttonsInFooter | 把保存 / 关闭按钮交给外层 NewbieModal 渲染，固定在 Modal / Drawer 底部；不在 NewbieModal 内时自动回退到表单底部 | `boolean` | `false` |
+| confirmOnClose | 关闭前检测脏数据：有未保存修改时二次确认（默认「数据有变动 / 是否放弃当前编辑内容？」），没有修改直接关闭。传对象可自定义 `{ title, content, okText, cancelText }`；在 NewbieModal 内时右上角关闭 / 遮罩关闭同样生效 | `boolean` \| `object` | `false` |
 | disabled | 是否禁用整个表单 | `boolean` | `false` |
 | readonly | 是否只读整个表单 | `boolean` | `false` |
 | submitDisabled | 是否禁用提交按钮 | `boolean` | `false` |
@@ -153,6 +155,7 @@ const form = [
 | dividerProps | Divider 配置 | `object` | `{}` |
 | columns | 栅格列宽数组，总和必须为 24 | `number[]` | `[24]` |
 | fixedColumns | columnIndex 为 fixed 时的宽度 | `number` | `6` |
+| labelWrap | Label 是否自动换行；开启后超长 Label 换行显示而不是被截断，可通过 `formProps.labelWrap` 覆盖 | `boolean` | `true` |
 | cardWrapper | 是否用 Card 包裹 | `boolean` | `true` |
 | cardProps | 透传给 Card | `object` | `{}` |
 | cardSlots | 透传给 Card 的插槽 | `object` | `{}` |
@@ -250,7 +253,7 @@ type 不区分大小写，未设置时默认为 input。
 | tag | 标签输入 |
 | address | 省市区选择 |
 | cascade | 级联选择 |
-| number | 数字输入 |
+| number | 数字输入；defaultProps.prepend/append 或 addonBefore/addonAfter 显示前后缀 |
 | html | 渲染 defaultValue 中的 HTML |
 | uploader | 文件/图片上传 |
 | editor | 富文本编辑器 |

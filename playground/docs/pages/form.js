@@ -107,6 +107,20 @@ export default {
 			{ name: "closeButtonText", description: "关闭按钮文字", type: "`string`", default: "`关闭`" },
 			{ name: "closeButtonFirst", description: "关闭按钮是否在提交按钮前面", type: "`boolean`", default: "`false`" },
 			{ name: "hideButtons", description: "是否隐藏底部按钮", type: "`boolean`", default: "`false`" },
+			{
+				name: "buttonsInFooter",
+				description:
+					"把保存 / 关闭按钮交给外层 NewbieModal 渲染，固定在 Modal / Drawer 底部；不在 NewbieModal 内时自动回退到表单底部",
+				type: "`boolean`",
+				default: "`false`",
+			},
+			{
+				name: "confirmOnClose",
+				description:
+					"关闭前检测脏数据：有未保存修改时二次确认（默认「数据有变动 / 是否放弃当前编辑内容？」），没有修改直接关闭。传对象可自定义 `{ title, content, okText, cancelText }`；在 NewbieModal 内时右上角关闭 / 遮罩关闭同样生效",
+				type: "`boolean` | `object`",
+				default: "`false`",
+			},
 			{ name: "disabled", description: "是否禁用整个表单", type: "`boolean`", default: "`false`" },
 			{ name: "readonly", description: "是否只读整个表单", type: "`boolean`", default: "`false`" },
 			{ name: "submitDisabled", description: "是否禁用提交按钮", type: "`boolean`", default: "`false`" },
@@ -124,6 +138,13 @@ export default {
 				default: "`[24]`",
 			},
 			{ name: "fixedColumns", description: "columnIndex 为 fixed 时的宽度", type: "`number`", default: "`6`" },
+			{
+				name: "labelWrap",
+				description:
+					"Label 是否自动换行；开启后超长 Label 换行显示而不是被截断，可通过 `formProps.labelWrap` 覆盖",
+				type: "`boolean`",
+				default: "`true`",
+			},
 			{ name: "cardWrapper", description: "是否用 Card 包裹", type: "`boolean`", default: "`true`" },
 			{ name: "cardProps", description: "透传给 Card", type: "`object`", default: "`{}`" },
 			{ name: "cardSlots", description: "透传给 Card 的插槽", type: "`object`", default: "`{}`" },

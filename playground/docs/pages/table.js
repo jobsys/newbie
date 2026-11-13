@@ -51,7 +51,7 @@ export default {
 			id: "persistence",
 			title: "持久化",
 			description:
-				"persistence 支持内存与 localStorage，保存列显隐、分页等状态；切换配置时可通过 key 重新挂载表格。",
+				"persistence 支持内存与 localStorage，保存分页与自定义列显隐；冷数据默认自动恢复，切换配置时可通过 key 重新挂载表格。",
 			file: "table/persistence.vue",
 		},
 		{
@@ -123,9 +123,17 @@ export default {
 			{ name: "showRefresh", description: "是否显示刷新按钮", type: "`boolean`", default: "`true`" },
 			{
 				name: "persistence",
-				description: "持久化配置",
-				type: "`boolean` | `string` | `{ key?: string; storage?: 'memory' | 'local' }`",
+				description:
+					"持久化配置，保存分页与自定义列显隐；冷数据（localStorage）默认自动恢复",
+				type: "`boolean` | `string` | `{ key?: string; storage?: 'memory' | 'local'; restore?: 'auto' | 'manual' }`",
 				default: "`false`",
+			},
+			{
+				name: "searchPersistence",
+				description:
+					"内部 NewbieSearch 的持久化配置；不传时沿用 persistence，但冷数据默认交给“恢复上次查询”入口",
+				type: "`boolean` | `string` | `{ key?: string; storage?: 'memory' | 'local'; restore?: 'auto' | 'manual' }`",
+				default: "-",
 			},
 			{ name: "cardWrapper", description: "是否用 Card 包裹", type: "`boolean`", default: "`false`" },
 		],
@@ -249,7 +257,8 @@ export default {
 				["method", "请求方式", "`get` | `post`", "`get`"],
 				["rowKey", "行主键", "`string` | `Function`", "`id`"],
 				["afterFetched", "数据处理函数，返回值契约同 props.afterFetched", "`Function`", "`null`"],
-				["persistence", "持久化配置", "`boolean` | `string` | `object`", "`false`"],
+				["persistence", "持久化配置，保存分页与自定义列显隐", "`boolean` | `string` | `object`", "`false`"],
+				["searchPersistence", "内部 NewbieSearch 的持久化配置，不传时沿用 persistence", "`boolean` | `string` | `object`", "-"],
 			],
 		},
 	],
@@ -268,6 +277,11 @@ export default {
 			title: "为什么 beforeCellSubmit 后没有触发 cellSubmit 事件？",
 			content:
 				"`cellSubmit` 只在使用内置 `submitUrl` 保存并成功后触发。使用 `beforeCellSubmit` 或列级 `editable.beforeCellSubmit` 时，由业务自行完成保存与提示。",
+		},
+		{
+			title: "持久化保存了什么？",
+			content:
+				"表格只保存视图状态：分页（当前页、每页条数）与自定义列显隐，不保存表格数据，也不保存 `totalSize`。内存模式在当前 SPA 会话内生效；localStorage 模式跨会话生效，挂载时自动恢复。恢复的页码超过实际页数时会自动回落到最后一页。内部搜索栏的持久化可用 `searchPersistence` 单独配置，其冷数据默认显示“恢复上次查询”入口。",
 		},
 		{
 			title: "表格列宽拖拽为什么没有生效？",

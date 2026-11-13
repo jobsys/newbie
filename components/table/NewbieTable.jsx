@@ -34,8 +34,10 @@ import {
     InfoCircleOutlined,
     SyncOutlined,
 } from "@antdv-next/icons";
-import {parsePersistenceConfig, useFetch, usePersistence, useProcessStatusSuccess, useSm3, useT} from "../../hooks";
+import {useFetch, usePersistenceScope, useProcessStatusSuccess, useT} from "../../hooks";
 import {tableDefaults} from "./config.js";
+import {createTableSnapshot, readTableSnapshot, TABLE_STATE_KEY} from "./persistence.js";
+import {splitNumberAddons, withNumberAddons} from "../../utils/inputNumber.jsx";
 import {useMergedProps} from "../../hooks/useMergedProps.js";
 import NewbieSearch from "../search/NewbieSearch.jsx";
 import i18n from "../../i18n";
@@ -232,6 +234,12 @@ export default defineComponent({
 		persistence: { type: [Boolean, String, Object], default: undefined },
 
 		/**
+		 * 内部 NewbieSearch 的持久化配置；不传时沿用 persistence
+		 * 冷数据默认交给“恢复上次查询”入口，避免旧条件影响本次查询
+		 */
+		searchPersistence: { type: [Boolean, String, Object], default: undefined },
+
+		/**
 		 * v1.18
 		 * 是否用 `Card` 包裹，默认读取 `tableDefaults.cardWrapper`（false）
 		 */
@@ -269,24 +277,22 @@ export default defineComponent({
 		const getRowKey = record =>
 			isFunction(props.rowKey) ? props.rowKey(record) : record?.[props.rowKey];
 
-		const persistenceConf = computed(() => parsePersistenceConfig(props.persistence));
+		/**
+		 * 表格与内部搜索栏各自持有一份持久化配置：
+		 * - 表格保存分页与自定义列显隐，冷数据始终自动恢复；
+		 * - 搜索栏默认沿用表格配置，但冷数据默认交给“恢复上次查询”入口。
+		 */
+		const searchPersistenceProp = computed(() => props.searchPersistence ?? props.persistence);
 
-		const persistenceNamespace = computed(() => {
-			if (!persistenceConf.value.enabled) return null;
-			const { key } = persistenceConf.value;
-			if (!key) return `table_${useSm3(location.href)}`;
-			return `table_${useSm3(location.pathname + "_" + key)}`;
-		});
+		const { store: persistTable } = usePersistenceScope("table", () => props.persistence);
 
-		const persistTable = computed(() => {
-			const ns = persistenceNamespace.value;
-			if (!ns) return null;
-			return usePersistence(ns, { storage: persistenceConf.value.storage });
-		});
+		// 表格视图状态始终自动恢复（restore 只影响搜索栏），快照不合法时按无持久化处理
+		const persistedState = readTableSnapshot(persistTable.value?.read(TABLE_STATE_KEY, null)) ?? {
+			pagination: {},
+			columnKey: {},
+		};
 
-		let persistencePagination = persistTable.value
-			? persistTable.value.loadWithFallback("pagination", {})
-			: {};
+		let persistencePagination = persistedState.pagination;
 
 		const state = reactive({
 			customColumns: [],
@@ -309,7 +315,7 @@ export default defineComponent({
 			tableSelection: [], // 给外部用
 			tableKeySelection: [], // 内部用
 			items: [], // 表格内容
-			columnKey: {}, // 自定义列
+			columnKey: {...persistedState.columnKey}, // 自定义列
 			lastRequestId: 0, // 最近一次请求的 id，用于丢弃过期响应
 			searchFormData: {}, // 搜索表单数据
 		});
@@ -324,14 +330,20 @@ export default defineComponent({
 		);
 
 		/**
-		 * 持久化翻页与滚动
+		 * 持久化表格视图状态：分页 + 自定义列显隐
 		 */
 		const onPersistence = () => {
 			if (!persistTable.value) {
 				return;
 			}
 
-			persistTable.value.save("pagination", { ...state.pagination });
+			persistTable.value.write(
+				TABLE_STATE_KEY,
+				createTableSnapshot({
+					pagination: state.pagination,
+					columnKey: state.columnKey,
+				})
+			);
 		};
 
 		const onOpenCustomColumns = () => {
@@ -367,6 +379,8 @@ export default defineComponent({
 				state.columnKey[key] = state.columnKeyModal.indexOf(key) > -1;
 			});
 			state.customColumnVisible = false;
+			// 列显隐变化立即落盘，不依赖下一次翻页
+			onPersistence();
 		};
 
 		const getQueryData = () => {
@@ -384,6 +398,23 @@ export default defineComponent({
 			if (searchRef.value) {
 				searchRef.value?.setQueryForm(fields);
 			}
+		};
+
+		/**
+		 * 恢复的页码超过实际页数时回落到最后一页
+		 * @return {boolean} 是否发生了回落
+		 */
+		const clampPageToLast = () => {
+			if (!props.pagination) return false;
+
+			const { totalSize, pageSize, currentPage } = state.pagination;
+			if (!pageSize || !totalSize) return false;
+
+			const lastPage = Math.max(1, Math.ceil(totalSize / pageSize));
+			if (currentPage <= lastPage) return false;
+
+			state.pagination.currentPage = lastPage;
+			return true;
 		};
 
 		const fetchItems = async () => {
@@ -429,6 +460,11 @@ export default defineComponent({
 					state.pagination.totalSize = result.totalSize ?? 0;
 				}
 				state.items = result.items;
+
+				// 页码越界（恢复的旧页码 / 数据变少）时回到最后一页并重新取数
+				if (clampPageToLast()) {
+					fetchItems();
+				}
 			});
 		};
 
@@ -652,7 +688,7 @@ export default defineComponent({
 			//1. 因为手动 fetch 需要调用 $ref 的 getQueryForm 等方法，所以需要 mounted 后才执行 fetch
 			//2. 当有持久化且存在 Search 组件时，需要等待 Search 初始化后（onMounted）触发搜索事件来拉取数据
 			//3. 如果没有 Search（filterable=false），或未开启持久化，直接在此处 initFetch
-			if (!props.persistence || !props.filterable) {
+			if (!searchPersistenceProp.value || !props.filterable) {
 				initFetch();
 			}
 		});
@@ -742,7 +778,7 @@ export default defineComponent({
 				? [
 						<NewbieSearch
 							ref={searchRef}
-							persistence={props.persistence}
+							persistence={searchPersistenceProp.value}
 							autoQuery={props.autoQuery}
 							filterableColumns={state.filterableColumns}
 							sortableColumns={state.sortableColumns}
@@ -969,14 +1005,19 @@ export default defineComponent({
 					);
 				}
 				if (editable.type === "number") {
-					return (
+					const { props: numberProps, addonBefore, addonAfter } = splitNumberAddons(
+						editable.defaultProps
+					);
+					return withNumberAddons(
 						<InputNumber
 							v-model:value={state.editingData[getRowKey(record)][editKey]}
 							style={{ width: "100%" }}
-							{...editable.defaultProps}
+							{...numberProps}
 						>
 							{{ ...editable.defaultSlots }}
-						</InputNumber>
+						</InputNumber>,
+						addonBefore,
+						addonAfter
 					);
 				}
 				if (editable.type === "select") {
