@@ -788,6 +788,15 @@ export default defineComponent({
 				rowClassName: (_record, index) => (index % 2 === 1 ? "newbie-table-striped" : null),
 				expandedRowRender: props.expandRender,
 				expandedRowKeys: props.expandedRowKeys,
+				/**
+				 * 展开列必须给出明确宽度。
+				 * antdv-next 生成的展开列默认没有 width，空数据时表头 colgroup 里就有一列没有列宽，
+				 * 列宽会按容器重新分配，固定列（展开列 / 选择列）的 sticky 偏移与真实列宽对不上，
+				 * 出现选择列压住第一列、表头与容器对不齐的错乱。
+				 */
+				expandable: {
+					columnWidth: 48,
+				},
 				rowKey: props.rowKey,
 				onRow: (record, index) => ({
 					onClick: event => {

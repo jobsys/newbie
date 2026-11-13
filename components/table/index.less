@@ -323,6 +323,18 @@
         .ant-table-body {
             overflow-y: auto !important;
         }
+
+        /**
+         * 空数据时表头不再需要为滚动条预留列宽。
+         * 一旦 scrollbarSize 仍大于 0，表头会比 colgroup 多出一列滚动条占位，
+         * 其它列被压缩，固定列（选择列等）就会压到第一列上。
+         * 这是 antd 对空表格列宽错位给出的官方规避写法。
+         */
+        th.ant-table-cell-scrollbar {
+            width: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+        }
     }
 
 }
