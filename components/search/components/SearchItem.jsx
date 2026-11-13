@@ -160,13 +160,14 @@ const render = (item, queryForm, itemState, context) => {
 									>
 										{{
 											default: () => (
-												<a
+												// 用 span 而不是 a：a 会继承链接色，换主题后仍是固定蓝色
+												<span
 													class={"newbie-search-condition-dropdown-link"}
 													onClick={withModifiers(() => {}, ["prevent"])}
 												>
 													{conditionText.value}{" "}
 													<DownOutlined></DownOutlined>
-												</a>
+												</span>
 											),
 											popupRender: () => (
 												<Menu>
@@ -176,7 +177,12 @@ const render = (item, queryForm, itemState, context) => {
 																<MenuItem key={condition.value}>
 																	{{
 																		default: () => (
-																			<a
+																			<span
+																				class={
+																					condition.value === queryForm[item.key].condition
+																						? "newbie-search-condition-option is-active"
+																						: "newbie-search-condition-option"
+																				}
 																				onClick={() =>
 																					onSelectCondition(
 																						index
@@ -184,7 +190,7 @@ const render = (item, queryForm, itemState, context) => {
 																				}
 																			>
 																				{condition.label}
-																			</a>
+																			</span>
 																		),
 																	}}
 																</MenuItem>

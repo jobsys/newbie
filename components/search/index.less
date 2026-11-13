@@ -19,6 +19,22 @@
 		);
 	}
 
+	/**
+	 * 搜索条件下拉选项：文字色继承菜单项（跟随主题），当前条件用主题主色标记。
+	 * 不再用 a 标签渲染，避免继承固定链接蓝而在自定义主色 / 暗色下失效。
+	 * 下拉挂在弹层容器上，不嵌在 .newbie-search-condition 内，所以放在这一层。
+	 */
+	.newbie-search-condition-option {
+		display: block;
+		color: inherit;
+		cursor: pointer;
+
+		&.is-active {
+			color: var(--newbie-color-primary, #1677ff);
+			font-weight: 500;
+		}
+	}
+
 	.newbie-search-query {
 		box-sizing: border-box;
 
@@ -43,9 +59,11 @@
 					}
 
 					.newbie-search-mask {
+						// 搜索项标题是表单标签，用次级文字色：
+						// tertiary 在「简洁」这类浅描边皮肤里只有 #999，12px 下读不清搜的是哪个字段
 						.newbie-search-mask-title {
 							font-size: 12px;
-							color: var(--newbie-color-text-tertiary, #999);
+							color: var(--newbie-color-text-secondary, #000000a6);
 							padding: 0 6px;
 							border-radius: 4px;
 							margin-bottom: 2px;
@@ -127,6 +145,14 @@
 
 							.newbie-search-condition-dropdown-link {
 								margin-left: 6px;
+								cursor: pointer;
+								// 条件选择入口跟随主题主色，不再依赖 a 标签的固定链接色
+								color: var(--newbie-color-primary, #1677ff);
+								transition: color 0.2s;
+
+								&:hover {
+									color: var(--newbie-color-primary-hover, #4096ff);
+								}
 
 								.anticon-down {
 									font-size: 12px;
