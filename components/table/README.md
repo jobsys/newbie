@@ -76,7 +76,7 @@ const onRowClick = ({ record }) => {
 | 示例 | 说明 | 源码 |
 | --- | --- | --- |
 | 基础表格 | columns 定义列，dataSource（或 formData）传本地数据。没有 url 时组件不会请求接口，只触发 fetch 事件。 | [table/basic.vue](../../playground/docs/demos/table/basic.vue) |
-| 搜索与列配置 | 列的 filterable 会自动生成搜索项；isOnlyForQuery 的列只参与搜索，不显示在表格中。 | [table/search.vue](../../playground/docs/demos/table/search.vue) |
+| 搜索与列配置 | 列的 filterable 会自动生成搜索项；isOnlyForQuery 的列只参与搜索，不显示在表格中。把这类列的 filterable.type 设为 segmented 可渲染状态分段栏。 | [table/search.vue](../../playground/docs/demos/table/search.vue) |
 | 可编辑单元格 | 开启 editable 后，列上配置 editable 即可编辑。beforeCellSubmit 可在保存前做异步处理，不传时请求 submitUrl。 | [table/editable.vue](../../playground/docs/demos/table/editable.vue) |
 | 操作列与单元格能力 | onCopy、onClick、tooltip、renderTableActions、renderTableImage、renderTableFile 覆盖常见单元格交互。 | [table/operations.vue](../../playground/docs/demos/table/operations.vue) |
 | 行选择与展开 | rowSelection、rowKey、expandRender、expandedRowKeys 直接映射到 antdv-next Table 的对应能力。 | [table/selection.vue](../../playground/docs/demos/table/selection.vue) |
@@ -145,6 +145,7 @@ const onRowClick = ({ record }) => {
 | setQueryData | 设置搜索条件 | `(fields: object) => void` |
 | doFetch | 重新请求数据，传 true 时回到第一页 | `(refresh?: boolean) => Promise<void>` |
 | setTableLoading | 设置表格 loading | `(loading: boolean) => void` |
+| refreshStatusCounts | 刷新状态分段计数，转发给内部 NewbieSearch | `(force?: boolean) => Promise<object>` |
 
 ## TableColumnConfig
 
@@ -286,6 +287,29 @@ renderTableFile(files, { fileName, placeholder, DefaultIcon }); // 附件链接
 ### 持久化保存了什么？
 
 表格只保存视图状态：分页（当前页、每页条数）与自定义列显隐，不保存表格数据，也不保存 `totalSize`。内存模式在当前 SPA 会话内生效；localStorage 模式跨会话生效，挂载时自动恢复。恢复的页码超过实际页数时会自动回落到最后一页。内部搜索栏的持久化可用 `searchPersistence` 单独配置，其冷数据默认显示“恢复上次查询”入口。
+
+### 表格里如何使用状态分段筛选？
+
+不需要新增 prop。给一条 `isOnlyForQuery` 列的 `filterable` 写 `type: 'segmented'`：
+
+```js
+{
+  title: '状态',
+  key: 'status',
+  isOnlyForQuery: true,
+  filterable: {
+    type: 'segmented',
+    span: 2,
+    options: [
+      { label: '全部', value: '' },
+      { label: '已支付', value: 'paid' },
+    ],
+    countRequest: ({ query }) => api.getCounts(query),
+  },
+}
+```
+
+内部 `NewbieSearch` 会把它从普通搜索项中移除，渲染成状态栏；`countRequest` 的 `query` 已排除 status。新增/删除数据后可调用 `tableRef.value.refreshStatusCounts()` 刷新计数。
 
 ### 表格列宽拖拽为什么没有生效？
 

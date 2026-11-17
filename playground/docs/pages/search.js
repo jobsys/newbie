@@ -20,6 +20,13 @@ export default {
 			file: "search/basic.vue",
 		},
 		{
+			id: "status",
+			title: "状态分段筛选",
+			description:
+				"statusFilter 把状态切换成 Segmented；span 控制占用列数，countRequest 通过独立接口补全各状态计数。",
+			file: "search/status.vue",
+		},
+		{
 			id: "expandable",
 			title: "展开单选与多选",
 			description:
@@ -87,6 +94,13 @@ export default {
 				type: "`boolean` | `string` | `{ key?: string; storage?: 'memory' | 'local'; restore?: 'auto' | 'manual' }`",
 				default: "`false`",
 			},
+			{
+				name: "statusFilter",
+				description:
+					"状态分段筛选。表格里也可以不传该 prop，而在 `isOnlyForQuery` 列的 `filterable` 中写 `type: 'segmented'`；同 key 的普通搜索项会被忽略",
+				type: "`StatusFilterConfig`",
+				default: "-",
+			},
 		],
 		events: [
 			{
@@ -125,6 +139,12 @@ export default {
 					"获取可直接提交给后端的 { newbieQuery, newbieSort }，始终包含这两个字段（空对象也保留）",
 				params: "`() => { newbieQuery: object; newbieSort: object }`",
 			},
+			{
+				name: "refreshStatusCounts",
+				description:
+					"重新请求状态分段计数；`force` 为 false 时仅在排除 status 的查询变化后请求",
+				params: "`(force?: boolean) => Promise<object>`",
+			},
 		],
 		types: [
 			{
@@ -137,8 +157,8 @@ export default {
 					["title", "搜索项标题", "`string`", "-"],
 					[
 						"type",
-						"控件类型",
-						"`input` | `textarea` | `number` | `select` | `cascade` | `date` | `switch`",
+						"控件类型；`segmented` 仅用于状态栏，不参与普通搜索项",
+						"`input` | `textarea` | `number` | `select` | `cascade` | `date` | `switch` | `segmented`",
 						"`input`",
 					],
 					["sortOrder", "默认排序，数字越大越靠前", "`number`", "`0`"],
@@ -161,6 +181,39 @@ export default {
 						"`Function`",
 						"-",
 					],
+				],
+			},
+			{
+				id: "status-filter",
+				title: "StatusFilterConfig",
+				description:
+					"状态分段筛选配置。直接使用时传 statusFilter；表格中可写在 isOnlyForQuery 列的 filterable 里，此时额外提供 type: 'segmented'。",
+				columns: ["字段", "说明", "类型", "默认值"],
+				rows: [
+					["key", "输出到 newbieQuery 的字段名", "`string`", "`status`"],
+					["title", "无障碍标签，不显示在界面上", "`string`", "-"],
+					[
+						"options",
+						"状态选项，支持 { label, value, count, disabled, tooltip }",
+						"`array` | `() => array`",
+						"`[]`",
+					],
+					["defaultValue", "默认选中的值，未匹配时取第一个选项", "`any`", "-"],
+					["allValue", "代表“全部 / 不过滤”的值，选中时不写入 newbieQuery", "`string` | `number`", "`''`"],
+					["span", "占用的网格列数；窄屏自动占满整行，内容超出时横向滚动", "`number`", "`2`"],
+					["queryType", "写入 newbieQuery 的类型", "`string`", "`select`"],
+					["condition", "写入 newbieQuery 的条件", "`string`", "`equal`"],
+					["immediate", "点击状态后是否立即触发搜索", "`boolean`", "`true`"],
+					["counts", "静态计数映射，可传响应式对象", "`Record<string | number, number>`", "-"],
+					[
+						"countRequest",
+						"异步计数接口。挂载时以及非状态条件变化后的搜索时调用；query 已排除 status",
+						"`(ctx) => Promise<CountsResult> | CountsResult`",
+						"-",
+					],
+					["onCountError", "计数接口失败回调，默认输出 console.error 并保留上次计数", "`(error) => void`", "-"],
+					["inputProps", "透传给 antdv-next Segmented", "`object`", "`{}`"],
+					["labelRender", "自定义选项渲染", "`Function`", "-"],
 				],
 			},
 			{
@@ -216,6 +269,16 @@ export default {
 			title: "内存与 localStorage 的恢复策略有什么不同？",
 			content:
 				"读取顺序固定为“内存 → localStorage（命中后回填内存）→ 默认值”。内存数据总是自动恢复，因此同一 SPA 内切换页面不会丢失条件；localStorage 属于跨会话冷数据，搜索栏默认只显示“恢复上次查询”入口（`restore: 'manual'`），避免旧条件悄悄影响本次查询，也可以通过 `{ storage: 'local', restore: 'auto' }` 改为自动恢复。",
+		},
+		{
+			title: "状态计数从哪里来？",
+			content:
+				"初始化时不需要预先准备计数。可以给 `option.count` / `statusFilter.counts` 传静态值，也可以配置 `statusFilter.countRequest` 接独立接口。\n\n组件会在挂载时、以及“排除 status 后的 query”变化后的搜索时调用它：\n\n```js\ncountRequest: async ({ query, signal }) => {\n  const { data } = await axios.get('/api/campaigns/status-counts', {\n    params: { query },\n    signal,\n  });\n  return data;\n}\n```\n\n返回值支持 `{ total, counts }`、纯映射 `{ sent: 96 }`、`[{ value, count }]`。`query` 已排除 status，所以只切换状态不会重复请求；需要手动刷新时调用 `searchRef.value.refreshStatusCounts()`。",
+		},
+		{
+			title: "NewbieTable 中如何配置状态分段？",
+			content:
+				"不用新增 Table prop，给一条 `isOnlyForQuery` 列的 `filterable` 写 `type: 'segmented'` 即可：\n\n```js\n{\n  title: '状态',\n  key: 'status',\n  isOnlyForQuery: true,\n  filterable: {\n    type: 'segmented',\n    span: 2,\n    options: [\n      { label: '全部', value: '' },\n      { label: '已发送', value: 'sent' },\n    ],\n    countRequest: ({ query }) => api.getCounts(query),\n  },\n}\n```\n\n`NewbieSearch` 会把它从普通搜索项中移除并渲染成状态栏。新增/删除数据后可调用 `tableRef.value.refreshStatusCounts()` 同步刷新计数。",
 		},
 	],
 };

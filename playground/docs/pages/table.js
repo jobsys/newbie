@@ -23,7 +23,7 @@ export default {
 			id: "search",
 			title: "搜索与列配置",
 			description:
-				"列的 filterable 会自动生成搜索项；isOnlyForQuery 的列只参与搜索，不显示在表格中。",
+				"列的 filterable 会自动生成搜索项；isOnlyForQuery 的列只参与搜索，不显示在表格中。把这类列的 filterable.type 设为 segmented 可渲染状态分段栏。",
 			file: "table/search.vue",
 		},
 		{
@@ -175,6 +175,11 @@ export default {
 			{ name: "setQueryData", description: "设置搜索条件", params: "`(fields: object) => void`" },
 			{ name: "doFetch", description: "重新请求数据，传 true 时回到第一页", params: "`(refresh?: boolean) => Promise<void>`" },
 			{ name: "setTableLoading", description: "设置表格 loading", params: "`(loading: boolean) => void`" },
+			{
+				name: "refreshStatusCounts",
+				description: "刷新状态分段计数，转发给内部 NewbieSearch",
+				params: "`(force?: boolean) => Promise<object>`",
+			},
 		],
 		types: [
 			{
@@ -282,6 +287,11 @@ export default {
 			title: "持久化保存了什么？",
 			content:
 				"表格只保存视图状态：分页（当前页、每页条数）与自定义列显隐，不保存表格数据，也不保存 `totalSize`。内存模式在当前 SPA 会话内生效；localStorage 模式跨会话生效，挂载时自动恢复。恢复的页码超过实际页数时会自动回落到最后一页。内部搜索栏的持久化可用 `searchPersistence` 单独配置，其冷数据默认显示“恢复上次查询”入口。",
+		},
+		{
+			title: "表格里如何使用状态分段筛选？",
+			content:
+				"不需要新增 prop。给一条 `isOnlyForQuery` 列的 `filterable` 写 `type: 'segmented'`：\n\n```js\n{\n  title: '状态',\n  key: 'status',\n  isOnlyForQuery: true,\n  filterable: {\n    type: 'segmented',\n    span: 2,\n    options: [\n      { label: '全部', value: '' },\n      { label: '已支付', value: 'paid' },\n    ],\n    countRequest: ({ query }) => api.getCounts(query),\n  },\n}\n```\n\n内部 `NewbieSearch` 会把它从普通搜索项中移除，渲染成状态栏；`countRequest` 的 `query` 已排除 status。新增/删除数据后可调用 `tableRef.value.refreshStatusCounts()` 刷新计数。",
 		},
 		{
 			title: "表格列宽拖拽为什么没有生效？",

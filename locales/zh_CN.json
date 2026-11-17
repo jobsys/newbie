@@ -87,6 +87,8 @@
     "collapse": "收起",
     "more-conditions": "更多条件",
     "collapse-conditions": "收起条件",
+    "expand-more-tooltip": "展开隐藏条件（{count}）",
+    "collapse-more-tooltip": "收起为一行",
     "clear-all-search-items": "清除所有搜索项",
     "search-items": "搜索条件",
     "item-unit": "项",

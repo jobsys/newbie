@@ -109,6 +109,7 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 | 示例 | 说明 | 源码 |
 | --- | --- | --- |
 | 基础用法 | filterableColumns 定义搜索项，type 决定输入控件。点击搜索后通过 search 事件拿到 newbieQuery。 | [search/basic.vue](../../playground/docs/demos/search/basic.vue) |
+| 状态分段筛选 | statusFilter 把状态切换成 Segmented；span 控制占用列数，countRequest 通过独立接口补全各状态计数。 | [search/status.vue](../../playground/docs/demos/search/status.vue) |
 | 展开单选与多选 | expandable 为 true 时展开单选，为 "multiple" 时展开多选；多选条件的值会自动使用 include。 | [search/expandable.vue](../../playground/docs/demos/search/expandable.vue) |
 | 排序设置 | sortableColumns 会生成排序设置入口，搜索时通过 newbieSort 返回字段与方向。 | [search/sortable.vue](../../playground/docs/demos/search/sortable.vue) |
 | 自定义搜索项 | customRender 返回 displayValue 等展示信息，配合以 item.key 命名的插槽渲染真正的输入组件。 | [search/custom.vue](../../playground/docs/demos/search/custom.vue) |
@@ -124,6 +125,7 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 | autoQuery | 条件变化后是否自动搜索（约 300ms 防抖，初始化与 `setQueryForm` 不会触发） | `boolean` | `false` |
 | gutter | 搜索项间距 | `number` \| `string` | `16` |
 | persistence | 持久化配置。`restore` 控制冷数据（localStorage）的使用方式：`manual` 显示“恢复上次查询”入口，`auto` 在挂载时自动恢复；不传时 localStorage 为 `manual`、内存为 `auto` | `boolean` \| `string` \| `{ key?: string; storage?: 'memory' \| 'local'; restore?: 'auto' \| 'manual' }` | `false` |
+| statusFilter | 状态分段筛选。表格里也可以不传该 prop，而在 `isOnlyForQuery` 列的 `filterable` 中写 `type: 'segmented'`；同 key 的普通搜索项会被忽略 | `StatusFilterConfig` | - |
 
 ## Events
 
@@ -145,6 +147,7 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 | setQueryForm | 设置搜索项的值 | `(fields: Record<string, any>) => void` |
 | getSortForm | 获取排序结果，格式为 { key: 'asc' \| 'desc' }；只读，不会写入持久化 | `() => object` |
 | getSearch | 获取可直接提交给后端的 { newbieQuery, newbieSort }，始终包含这两个字段（空对象也保留） | `() => { newbieQuery: object; newbieSort: object }` |
+| refreshStatusCounts | 重新请求状态分段计数；`force` 为 false 时仅在排除 status 的查询变化后请求 | `(force?: boolean) => Promise<object>` |
 
 ## SearchItemConfig
 
@@ -154,7 +157,7 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 | --- | --- | --- | --- |
 | key | 搜索项的字段名 | `string` | - |
 | title | 搜索项标题 | `string` | - |
-| type | 控件类型 | `input` \| `textarea` \| `number` \| `select` \| `cascade` \| `date` \| `switch` | `input` |
+| type | 控件类型；`segmented` 仅用于状态栏，不参与普通搜索项 | `input` \| `textarea` \| `number` \| `select` \| `cascade` \| `date` \| `switch` \| `segmented` | `input` |
 | sortOrder | 默认排序，数字越大越靠前 | `number` | `0` |
 | expandable | 展开单选或多选 | `boolean` \| `"multiple"` | `false` |
 | options | 选项，支持字符串、数字或 { label, value } | `array` \| `() => array` | `[]` |
@@ -165,6 +168,27 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 | defaultCondition | 默认条件 | `string` | `equal` |
 | customRender | 自定义渲染，返回 { conditions, Component, displayValue, onComponentOpen } | `Function` | - |
 | collectItem | 自定义收集值，返回 { value, searchLabel } | `Function` | - |
+
+## StatusFilterConfig
+
+状态分段筛选配置。直接使用时传 statusFilter；表格中可写在 isOnlyForQuery 列的 filterable 里，此时额外提供 type: 'segmented'。
+
+| 字段 | 说明 | 类型 | 默认值 |
+| --- | --- | --- | --- |
+| key | 输出到 newbieQuery 的字段名 | `string` | `status` |
+| title | 无障碍标签，不显示在界面上 | `string` | - |
+| options | 状态选项，支持 { label, value, count, disabled, tooltip } | `array` \| `() => array` | `[]` |
+| defaultValue | 默认选中的值，未匹配时取第一个选项 | `any` | - |
+| allValue | 代表“全部 / 不过滤”的值，选中时不写入 newbieQuery | `string` \| `number` | `''` |
+| span | 占用的网格列数；窄屏自动占满整行，内容超出时横向滚动 | `number` | `2` |
+| queryType | 写入 newbieQuery 的类型 | `string` | `select` |
+| condition | 写入 newbieQuery 的条件 | `string` | `equal` |
+| immediate | 点击状态后是否立即触发搜索 | `boolean` | `true` |
+| counts | 静态计数映射，可传响应式对象 | `Record<string \| number, number>` | - |
+| countRequest | 异步计数接口。挂载时以及非状态条件变化后的搜索时调用；query 已排除 status | `(ctx) => Promise<CountsResult> \| CountsResult` | - |
+| onCountError | 计数接口失败回调，默认输出 console.error 并保留上次计数 | `(error) => void` | - |
+| inputProps | 透传给 antdv-next Segmented | `object` | `{}` |
+| labelRender | 自定义选项渲染 | `Function` | - |
 
 ## 内置条件
 
@@ -223,3 +247,44 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 ### 内存与 localStorage 的恢复策略有什么不同？
 
 读取顺序固定为“内存 → localStorage（命中后回填内存）→ 默认值”。内存数据总是自动恢复，因此同一 SPA 内切换页面不会丢失条件；localStorage 属于跨会话冷数据，搜索栏默认只显示“恢复上次查询”入口（`restore: 'manual'`），避免旧条件悄悄影响本次查询，也可以通过 `{ storage: 'local', restore: 'auto' }` 改为自动恢复。
+
+### 状态计数从哪里来？
+
+初始化时不需要预先准备计数。可以给 `option.count` / `statusFilter.counts` 传静态值，也可以配置 `statusFilter.countRequest` 接独立接口。
+
+组件会在挂载时、以及“排除 status 后的 query”变化后的搜索时调用它：
+
+```js
+countRequest: async ({ query, signal }) => {
+  const { data } = await axios.get('/api/campaigns/status-counts', {
+    params: { query },
+    signal,
+  });
+  return data;
+}
+```
+
+返回值支持 `{ total, counts }`、纯映射 `{ sent: 96 }`、`[{ value, count }]`。`query` 已排除 status，所以只切换状态不会重复请求；需要手动刷新时调用 `searchRef.value.refreshStatusCounts()`。
+
+### NewbieTable 中如何配置状态分段？
+
+不用新增 Table prop，给一条 `isOnlyForQuery` 列的 `filterable` 写 `type: 'segmented'` 即可：
+
+```js
+{
+  title: '状态',
+  key: 'status',
+  isOnlyForQuery: true,
+  filterable: {
+    type: 'segmented',
+    span: 2,
+    options: [
+      { label: '全部', value: '' },
+      { label: '已发送', value: 'sent' },
+    ],
+    countRequest: ({ query }) => api.getCounts(query),
+  },
+}
+```
+
+`NewbieSearch` 会把它从普通搜索项中移除并渲染成状态栏。新增/删除数据后可调用 `tableRef.value.refreshStatusCounts()` 同步刷新计数。

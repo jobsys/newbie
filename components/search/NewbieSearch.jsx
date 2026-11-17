@@ -5,8 +5,21 @@ import createSearchItem from "./components/SearchItem.jsx";
 import "./index.less";
 import {searchDefaults} from "./config.js";
 import {useNewbieConfig} from "../../hooks/useMergedProps.js";
-import {Button, Modal, Space, Tag, Tooltip} from "antdv-next";
-import {cloneDeep, concat, find, isArray, isBoolean, isFunction, isString, isUndefined, orderBy,} from "lodash-es";
+import {Button, Modal, Segmented, Space, Tag, Tooltip} from "antdv-next";
+import {
+	cloneDeep,
+	concat,
+	find,
+	isArray,
+	isBoolean,
+	isFunction,
+	isNull,
+	isNumber,
+	isPlainObject,
+	isString,
+	isUndefined,
+	orderBy,
+} from "lodash-es";
 import {createExpand, createSortable} from "./components";
 import {
 	ClearOutlined,
@@ -16,11 +29,10 @@ import {
 	OrderedListOutlined,
 	RiseOutlined,
 	SearchOutlined,
-	UpOutlined,
 } from "@antdv-next/icons";
 import {usePersistenceScope, useT} from "../../hooks";
 import dayjs from "dayjs";
-import {normalizeConditionValue} from "./utils.js";
+import {normalizeConditionValue, normalizeOptions} from "./utils.js";
 import {
 	applySearchSnapshot,
 	createSearchSnapshot,
@@ -34,6 +46,53 @@ import {
  * 搜索组件
  * @version 1.0.0
  */
+
+const STATUS_ITEM_TYPE = "segmented";
+const STATUS_DEFAULT_SPAN = 2;
+const STATUS_DEFAULT_ALL_VALUE = "";
+
+const isStatusItem = column => column?.type === STATUS_ITEM_TYPE;
+
+// filterableColumns 允许传函数；统一在这里取值，避免各处重复判断
+const resolveColumns = columns => (isFunction(columns) ? columns() : columns) || [];
+
+const toCount = value => {
+	if (isNumber(value)) return Number.isFinite(value) ? value : undefined;
+	if (isString(value) && value.trim() !== "") {
+		const count = Number(value);
+		return Number.isFinite(count) ? count : undefined;
+	}
+	return undefined;
+};
+
+const normalizeStatusCounts = (result, allValue) => {
+	const counts = {};
+	const put = (value, count) => {
+		if (isNull(value) || isUndefined(value)) return;
+		const normalized = toCount(count);
+		if (isUndefined(normalized)) return;
+		counts[value] = normalized;
+	};
+
+	if (isArray(result)) {
+		result.forEach(item => put(item?.value, item?.count));
+		return counts;
+	}
+	if (!isPlainObject(result)) return counts;
+
+	if (isPlainObject(result.counts)) {
+		Object.keys(result.counts).forEach(key => put(key, result.counts[key]));
+		put(allValue, result.total);
+	} else {
+		put(allValue, result.total);
+		Object.keys(result).forEach(key => {
+			if (key !== "total") put(key, result[key]);
+		});
+	}
+
+	return counts;
+};
+
 export default defineComponent({
 	name: "NewbieSearch",
 	props: {
@@ -86,6 +145,16 @@ export default defineComponent({
 		 *   不传 key 时以当前路由为 key；restore 控制冷数据是自动恢复还是交给恢复入口
 		 */
 		persistence: { type: [Boolean, String, Object], default: false },
+
+		/**
+		 * 状态分段筛选
+		 * - 直接使用：传入 { key, options, span, ... }
+		 * - 表格列：给 isOnlyForQuery 列的 filterable 设置 type: 'segmented'，由内部自动识别
+		 * - options 支持 { label, value, count }，count 可由 counts / countRequest 异步补全
+		 * - 与状态 key 相同的普通搜索项会被忽略，避免重复渲染
+		 * @type {StatusFilterConfig|undefined}
+		 */
+		statusFilter: { type: Object, default: undefined },
 	},
 	emits: [
 		/**
@@ -121,6 +190,10 @@ export default defineComponent({
 			openSortable: false, //是否打开排序设置
 			isFormExpanded: false, //是否已经展开
 			overflowCount: 0, //折叠时隐藏的搜索项数量
+
+			statusCounts: {}, //状态分段的计数（来自 countRequest）
+			statusCountsKey: null, //计数对应的状态字段，切换字段时丢弃旧计数
+			statusCountsLoading: false, //状态计数是否正在加载
 		});
 
 		const formWrapperRef = ref();
@@ -147,10 +220,10 @@ export default defineComponent({
 			columnGap: gapSize.value,
 		}));
 
-		// 宽屏时操作区放在首行右侧并占两列，窄屏时独占一行排在搜索项之后
+		// 宽屏时操作区放在首行右侧；有状态栏时至少给搜索项留一列，否则操作区落到下方
 		const operationStyle = computed(() => {
 			const columns = columnCount.value;
-			if (columns > ACTION_COLUMNS) {
+			if (operationSameRow.value) {
 				return {
 					gridRow: 1,
 					gridColumn: `${columns - ACTION_COLUMNS + 1} / -1`,
@@ -163,6 +236,108 @@ export default defineComponent({
 				justifySelf: "end",
 			};
 		});
+
+		/********** 状态分段筛选 **********/
+
+		// 显式 statusFilter 优先；否则从 filterableColumns 里找 type: 'segmented' 的项（表格列配置走这里）
+		const statusConfig = computed(() => {
+			if (props.statusFilter) return props.statusFilter;
+
+			return resolveColumns(props.filterableColumns).find(isStatusItem) || null;
+		});
+
+		const statusKey = computed(() => statusConfig.value?.key || "status");
+
+		const statusAllValue = computed(() => {
+			const allValue = statusConfig.value?.allValue;
+			return isUndefined(allValue) ? STATUS_DEFAULT_ALL_VALUE : allValue;
+		});
+
+		// 优先级：countRequest 返回值 > statusFilter.counts > option.count
+		const pickCount = value => {
+			const candidates = [state.statusCounts?.[value], statusConfig.value?.counts?.[value]];
+			for (const candidate of candidates) {
+				const count = toCount(candidate);
+				if (!isUndefined(count)) return count;
+			}
+			return undefined;
+		};
+
+		const statusOptions = computed(() => {
+			const config = statusConfig.value;
+			if (!config) return [];
+
+			const allValue = statusAllValue.value;
+
+			return normalizeOptions(config.options).map(option => {
+				const value =
+					isNull(option.value) || isUndefined(option.value) ? allValue : option.value;
+				const count = pickCount(value) ?? toCount(option.count);
+
+				return { ...option, value, count };
+			});
+		});
+
+		const statusValue = computed(() => {
+			const value = state.queryForm[statusKey.value]?.value;
+			return isArray(value) ? value[0] : value;
+		});
+
+		// 状态栏占用的网格列数：不超过总列数；窄屏自动独占整行
+		const statusSpan = computed(() => {
+			if (!statusConfig.value || !statusOptions.value.length) return 0;
+
+			const requested = Math.max(
+				1,
+				Math.floor(Number(statusConfig.value.span) || STATUS_DEFAULT_SPAN)
+			);
+
+			return Math.min(requested, columnCount.value);
+		});
+
+		// 操作区留在首行的前提：状态栏 + 操作区能放进同一行
+		const operationSameRow = computed(() => {
+			if (columnCount.value <= ACTION_COLUMNS) return false;
+			if (statusSpan.value > 0) {
+				return statusSpan.value + ACTION_COLUMNS <= columnCount.value;
+			}
+			return true;
+		});
+
+		const statusStyle = computed(() => ({
+			gridColumn: `span ${statusSpan.value}`,
+			alignSelf: "end",
+		}));
+
+		const resolveStatusDefault = () => {
+			const config = statusConfig.value;
+			if (!config) return undefined;
+
+			const options = statusOptions.value;
+			let value = config.defaultValue;
+			if (isFunction(value)) {
+				value = value();
+			}
+
+			const matched = options.find(option => option.value === value);
+			return matched ? matched.value : options[0]?.value;
+		};
+
+		const renderStatusLabel = option => {
+			const labelRender = statusConfig.value?.labelRender;
+			if (isFunction(labelRender)) return labelRender(option);
+
+			const count = toCount(option?.count);
+
+			return (
+				<span class={"newbie-search-status-label"}>
+					<span class={"newbie-search-status-text"}>{option?.label}</span>
+					{isUndefined(count) ? null : (
+						<span class={"newbie-search-status-count"}>{count}</span>
+					)}
+				</span>
+			);
+		};
 
 		//带有 between 的搜索项则初始化为 [null, null]
 		const betweenKeys = new Set(["number", "date"]);
@@ -197,6 +372,86 @@ export default defineComponent({
 			}, AUTO_QUERY_DELAY);
 		};
 
+		/********** 状态计数 **********/
+
+		let countRequestId = 0;
+		let countAbortController = null;
+		let lastCountSignature = null;
+
+		const stableStringify = value => {
+			if (isArray(value)) return `[${value.map(item => stableStringify(item)).join(",")}]`;
+			if (isPlainObject(value)) {
+				return `{${Object.keys(value)
+					.toSorted()
+					.map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+					.join(",")}}`;
+			}
+			return JSON.stringify(value) ?? "null";
+		};
+
+		async function requestStatusCounts(query, force = false) {
+			const config = statusConfig.value;
+			if (!config || !isFunction(config.countRequest) || !statusOptions.value.length) {
+				return null;
+			}
+
+			const baseQuery = { ...query };
+			delete baseQuery[statusKey.value];
+
+			// 状态本身不参与计数：只发生状态切换时，签名不变，不重复请求
+			const signature = stableStringify(baseQuery);
+			if (!force && signature === lastCountSignature) return null;
+
+			lastCountSignature = signature;
+
+			countAbortController?.abort();
+			const controller = typeof AbortController === "undefined" ? null : new AbortController();
+			countAbortController = controller;
+
+			const requestId = ++countRequestId;
+			state.statusCountsLoading = true;
+
+			try {
+				const result = await config.countRequest({
+					query: baseQuery,
+					queryForm: state.queryForm,
+					statusKey: statusKey.value,
+					allValue: statusAllValue.value,
+					options: statusOptions.value,
+					signal: controller?.signal,
+				});
+
+				if (requestId !== countRequestId) return null;
+
+				state.statusCounts = normalizeStatusCounts(result, statusAllValue.value);
+				return state.statusCounts;
+			} catch (error) {
+				if (requestId !== countRequestId) return null;
+
+				// 失败不保留签名，下一次搜索可以重试
+				lastCountSignature = null;
+				if (isFunction(config.onCountError)) {
+					config.onCountError(error);
+				} else {
+					console.error("[NewbieSearch] statusFilter.countRequest 执行失败", error);
+				}
+				return null;
+			} finally {
+				if (requestId === countRequestId) {
+					state.statusCountsLoading = false;
+					countAbortController = null;
+				}
+			}
+		}
+
+		function refreshStatusCounts(force = true) {
+			if (!isFunction(statusConfig.value?.countRequest) || !statusOptions.value.length) {
+				return Promise.resolve(null);
+			}
+
+			return requestStatusCounts(collectQueryForm(false), force);
+		}
+
 		/********** 条件值规整（F-050） **********/
 
 		const conditionWatcherStops = [];
@@ -226,6 +481,9 @@ export default defineComponent({
 			clearAutoQueryTimer();
 			resizeObserver?.disconnect();
 			if (overflowFrame !== null) cancelAnimationFrame(overflowFrame);
+
+			countRequestId += 1;
+			countAbortController?.abort();
 		});
 
 		/**
@@ -237,6 +495,17 @@ export default defineComponent({
 			const fieldColumns = [];
 			const sortColumns = [];
 			const defaultSortKeys = [];
+			const status = statusConfig.value;
+
+			// 状态字段切换时丢弃上一组计数，避免相同 value 串到新字段上
+			const nextCountKey = status ? statusKey.value : null;
+			if (state.statusCountsKey !== nextCountKey) {
+				state.statusCounts = {};
+				state.statusCountsKey = nextCountKey;
+				lastCountSignature = null;
+				countRequestId += 1;
+				countAbortController?.abort();
+			}
 
 			// 内存层始终恢复；只有 restore=auto 时才自动套用 localStorage 冷数据
 			const snapshot = persist.value
@@ -246,8 +515,14 @@ export default defineComponent({
 				: null;
 			const persistedSort = readSearchSort(snapshot);
 
-			props.filterableColumns.forEach(column => {
+			resolveColumns(props.filterableColumns).forEach(column => {
 				const item = cloneDeep(column);
+
+				// 状态分段不进入普通搜索项网格：显式配置优先，否则由 segmented 列提供
+				if (status && (isStatusItem(item) || item.key === statusKey.value)) {
+					return;
+				}
+
 				if (isUndefined(item.sortOrder)) {
 					item.sortOrder = 0;
 				}
@@ -325,7 +600,7 @@ export default defineComponent({
 				};
 			});
 
-			props.sortableColumns.forEach(column => {
+			resolveColumns(props.sortableColumns).forEach(column => {
 				const item = cloneDeep(column);
 
 				if (!isUndefined(persistedSort[column.key])) {
@@ -337,8 +612,28 @@ export default defineComponent({
 				sortColumns.push(item);
 			});
 
+			// 状态分段先写默认值，再由快照覆盖；快照里的旧值会在下面校验
+			if (status && statusOptions.value.length) {
+				form[statusKey.value] = {
+					value: resolveStatusDefault(),
+					type: STATUS_ITEM_TYPE,
+					condition: status.condition || status.defaultCondition || "equal",
+				};
+			}
+
 			// 快照保存的是表单态，直接覆盖默认值与条件，不再按类型猜测值结构
 			applySearchSnapshot(snapshot, form);
+
+			// 选项可能已经变化（或旧版本存的是数组），非法值回落到默认项
+			if (status && form[statusKey.value]) {
+				const field = form[statusKey.value];
+				const rawValue = isArray(field.value) ? field.value[0] : field.value;
+				const matched = statusOptions.value.find(option => option.value === rawValue);
+
+				field.value = matched ? matched.value : resolveStatusDefault();
+				field.type = STATUS_ITEM_TYPE;
+				field.condition = status.condition || status.defaultCondition || "equal";
+			}
 
 			state.queryForm = form;
 			state.sortColumns = orderBy(sortColumns, ["sortOrder"], ["desc"]);
@@ -362,6 +657,31 @@ export default defineComponent({
 			{ immediate: true }
 		);
 
+		// 状态配置从无到有、或 key / 默认值变化时重建表单；仅计数变化不触发
+		watch(
+			() => [
+				!!statusConfig.value,
+				statusKey.value,
+				// 函数式 defaultValue 每次父组件渲染都会是新函数，不能作为重建依据
+				isFunction(statusConfig.value?.defaultValue)
+					? undefined
+					: statusConfig.value?.defaultValue,
+				statusConfig.value?.condition,
+			],
+			() => {
+				autoQueryReady = false;
+				init();
+				nextTick(() => {
+					updateOverflow();
+					autoQueryReady = true;
+					refreshStatusCounts();
+				});
+			}
+		);
+
+		// span 变化（配置调整或容器列数变化）后重新计算折叠
+		watch(statusSpan, () => nextTick(() => scheduleOverflowUpdate()));
+
 		const onSearch = () => {
 			state.openSortable = false;
 			showRestore.value = false;
@@ -373,6 +693,28 @@ export default defineComponent({
 				createSearchSnapshot(state.queryForm, payload.newbieSort)
 			);
 			emit("search", payload);
+
+			// 状态本身不参与计数，requestStatusCounts 内部会剔除 status 再比较签名
+			requestStatusCounts(payload.newbieQuery, false);
+		};
+
+		const onStatusChange = value => {
+			if (!statusConfig.value) return;
+
+			const field = state.queryForm[statusKey.value];
+			if (!field) return;
+
+			field.value = value;
+
+			// 点击状态即搜索；关闭后回退到 autoQuery / 手动搜索
+			if (statusConfig.value.immediate === false) return;
+
+			suppressAutoQuery = true;
+			clearAutoQueryTimer();
+			onSearch();
+			nextTick(() => {
+				suppressAutoQuery = false;
+			});
 		};
 
 		// 条件变化后节流触发自动搜索（F-016）
@@ -412,14 +754,25 @@ export default defineComponent({
 				);
 			}
 
-			// 折叠时只显示首行，宽屏首行需要给操作区留出列
-			const firstRowCount =
-				columnCount.value > ACTION_COLUMNS
-					? columnCount.value - ACTION_COLUMNS
-					: columnCount.value;
+			// 折叠时只显示首行：状态栏和操作区各占若干列，剩余列放搜索项
+			let firstRowCount;
+			if (columnCount.value <= ACTION_COLUMNS) {
+				// 窄屏时状态栏独占首行，搜索项从下一行开始，仍显示一整行
+				firstRowCount = columnCount.value;
+			} else if (operationSameRow.value) {
+				const available = columnCount.value - ACTION_COLUMNS - statusSpan.value;
+				// 首行被状态栏 + 操作区占满时，搜索项从下一行开始，仍显示一整行
+				firstRowCount = available > 0 ? available : columnCount.value;
+			} else {
+				// 操作区落到搜索项下方，首行只扣除状态栏
+				const available = columnCount.value - statusSpan.value;
+				// 状态栏独占首行时，搜索项从下一行开始，仍显示一整行
+				firstRowCount = available > 0 ? available : columnCount.value;
+			}
+			// 有状态栏时首行可能被状态栏 + 操作区占满，此时搜索项从下一行开始显示整行
 			const visibleCount = state.isFormExpanded
 				? state.fieldColumns.length
-				: Math.max(1, firstRowCount);
+				: firstRowCount;
 			state.overflowCount = Math.max(0, state.fieldColumns.length - visibleCount);
 
 			// 逐条设置 item 的 hidden 状态
@@ -488,6 +841,9 @@ export default defineComponent({
 				resizeObserver = new ResizeObserver(() => scheduleOverflowUpdate());
 				resizeObserver.observe(formWrapperRef.value);
 			}
+
+			// 初始计数：与列表首屏并行获取，不阻塞状态栏渲染
+			refreshStatusCounts(false);
 		});
 
 		/********** exposes **********/
@@ -525,9 +881,9 @@ export default defineComponent({
 		 * 获取表单实时数据
 		 * @return {*}
 		 */
-		const getQueryForm = () => {
+		const collectQueryForm = (withLabels = true) => {
 			const form = {};
-			state.searchLabels = [];
+			if (withLabels) state.searchLabels = [];
 
 			concat(state.fieldColumns, state.expandColumns).forEach(item => {
 				const collectItem = searchState[item.key]?.collectItem;
@@ -551,6 +907,7 @@ export default defineComponent({
 						value = isArray(value) ? value.map(v => formatter(v)) : formatter(value);
 					}
 					form[item.key] = { condition, type, value };
+					if (!withLabels) return;
 					const labelIdx = state.searchLabels.length;
 					state.searchLabels.push(
 						searchLabel ? (
@@ -581,8 +938,30 @@ export default defineComponent({
 				}
 			});
 
+			// 状态分段：选中“全部”时不参与查询，其余按等值条件输出
+			const config = statusConfig.value;
+			if (config && statusOptions.value.length) {
+				const field = state.queryForm[statusKey.value];
+				const value = isArray(field?.value) ? field.value[0] : field?.value;
+
+				if (
+					!isNull(value) &&
+					!isUndefined(value) &&
+					value !== "" &&
+					value !== statusAllValue.value
+				) {
+					form[statusKey.value] = {
+						condition: config.condition || config.defaultCondition || "equal",
+						type: config.queryType || "select",
+						value,
+					};
+				}
+			}
+
 			return form;
 		};
+
+		const getQueryForm = () => collectQueryForm(true);
 
 		/**
 		 * 设置搜索项的值
@@ -618,7 +997,7 @@ export default defineComponent({
 			};
 		};
 
-		expose({ getQueryForm, setQueryForm, getSortForm, getSearch });
+		expose({ getQueryForm, setQueryForm, getSortForm, getSearch, refreshStatusCounts });
 
 		/********** 冷恢复逻辑（localStorage 模式） **********/
 
@@ -667,6 +1046,28 @@ export default defineComponent({
 			);
 		};
 
+		const statusElem = () => {
+			const config = statusConfig.value;
+			if (!config || !statusOptions.value.length) return null;
+
+			return (
+				<div
+					class={`newbie-search-status${state.statusCountsLoading ? " is-loading" : ""}`}
+					style={statusStyle.value}
+					role={"group"}
+					aria-label={config.title}
+				>
+					<Segmented
+						{...config.inputProps}
+						value={statusValue.value}
+						options={statusOptions.value}
+						onChange={onStatusChange}
+						labelRender={renderStatusLabel}
+					/>
+				</div>
+			);
+		};
+
 		const expandElems = () =>
 			state.expandColumns.map(item => createExpand(item, state.queryForm, searchState[item.key]));
 
@@ -685,6 +1086,23 @@ export default defineComponent({
 			) : null;
 
 		return () => {
+			const toggleLabel = state.isFormExpanded
+				? useT("search.collapse-conditions")
+				: useT("search.more-conditions");
+			const toggleTooltip = useT(
+				state.isFormExpanded
+					? "search.collapse-more-tooltip"
+					: "search.expand-more-tooltip",
+				{ count: state.overflowCount }
+			);
+			const toggleClass = `newbie-search-toggle${state.isFormExpanded ? " is-expanded" : ""}`;
+			const toggleCount =
+				state.isFormExpanded || state.overflowCount <= 0
+					? null
+					: state.overflowCount > 99
+						? "99+"
+						: state.overflowCount;
+
 			return (
 				<div class={"newbie-search"}>
 					<div class={"newbie-search-query"}>
@@ -694,6 +1112,7 @@ export default defineComponent({
 								ref={formWrapperRef}
 								style={queryStyle.value}
 							>
+								{statusElem()}
 								{searchElems()}
 								<Space
 									class={"newbie-search-operation"}
@@ -701,25 +1120,37 @@ export default defineComponent({
 								>
 									{() => [
 										state.overflowCount > 0 || state.isFormExpanded ? (
-											<Tooltip title={useT("search.toggle-more")}>
+											<Tooltip
+												title={toggleTooltip}
+												classes={{ root: "newbie-search-tooltip" }}
+												mouseEnterDelay={0.35}
+											>
 												{() => (
 													<Button
 														type={"text"}
-														class={"newbie-search-toggle"}
-														icon={
-															state.isFormExpanded ? (
-																<UpOutlined />
-															) : (
-																<DownOutlined />
-															)
-														}
+														class={toggleClass}
+														aria-expanded={state.isFormExpanded}
 														onClick={onToggleMore}
 													>
-														{() =>
-															state.isFormExpanded
-																? useT("search.collapse-conditions")
-																: useT("search.more-conditions")
-														}
+														{() => (
+															<span class={"newbie-search-toggle-content"}>
+																<span class={"newbie-search-toggle-text"}>
+																	{toggleLabel}
+																</span>
+																{toggleCount === null ? null : (
+																	<span
+																		class={
+																			"newbie-search-toggle-count"
+																		}
+																	>
+																		{toggleCount}
+																	</span>
+																)}
+																<DownOutlined
+																	class={"newbie-search-toggle-icon"}
+																/>
+															</span>
+														)}
 													</Button>
 												)}
 											</Tooltip>

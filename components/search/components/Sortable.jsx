@@ -23,7 +23,7 @@ const render = (sortColumns, sortForm) => {
         searchPlaceholder: useT("form.search-placeholder"),
         titles: [useT("search.sortable-items"), useT("search.sorted-items")],
       }}
-      listStyle={{ minWidth: "300px" }}
+      styles={{ section: { minWidth: "300px" } }}
       dataSource={sortColumns}
       titles={[useT("search.sortable-items"), useT("search.sorted-items")]}
       oneWay={true}

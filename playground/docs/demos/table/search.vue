@@ -19,18 +19,34 @@ const columns = [
 		title: "状态",
 		dataIndex: "status",
 		width: 120,
-		filterable: {
-			type: "select",
-			options: [
-				{ label: "已支付", value: "paid" },
-				{ label: "待支付", value: "pending" },
-				{ label: "已退款", value: "refunded" },
-			],
-		},
 	},
 	{ title: "金额", dataIndex: "amount", width: 120, filterable: { type: "number" } },
 	{ title: "下单日期", dataIndex: "created_at", width: 160, filterable: { type: "date" } },
 	{ title: "备注", dataIndex: "remark", isOnlyForQuery: true, filterable: { type: "textarea" } },
+	{
+		title: "状态",
+		key: "status",
+		isOnlyForQuery: true,
+		filterable: {
+			type: "segmented",
+			span: 2,
+			options: [
+				{ label: "全部", value: "" },
+				{ label: "已支付", value: "paid" },
+				{ label: "待支付", value: "pending" },
+				{ label: "已退款", value: "refunded" },
+			],
+			countRequest: async ({ query }) => {
+				await new Promise(resolve => setTimeout(resolve, 200));
+				const extra = query.order_no?.value ? 2 : 0;
+
+				return {
+					total: 3 + extra,
+					counts: { paid: 1 + extra, pending: 1, refunded: 1 },
+				};
+			},
+		},
+	},
 ];
 
 const data = [

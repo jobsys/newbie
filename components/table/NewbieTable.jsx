@@ -757,6 +757,7 @@ export default defineComponent({
 			setQueryData,
 			doFetch,
 			setTableLoading,
+			refreshStatusCounts: force => searchRef.value?.refreshStatusCounts(force),
 		});
 
 		/********** render **********/

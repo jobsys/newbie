@@ -87,6 +87,8 @@
     "collapse": "Collapse",
     "more-conditions": "More conditions",
     "collapse-conditions": "Collapse conditions",
+    "expand-more-tooltip": "Reveal hidden filters ({count})",
+    "collapse-more-tooltip": "Collapse to one row",
     "clear-all-search-items": "Clear all search items",
     "search-items": "Search",
     "item-unit": "item",

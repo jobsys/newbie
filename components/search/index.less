@@ -45,9 +45,57 @@
 				row-gap: 10px;
 
 				// OnClickOutside 会额外包一层无类名 div，让它不参与网格布局，
-				// 否则隐藏的搜索项会留下 0 高度的空网格行和行间距
-				> div:not(.newbie-search-operation) {
+				// 否则隐藏的搜索项会留下 0 高度的空网格行和行间距。
+				// 状态栏自己就是网格项，不能被 display: contents 拍平。
+				> div:not(.newbie-search-operation):not(.newbie-search-status) {
 					display: contents;
+				}
+
+				.newbie-search-status {
+					display: flex;
+					align-items: center;
+					min-width: 0;
+					height: 30px;
+					// 选项超过所占列宽时横向滚动，不撑破网格
+					overflow-x: auto;
+					overflow-y: hidden;
+					scrollbar-width: none;
+
+					&::-webkit-scrollbar {
+						display: none;
+					}
+
+					.ant-segmented {
+						flex-shrink: 0;
+						// 与搜索输入框的 30px 高度对齐
+						height: 30px;
+						padding: 2px;
+						border-radius: var(--newbie-radius, 8px);
+					}
+
+					.ant-segmented-item-label {
+						min-height: 26px;
+						line-height: 26px;
+						padding-inline: 12px;
+						font-size: 13px;
+					}
+
+					.newbie-search-status-label {
+						display: inline-flex;
+						align-items: baseline;
+						gap: 6px;
+						white-space: nowrap;
+					}
+
+					.newbie-search-status-count {
+						font-size: 12px;
+						font-variant-numeric: tabular-nums;
+						color: var(--newbie-color-text-tertiary, rgba(0, 0, 0, 0.45));
+					}
+
+					&.is-loading .newbie-search-status-count {
+						opacity: 0.55;
+					}
 				}
 
 				.newbie-search-item {
@@ -109,14 +157,34 @@
 
 					.newbie-search-popup-panel {
 						position: absolute;
-						z-index: 10;
+						/**
+						 * 弹层必须高过表格固定列。
+						 * antdv-next 按列数逐个计算固定列 z-index（--z-offset-reverse + 2，
+						 * 十几列时就已超过原来的 10），而固定列是 position: sticky，
+						 * 会直接压住搜索弹层。这里取低于 antd 弹层基座（1000）的浮层值，
+						 * 既盖住固定列，又不会盖到 Modal / 消息提示。
+						 */
+						z-index: 999;
 						top: 6px;
 						left: -11px;
+						/**
+						 * 条件条与输入区是同一张卡的两段，阴影只能打在外轮廓上。
+						 * 分别给两段加 box-shadow 会在接缝处多出一道暗线，
+						 * drop-shadow 按两段的并集绘制，接缝干净。
+						 */
+						filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.12));
 
 						.newbie-search-condition {
 							box-sizing: border-box;
-							padding: 10px 11px 16px;
-							font-size: 13px;
+							// 单行条件条：内容居中，去掉多余的上下留白
+							display: flex;
+							align-items: center;
+							gap: 6px;
+							height: 34px;
+							padding: 0 10px;
+							font-size: 12px;
+							line-height: 20px;
+							color: var(--newbie-color-text-secondary, rgba(0, 0, 0, 0.65));
 							// fill-alter 在暗色主题下是半透明的（rgba(255,255,255,0.04)），
 							// 会把底下的搜索项标题等内容透出来，看起来像面板与输入框之间有缝隙。
 							// 这里用不透明的容器色打底再叠加填充色，视觉保持不变但不再透底。
@@ -128,43 +196,76 @@
 							overflow: hidden;
 							border: 1px solid var(--newbie-color-border, #ddd);
 							border-bottom: none;
-							border-top-right-radius: 6px;
-							border-top-left-radius: 6px;
+							border-radius: var(--newbie-radius, 8px) var(--newbie-radius, 8px) 0 0;
 							position: absolute;
 							left: 0;
 							right: 0;
 							top: 0;
 							opacity: 0;
 							z-index: -1;
-							box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.12);
 							transition: all ease-in-out 0.3s;
+							white-space: nowrap;
 
 							.newbie-search-condition-title {
-								font-size: 13px;
+								min-width: 0;
+								overflow: hidden;
+								text-overflow: ellipsis;
+								font-size: 12px;
+								line-height: 20px;
+
+								// antd 的 Typography 外层是 14px/22px，会把整行撑到 22px，
+								// 与条件入口的 20px 行高对不齐；这里连同外层一起收敛到 12px 字号。
+								.ant-typography,
+								code {
+									font-family: inherit;
+									font-size: 12px;
+									line-height: 18px;
+								}
+
+								// 字段名小胶囊：跟随主题色，比 antd 默认 code 更紧凑
+								code {
+									margin: 0 2px;
+									padding: 0 6px;
+									// 18px 行高 + 上下各 1px 描边 = 20px，与外层文字、
+									// 条件入口的 20px 行高同基线，三者才能垂直对齐
+									color: var(--newbie-color-text, rgba(0, 0, 0, 0.88));
+									background: var(--newbie-color-fill-secondary, rgba(0, 0, 0, 0.06));
+									border: 1px solid var(--newbie-color-split, rgba(5, 5, 5, 0.06));
+									border-radius: 4px;
+								}
 							}
 
 							.newbie-search-condition-dropdown-link {
-								margin-left: 6px;
+								display: inline-flex;
+								flex-shrink: 0;
+								align-items: center;
+								gap: 2px;
+								height: 20px;
+								margin-left: 2px;
+								padding: 0 4px;
+								border-radius: 4px;
+								font-weight: 500;
 								cursor: pointer;
 								// 条件选择入口跟随主题主色，不再依赖 a 标签的固定链接色
 								color: var(--newbie-color-primary, #1677ff);
-								transition: color 0.2s;
+								transition: color 0.2s, background-color 0.2s;
 
 								&:hover {
 									color: var(--newbie-color-primary-hover, #4096ff);
+									background: var(--newbie-color-primary-bg, #e6f4ff);
 								}
 
 								.anticon-down {
-									font-size: 12px;
+									font-size: 10px;
 								}
 							}
 						}
 
 						.newbie-search-input-container {
 							background: var(--newbie-color-bg-container, #fff);
-							border-radius: var(--newbie-radius, 6px);
+							// 顶部两角与条件条严丝合缝，只保留底部圆角
+							border-radius: 0 0 var(--newbie-radius, 8px) var(--newbie-radius, 8px);
 							min-width: 200px;
-							box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.12);
 							border: 1px solid var(--newbie-color-border, #ddd);
 							border-top: none;
 							z-index: 2;
@@ -185,11 +286,104 @@
 			white-space: nowrap;
 
 			.newbie-search-toggle {
-				padding-inline: 4px;
+				height: 30px;
+				padding-block: 0;
+				padding-inline: 8px;
+				border: 1px solid transparent;
+				border-radius: 6px;
 				color: var(--newbie-color-text-secondary, rgba(0, 0, 0, 0.65));
+				transition:
+					color 180ms ease,
+					background-color 180ms ease,
+					border-color 180ms ease,
+					box-shadow 180ms ease,
+					transform 120ms ease;
 
-				&:hover {
+				.newbie-search-toggle-content {
+					display: inline-flex;
+					align-items: center;
+					gap: 6px;
+					line-height: 1;
+				}
+
+				.newbie-search-toggle-text {
+					font-size: 13px;
+					font-weight: 500;
+					letter-spacing: 0.01em;
+				}
+
+				// 折叠时用一个小胶囊提示还有多少条件被藏起来
+				.newbie-search-toggle-count {
+					display: inline-flex;
+					align-items: center;
+					justify-content: center;
+					min-width: 18px;
+					height: 18px;
+					padding: 0 5px;
+					border-radius: 999px;
+					background: var(--newbie-color-fill-secondary, rgba(0, 0, 0, 0.06));
+					color: var(--newbie-color-text-secondary, rgba(0, 0, 0, 0.65));
+					font-size: 11px;
+					font-weight: 600;
+					line-height: 1;
+					font-variant-numeric: tabular-nums;
+					transition:
+						background-color 180ms ease,
+						color 180ms ease;
+				}
+
+				.newbie-search-toggle-icon {
+					font-size: 10px;
+					transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+				}
+
+				// 悬停时从灰底工具栏里浮起一枚安静的白色胶囊，而不是只换文字颜色
+				&.ant-btn:hover {
+					color: var(--newbie-color-text, rgba(0, 0, 0, 0.88));
+					background: var(--newbie-color-bg-container, #fff);
+					border-color: var(--newbie-color-split, rgba(5, 5, 5, 0.06));
+					box-shadow:
+						0 1px 2px rgba(16, 24, 40, 0.06),
+						0 1px 1px rgba(16, 24, 40, 0.04);
+
+					.newbie-search-toggle-count {
+						background: var(--newbie-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+						color: var(--newbie-color-text, rgba(0, 0, 0, 0.88));
+					}
+				}
+
+				&:active {
+					transform: scale(0.98);
+				}
+
+				&.is-expanded {
 					color: var(--newbie-color-primary, #1677ff);
+					background: var(--newbie-color-primary-bg, #e6f4ff);
+					border-color: var(--newbie-color-primary-border, #91caff);
+					box-shadow: none;
+
+					.newbie-search-toggle-icon {
+						transform: rotate(180deg);
+					}
+
+					&.ant-btn:hover {
+						color: var(--newbie-color-primary, #1677ff);
+						background: var(--newbie-color-primary-bg-hover, #bae0ff);
+						border-color: var(--newbie-color-primary-border, #91caff);
+					}
+				}
+
+				&:focus-visible {
+					outline: 2px solid var(--newbie-color-primary-border, #91caff);
+					outline-offset: 1px;
+				}
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				.newbie-search-toggle,
+				.newbie-search-toggle-icon,
+				.newbie-search-toggle-count {
+					transition: none;
 				}
 			}
 		}
@@ -271,6 +465,32 @@
 				}
 			}
 		}
+	}
+}
+
+.newbie-search-tooltip {
+	.ant-tooltip-container {
+		min-height: 0;
+		padding: 7px 11px;
+		border-radius: 8px;
+		background-color: var(--newbie-color-bg-spotlight, #1f2329);
+		// 一层极轻的顶部高光，避免纯色块显得像系统默认 tooltip
+		background-image: linear-gradient(
+			180deg,
+			rgba(255, 255, 255, 0.06),
+			rgba(255, 255, 255, 0)
+		);
+		box-shadow: 0 10px 28px rgba(15, 20, 28, 0.24);
+		color: #fff;
+		font-size: 12px;
+		font-weight: 500;
+		line-height: 18px;
+		letter-spacing: 0.01em;
+	}
+
+	.ant-tooltip-arrow::before,
+	.ant-tooltip-arrow-content {
+		background-color: var(--newbie-color-bg-spotlight, #1f2329);
 	}
 }
 

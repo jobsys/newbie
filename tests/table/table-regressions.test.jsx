@@ -107,8 +107,7 @@ describe("NewbieTable 回归（F-021 列配置只读）", () => {
 });
 
 describe("NewbieTable 回归（F-015 请求竞态）", () => {
-	it("旧请求晚回来时不会覆盖最新请求的数据", async () => {
-		const resolvers = [];
+	it("旧请求晚回来时不会覆盖最新请求的数据", async () => {		const resolvers = [];
 		getMock.mockImplementation(() => new Promise(resolve => resolvers.push(resolve)));
 
 		const wrapper = mountTable({
@@ -152,5 +151,52 @@ describe("NewbieTable 回归（F-015 请求竞态）", () => {
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("afterFetched"));
 		expect(wrapper.vm.getData()).toEqual([]);
 		errorSpy.mockRestore();
+	});
+});
+
+describe("NewbieTable 状态分段列", () => {
+	it("isOnlyForQuery 列配置 type: 'segmented' 时渲染状态栏并透传计数接口", async () => {
+		const countRequest = vi.fn(async () => ({ total: 5, counts: { paid: 2 } }));
+
+		const wrapper = mountTable({
+			filterable: true,
+			columns: [
+				{ title: "名称", dataIndex: "name", filterable: { type: "input" } },
+				{ title: "状态", dataIndex: "status", width: 120 },
+				{
+					title: "状态",
+					key: "status",
+					isOnlyForQuery: true,
+					filterable: {
+						type: "segmented",
+						span: 2,
+						options: [
+							{ label: "全部", value: "" },
+							{ label: "已支付", value: "paid" },
+						],
+						countRequest,
+					},
+				},
+			],
+			dataSource: [],
+		});
+		await nextTick();
+		await nextTick();
+		await flushPromises();
+
+		const status = wrapper.find(".newbie-search-status");
+		expect(status.exists()).toBe(true);
+		expect(status.text()).toContain("5");
+		expect(status.text()).toContain("2");
+
+		// segmented 列不再作为普通搜索项出现
+		expect(wrapper.findAll(".newbie-search-item").length).toBe(1);
+		expect(countRequest).toHaveBeenCalledTimes(1);
+
+		await wrapper.vm.refreshStatusCounts();
+		await flushPromises();
+		expect(countRequest).toHaveBeenCalledTimes(2);
+
+		wrapper.unmount();
 	});
 });

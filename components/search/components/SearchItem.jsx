@@ -106,7 +106,8 @@ const render = (item, queryForm, itemState, context) => {
 				ease: "linear",
 			});
 			animate(".newbie-search-condition", {
-				top: "-44px",
+				// 条件条高 34px（见 index.less），多移 1px 与输入区重叠，接缝不露底
+				top: "-33px",
 				opacity: 1,
 				duration: 100,
 				ease: "linear",

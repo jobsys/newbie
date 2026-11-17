@@ -195,7 +195,9 @@ describe("NewbieSearch 回归", () => {
 
 		const toggle = wrapper.find(".newbie-search-toggle");
 		expect(toggle.exists()).toBe(true);
-		expect(toggle.find(".anticon-down").exists()).toBe(true);
+		expect(toggle.find(".newbie-search-toggle-icon").exists()).toBe(true);
+		expect(toggle.find(".newbie-search-toggle-count").text()).toBe("3");
+		expect(toggle.attributes("aria-expanded")).toBe("false");
 		const collapsedText = toggle.text();
 		expect(collapsedText).not.toBe("");
 
@@ -203,7 +205,9 @@ describe("NewbieSearch 回归", () => {
 		await nextTick();
 
 		const expandedToggle = wrapper.find(".newbie-search-toggle");
-		expect(expandedToggle.find(".anticon-up").exists()).toBe(true);
+		expect(expandedToggle.classes()).toContain("is-expanded");
+		expect(expandedToggle.find(".newbie-search-toggle-count").exists()).toBe(false);
+		expect(expandedToggle.attributes("aria-expanded")).toBe("true");
 		expect(expandedToggle.text()).not.toBe(collapsedText);
 
 		wrapper.unmount();
