@@ -62,7 +62,7 @@ const render = (item, queryForm, context) => {
       v-model:value={queryForm[item.key].value}
       allowClear={true}
       class={`${searchProvider.inputClass || ""}`}
-      style={{ width: "200px" }}
+      style={{ width: "100%" }}
       autoSize={{ minRows: 4, maxRows: 8 }}
       placeholder={useT("search.textarea-placeholder", { title: item.title })}
       {...item.inputProps}

@@ -89,7 +89,7 @@ const render = (item, queryForm, context) => {
       disabled={true}
       value={undefined}
       options={options}
-      style={{ width: "200px" }}
+      style={{ width: "100%" }}
       class={`${searchProvider.inputClass || ""}`}
       placeholder={useI18nJoin(useT("common.search"), item.title)}
       getPopupContainer={triggerNode => triggerNode.parentNode}
@@ -101,7 +101,7 @@ const render = (item, queryForm, context) => {
       v-model:value={queryForm[item.key].value[0]}
       allowClear={true}
       options={options}
-      style={{ width: "200px" }}
+      style={{ width: "100%" }}
       class={`${searchProvider.inputClass || ""}`}
       defaultOpen={true}
       filterOption={true}
@@ -119,7 +119,7 @@ const render = (item, queryForm, context) => {
       options={options}
       mode={"multiple"}
       class={`${searchProvider.inputClass || ""}`}
-      style={{ width: "200px" }}
+      style={{ width: "100%" }}
       defaultOpen={true}
       filterOption={true}
       optionFilterProp="label"

@@ -98,20 +98,36 @@ const render = (item, queryForm, itemState, context) => {
 
 	const animations = {
 		onEnter: (el, done) => {
-			animate(".newbie-search-input-container", {
-				padding: "8px",
-				translateX: "0",
-				translateY: "0",
-				duration: 100,
-				ease: "linear",
-			});
-			animate(".newbie-search-condition", {
-				// 条件条高 34px（见 index.less），多移 1px 与输入区重叠，接缝不露底
-				top: "-33px",
-				opacity: 1,
-				duration: 100,
-				ease: "linear",
-			});
+			const inputContainer = el.querySelector(".newbie-search-input-container");
+			const condition = el.querySelector(".newbie-search-condition");
+
+			if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+				[inputContainer, condition].forEach(node => {
+					if (!node) return;
+					node.style.opacity = "1";
+					node.style.transform = "translateY(0)";
+				});
+				done();
+				return;
+			}
+
+			if (inputContainer) {
+				animate(inputContainer, {
+					opacity: [0, 1],
+					translateY: [4, 0],
+					duration: 140,
+					ease: "out(3)",
+				});
+			}
+			if (condition) {
+				animate(condition, {
+					opacity: [0, 1],
+					translateY: [4, 0],
+					duration: 140,
+					delay: 20,
+					ease: "out(3)",
+				});
+			}
 			done();
 		},
 	};
@@ -128,20 +144,29 @@ const render = (item, queryForm, itemState, context) => {
 			useT("search.equal")
 	);
 
+	// 为空 / 不为空不消耗值，mask 里不要再残留上一次输入的内容
+	const maskValue = computed(() => {
+		const condition = queryForm[item.key].condition;
+		if (condition === "null" || condition === "notNull") return null;
+		return displayValue?.value;
+	});
+
 	return (
 		<OnClickOutside onTrigger={onClosePanel}>
 			<div
 				class={`newbie-search-item ${isHidden.value ? "hidden" : ""} ${searchProvider.maskClass || ""}`}
 			>
 				<div class={"newbie-search-mask"} onClick={onOpenPanel}>
-					<div class={"newbie-search-mask-title"}>{item.title}</div>
-					<div class={"newbie-search-mask-content"}>
+					<div class={"newbie-search-mask-title"}>
+						<span class={"newbie-search-mask-title-text"}>{item.title}</span>
 						{queryForm[item.key].condition !== "equal" ? (
-							<div class={"newbie-search-mask-condition"}>
+							<span class={"newbie-search-mask-condition"}>
 								{conditionMaskText.value}
-							</div>
+							</span>
 						) : null}
-						<div class={"newbie-search-mask-value"}>{displayValue?.value}</div>
+					</div>
+					<div class={"newbie-search-mask-content"}>
+						<div class={"newbie-search-mask-value"}>{maskValue.value}</div>
 					</div>
 				</div>
 				<Transition css={false} onEnter={animations.onEnter}>

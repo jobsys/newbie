@@ -48,7 +48,7 @@ import {
  */
 
 const STATUS_ITEM_TYPE = "segmented";
-const STATUS_DEFAULT_SPAN = 2;
+const STATUS_MIN_SPAN = 1;
 const STATUS_DEFAULT_ALL_VALUE = "";
 
 const isStatusItem = column => column?.type === STATUS_ITEM_TYPE;
@@ -197,6 +197,7 @@ export default defineComponent({
 		});
 
 		const formWrapperRef = ref();
+		const statusRef = ref();
 
 		/********** 自适应列布局 **********/
 
@@ -283,14 +284,39 @@ export default defineComponent({
 			return isArray(value) ? value[0] : value;
 		});
 
-		// 状态栏占用的网格列数：不超过总列数；窄屏自动独占整行
+		// 状态栏未配置 span 时按内容宽度折算成整列：宁可多占一整列，也不让后面的
+		// 搜索项从半列处开始，破坏网格的列对齐
+		const statusAutoSpan = ref(STATUS_MIN_SPAN);
+
+		const measureStatusSpan = () => {
+			const root = statusRef.value;
+			const wrapper = formWrapperRef.value;
+			if (!root || !wrapper) return;
+
+			const segmented = root.querySelector(".ant-segmented");
+			const width = segmented?.getBoundingClientRect?.().width || segmented?.scrollWidth || 0;
+			const containerWidth = wrapper.getBoundingClientRect?.().width || 0;
+			if (width <= 0 || containerWidth <= 0) return;
+
+			const gap = parseFloat(props.gutter) || 0;
+			const columns = Math.max(1, columnCount.value);
+			const columnWidth = (containerWidth - (columns - 1) * gap) / columns;
+			const span = Math.min(
+				columns,
+				Math.max(STATUS_MIN_SPAN, Math.ceil((width + gap) / Math.max(1, columnWidth + gap)))
+			);
+
+			if (span !== statusAutoSpan.value) statusAutoSpan.value = span;
+		};
+
+		// 状态栏占用的网格列数：显式 span 优先，否则按内容宽度自动取整列；窄屏不超总列数
 		const statusSpan = computed(() => {
 			if (!statusConfig.value || !statusOptions.value.length) return 0;
 
-			const requested = Math.max(
-				1,
-				Math.floor(Number(statusConfig.value.span) || STATUS_DEFAULT_SPAN)
-			);
+			const configured = Number(statusConfig.value.span);
+			const requested = Number.isFinite(configured)
+				? Math.max(STATUS_MIN_SPAN, Math.floor(configured))
+				: statusAutoSpan.value;
 
 			return Math.min(requested, columnCount.value);
 		});
@@ -682,6 +708,15 @@ export default defineComponent({
 		// span 变化（配置调整或容器列数变化）后重新计算折叠
 		watch(statusSpan, () => nextTick(() => scheduleOverflowUpdate()));
 
+		// 选项文案或计数变化会改变状态栏宽度，重新折算占用的整列数
+		watch(
+			() =>
+				statusOptions.value
+					.map(option => `${option.label}:${option.count ?? ""}`)
+					.join("|"),
+			() => nextTick(() => measureStatusSpan())
+		);
+
 		const onSearch = () => {
 			state.openSortable = false;
 			showRestore.value = false;
@@ -786,6 +821,8 @@ export default defineComponent({
 					searchState[item.key].hidden = shouldHide;
 				}
 			});
+
+			measureStatusSpan();
 		};
 
 		let resizeObserver = null;
@@ -1054,6 +1091,7 @@ export default defineComponent({
 				<div
 					class={`newbie-search-status${state.statusCountsLoading ? " is-loading" : ""}`}
 					style={statusStyle.value}
+					ref={statusRef}
 					role={"group"}
 					aria-label={config.title}
 				>

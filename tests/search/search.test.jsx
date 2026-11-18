@@ -83,6 +83,51 @@ describe("NewbieSearch 回归", () => {
 		wrapper.unmount();
 	});
 
+	it("输入框的值会同步到查询条件", async () => {
+		const wrapper = mountSearch({
+			filterableColumns: [{ key: "name", title: "姓名", type: "input" }],
+		});
+		await nextTick();
+
+		await wrapper.find(".newbie-search-mask").trigger("click");
+		await nextTick();
+
+		await wrapper.find(".newbie-search-popup-panel input").setValue("张三");
+		await nextTick();
+
+		expect(wrapper.findComponent(NewbieSearch).vm.getSearch().newbieQuery.name).toEqual({
+			condition: "equal",
+			type: "input",
+			value: "张三",
+		});
+
+		wrapper.unmount();
+	});
+
+	it.each(["null", "notNull"])("条件为 %s 时不展示 mask 里的残留值", async condition => {
+		const wrapper = mountSearch({
+			filterableColumns: [
+				{
+					key: "name",
+					title: "姓名",
+					type: "input",
+					defaultValue: "张三",
+					defaultCondition: condition,
+				},
+			],
+		});
+		await nextTick();
+
+		expect(wrapper.find(".newbie-search-mask-value").text()).toBe("");
+		expect(wrapper.findComponent(NewbieSearch).vm.getSearch().newbieQuery.name).toEqual({
+			condition,
+			type: "input",
+			value: null,
+		});
+
+		wrapper.unmount();
+	});
+
 	it("搜索项列表变化后重建条件监听并正常取值（F-050）", async () => {
 		const wrapper = mountSearch({
 			filterableColumns: [{ key: "name", title: "姓名", type: "input" }],

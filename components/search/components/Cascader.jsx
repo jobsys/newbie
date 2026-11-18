@@ -68,7 +68,7 @@ const render = (item, queryForm, context) => {
         disabled={true}
         value={undefined}
         class={`${searchProvider.inputClass || ""}`}
-        style={{ width: "200px" }}
+        style={{ width: "100%" }}
         options={options}
         placeholder={useI18nJoin(useT("common.search"), item.title)}
         getPopupContainer={triggerNode => triggerNode?.parentNode}
@@ -81,7 +81,7 @@ const render = (item, queryForm, context) => {
         allowClear={true}
         open={true}
         class={`${searchProvider.inputClass || ""}`}
-        style={{ width: "200px" }}
+        style={{ width: "100%" }}
         options={options}
         changeOnSelect={findIndex(conditions, { value: "include" }) > -1}
         showSearch={true}

@@ -1,4 +1,7 @@
 .newbie-search {
+	// 搜索项、状态分段与操作按钮共用同一控件高度，标签浮在描边上也不额外撑高
+	--newbie-search-control-height: 32px;
+
 	background: var(--newbie-color-bg-container, #fff);
 	padding: var(--newbie-padding-sm, 12px);
 	border-radius: var(--newbie-radius, 6px);
@@ -55,7 +58,7 @@
 					display: flex;
 					align-items: center;
 					min-width: 0;
-					height: 30px;
+					height: var(--newbie-search-control-height);
 					// 选项超过所占列宽时横向滚动，不撑破网格
 					overflow-x: auto;
 					overflow-y: hidden;
@@ -67,15 +70,15 @@
 
 					.ant-segmented {
 						flex-shrink: 0;
-						// 与搜索输入框的 30px 高度对齐
-						height: 30px;
+						// 与搜索项、操作按钮同高
+						height: var(--newbie-search-control-height);
 						padding: 2px;
 						border-radius: var(--newbie-radius, 8px);
 					}
 
 					.ant-segmented-item-label {
-						min-height: 26px;
-						line-height: 26px;
+						min-height: 28px;
+						line-height: 28px;
 						padding-inline: 12px;
 						font-size: 13px;
 					}
@@ -101,58 +104,87 @@
 				.newbie-search-item {
 					position: relative;
 					min-width: 0;
+					// 给浮在描边上的标题留出溢出空间，网格行距才是真正的行间留白
+					padding-top: 8px;
 
 					&.hidden {
 						display: none;
 					}
 
 					.newbie-search-mask {
-						// 搜索项标题是表单标签，用次级文字色：
-						// tertiary 在「简洁」这类浅描边皮肤里只有 #999，12px 下读不清搜的是哪个字段
+						position: relative;
+
+						// 标题像 fieldset 的 legend 一样压在描边上，形成贯穿式标签
 						.newbie-search-mask-title {
+							position: absolute;
+							top: -7px;
+							left: 10px;
+							z-index: 2;
+							display: inline-flex;
+							align-items: center;
+							gap: 6px;
+							max-width: calc(100% - 20px);
+							height: 14px;
+							padding: 0 5px;
+							background: var(--newbie-color-bg-container, #fff);
+							border-radius: 3px;
 							font-size: 12px;
-							color: var(--newbie-color-text-secondary, #000000a6);
-							padding: 0 6px;
-							border-radius: 4px;
-							margin-bottom: 2px;
+							line-height: 14px;
+							pointer-events: none;
+							transition: color 0.2s;
+
+							.newbie-search-mask-title-text {
+								min-width: 0;
+								overflow: hidden;
+								color: var(--newbie-color-text-secondary, #000000a6);
+								text-overflow: ellipsis;
+								white-space: nowrap;
+							}
+
+							// 非默认条件并入标签行，别再占输入区左侧的位置
+							.newbie-search-mask-condition {
+								flex-shrink: 0;
+								color: var(--newbie-color-primary, #1677ff);
+								font-size: 11px;
+								font-weight: 500;
+								letter-spacing: 0.01em;
+								white-space: nowrap;
+							}
 						}
 
 						.newbie-search-mask-content {
 							display: flex;
+							align-items: center;
 							overflow: hidden;
 							border-radius: var(--newbie-radius, 6px);
-							cursor: text;
+							cursor: pointer;
 							width: 100%;
-							height: 30px;
+							height: var(--newbie-search-control-height);
 							border: 1px solid var(--newbie-color-border, #ccc);
 							font-size: 14px;
+							transition:
+								border-color 0.2s,
+								background-color 0.2s;
 
 							&:hover {
 								border-color: var(--newbie-color-text-tertiary, #999);
 							}
 
-							.newbie-search-mask-condition {
+							.newbie-search-mask-value {
 								display: flex;
 								align-items: center;
-								justify-content: center;
-								// 暗色下沿用容器的文字色，背景必须同步换成暗色填充，
-								// 否则会出现浅色底 + 白色文字的情况。
-								background: var(--newbie-color-fill-secondary, #eee);
-								color: var(--newbie-color-text-secondary, rgba(0, 0, 0, 0.65));
-								font-size: 13px;
-								flex-shrink: 0;
-								width: 60px;
-							}
-
-							.newbie-search-mask-value {
-								padding: 4px 11px;
-								box-sizing: border-box;
-								display: flex;
+								gap: 4px;
+								min-width: 0;
 								flex-grow: 1;
-								overflow: hidden;
-								text-overflow: ellipsis;
+								padding: 0 11px;
+								line-height: 1.4;
+								white-space: nowrap;
 							}
 						}
+					}
+
+					&:hover .newbie-search-mask-title-text {
+						color: var(--newbie-color-text, rgba(0, 0, 0, 0.88));
 					}
 
 					.newbie-search-popup-panel {
@@ -165,8 +197,10 @@
 						 * 既盖住固定列，又不会盖到 Modal / 消息提示。
 						 */
 						z-index: 999;
-						top: 6px;
-						left: -11px;
+						// 与 mask 内容区完全重合：输入框保持与 mask 相同的宽高
+						top: 8px;
+						left: 0;
+						right: 0;
 						/**
 						 * 条件条与输入区是同一张卡的两段，阴影只能打在外轮廓上。
 						 * 分别给两段加 box-shadow 会在接缝处多出一道暗线，
@@ -180,7 +214,7 @@
 							display: flex;
 							align-items: center;
 							gap: 6px;
-							height: 34px;
+							height: var(--newbie-search-control-height);
 							padding: 0 10px;
 							font-size: 12px;
 							line-height: 20px;
@@ -200,10 +234,10 @@
 							position: absolute;
 							left: 0;
 							right: 0;
-							top: 0;
+							bottom: 100%;
 							opacity: 0;
-							z-index: -1;
-							transition: all ease-in-out 0.3s;
+							transform: translateY(4px);
+							z-index: 3;
 							white-space: nowrap;
 
 							.newbie-search-condition-title {
@@ -229,7 +263,10 @@
 									// 18px 行高 + 上下各 1px 描边 = 20px，与外层文字、
 									// 条件入口的 20px 行高同基线，三者才能垂直对齐
 									color: var(--newbie-color-text, rgba(0, 0, 0, 0.88));
-									background: var(--newbie-color-fill-secondary, rgba(0, 0, 0, 0.06));
+									background: var(
+										--newbie-color-fill-secondary,
+										rgba(0, 0, 0, 0.06)
+									);
 									border: 1px solid var(--newbie-color-split, rgba(5, 5, 5, 0.06));
 									border-radius: 4px;
 								}
@@ -248,7 +285,9 @@
 								cursor: pointer;
 								// 条件选择入口跟随主题主色，不再依赖 a 标签的固定链接色
 								color: var(--newbie-color-primary, #1677ff);
-								transition: color 0.2s, background-color 0.2s;
+								transition:
+									color 0.2s,
+									background-color 0.2s;
 
 								&:hover {
 									color: var(--newbie-color-primary-hover, #4096ff);
@@ -262,15 +301,60 @@
 						}
 
 						.newbie-search-input-container {
+							position: relative;
 							background: var(--newbie-color-bg-container, #fff);
 							// 顶部两角与条件条严丝合缝，只保留底部圆角
 							border-radius: 0 0 var(--newbie-radius, 8px) var(--newbie-radius, 8px);
-							min-width: 200px;
-							border: 1px solid var(--newbie-color-border, #ddd);
-							border-top: none;
+							width: 100%;
+							height: var(--newbie-search-control-height);
 							z-index: 2;
 							padding: 0;
-							transform: translateX(11px) translateY(12px);
+							opacity: 0;
+							transform: translateY(4px);
+
+							.ant-input,
+							.ant-input-affix-wrapper,
+							.ant-select,
+							.ant-picker,
+							.ant-cascader-picker,
+							.ant-space-compact {
+								width: 100%;
+							}
+
+							.ant-input,
+							.ant-input-affix-wrapper,
+							.ant-select-selector,
+							.ant-picker,
+							.ant-cascader-picker {
+								border-radius: 0 0 var(--newbie-radius, 8px)
+									var(--newbie-radius, 8px);
+							}
+
+							// 输入框高度与 mask 的 32px 一致，不再被容器 padding 撑大
+							.ant-input-affix-wrapper,
+							.ant-select-selector,
+							.ant-picker,
+							.ant-picker-range {
+								height: var(--newbie-search-control-height);
+							}
+
+							.ant-input-affix-wrapper {
+								align-items: center;
+								padding-block: 0;
+
+								> .ant-input {
+									height: 30px;
+								}
+							}
+
+							.ant-space-compact {
+								display: flex;
+
+								> * {
+									flex: 1;
+									min-width: 0;
+								}
+							}
 						}
 					}
 				}
@@ -279,14 +363,17 @@
 
 		.newbie-search-operation {
 			box-sizing: border-box;
+			height: var(--newbie-search-control-height);
+			align-items: center;
 			justify-content: flex-end;
-			padding: 3px 6px;
-			border-radius: var(--newbie-radius, 6px);
-			background: var(--newbie-color-fill-alter, #f3f3f3);
 			white-space: nowrap;
 
+			.ant-btn {
+				height: var(--newbie-search-control-height);
+			}
+
 			.newbie-search-toggle {
-				height: 30px;
+				height: var(--newbie-search-control-height);
 				padding-block: 0;
 				padding-inline: 8px;
 				border: 1px solid transparent;
@@ -337,7 +424,7 @@
 					transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
 				}
 
-				// 悬停时从灰底工具栏里浮起一枚安静的白色胶囊，而不是只换文字颜色
+				// 悬停时浮起一枚安静的白色胶囊，而不是只换文字颜色
 				&.ant-btn:hover {
 					color: var(--newbie-color-text, rgba(0, 0, 0, 0.88));
 					background: var(--newbie-color-bg-container, #fff);

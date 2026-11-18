@@ -121,7 +121,7 @@ const render = (item, queryForm, context) => {
       ref={inputRef}
       disabled={true}
       value={undefined}
-      style={{ width: "200px" }}
+      style={{ width: "100%" }}
       class={`${searchProvider.inputClass || ""}`}
       placeholder={useI18nJoin(useT("common.search"), item.title)}
       getPopupContainer={triggerNode => triggerNode?.parentNode}
@@ -135,7 +135,7 @@ const render = (item, queryForm, context) => {
       inputReadOnly={true}
       open={true}
       presets={picker === "date" ? rangePresets.value : []}
-      style={{ width: "400px" }}
+      style={{ width: "100%" }}
       class={`${searchProvider.inputClass || ""}`}
       placeholder={[useT("search.start-time"), useT("search.end-time")]}
       getPopupContainer={triggerNode => triggerNode?.parentNode}
@@ -149,7 +149,7 @@ const render = (item, queryForm, context) => {
       open={true}
       inputReadOnly={true}
       presets={picker === "date" ? presets.value : []}
-      style={{ width: "200px" }}
+      style={{ width: "100%" }}
       class={`${searchProvider.inputClass || ""}`}
       placeholder={useI18nJoin(useT("common.search"), item.title)}
       getPopupContainer={triggerNode => triggerNode?.parentNode}

@@ -25,7 +25,15 @@ const render = (item, queryForm, context) => {
     conditions = conditions.filter(condition => item.conditions.includes(condition.value));
   }
 
-  const displayValue = computed(() => queryForm[item.key].value);
+  const displayValue = computed(() =>
+    ["null", "notNull"].includes(queryForm[item.key].condition)
+      ? null
+      : queryForm[item.key].value
+  );
+
+  const isValuelessCondition = computed(() =>
+    ["null", "notNull"].includes(queryForm[item.key].condition)
+  );
 
   const inputRef = ref();
 
@@ -55,13 +63,15 @@ const render = (item, queryForm, context) => {
   const Component = (
     <Input
       ref={inputRef}
-      v-model:value={queryForm[item.key].value}
+      value={isValuelessCondition.value ? "" : queryForm[item.key].value}
+      onUpdate:value={value => {
+        if (isValuelessCondition.value) return;
+        queryForm[item.key].value = value;
+      }}
       allowClear={true}
-      disabled={
-        queryForm[item.key].condition === "null" || queryForm[item.key].condition === "notNull"
-      }
+      disabled={isValuelessCondition.value}
       class={`${searchProvider.inputClass || ""}`}
-      style={{ width: "200px" }}
+      style={{ width: "100%" }}
       placeholder={useI18nJoin(useT("common.search"), item.title)}
       {...item.inputProps}
     ></Input>

@@ -200,7 +200,7 @@ export default {
 					],
 					["defaultValue", "默认选中的值，未匹配时取第一个选项", "`any`", "-"],
 					["allValue", "代表“全部 / 不过滤”的值，选中时不写入 newbieQuery", "`string` | `number`", "`''`"],
-					["span", "占用的网格列数；窄屏自动占满整行，内容超出时横向滚动", "`number`", "`2`"],
+					["span", "占用的网格列数；不传时按内容宽度向上取整列，窄屏自动占满整行，内容超出时横向滚动", "`number`", "自动"],
 					["queryType", "写入 newbieQuery 的类型", "`string`", "`select`"],
 					["condition", "写入 newbieQuery 的条件", "`string`", "`equal`"],
 					["immediate", "点击状态后是否立即触发搜索", "`boolean`", "`true`"],

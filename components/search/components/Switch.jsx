@@ -54,7 +54,7 @@ const render = (item, queryForm, context) => {
       v-model:value={queryForm[item.key].value}
       allowClear={true}
       options={options}
-      style={{ width: "200px" }}
+      style={{ width: "100%" }}
       class={`${searchProvider.inputClass || ""}`}
       defaultOpen={true}
       getPopupContainer={triggerNode => triggerNode.parentNode}

@@ -95,7 +95,7 @@ const render = (item, queryForm, context) => {
       <InputNumber
         ref={inputRef}
         v-model:value={queryForm[item.key].value[0]}
-        style={{ width: "200px" }}
+        style={{ width: "100%" }}
         class={`${searchProvider.inputClass || ""}`}
         placeholder={useI18nJoin(useT("common.search"), item.title)}
         onBlur={onBlur}
@@ -108,13 +108,13 @@ const render = (item, queryForm, context) => {
 
   if (queryForm[item.key].condition === "between") {
     Component = (
-      <div style={{ display: "flex", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
         {Component.concat([
-          <span style={{ margin: "0 8px" }}>-</span>,
+          <span>-</span>,
           withNumberAddons(
             <InputNumber
               v-model:value={queryForm[item.key].value[1]}
-              style={{ width: "200px" }}
+              style={{ width: "100%" }}
               class={`${searchProvider.inputClass || ""}`}
               placeholder={useT("form.please-input")}
               onBlur={onBlur}
