@@ -30,7 +30,7 @@ export default {
 			id: "editable",
 			title: "可编辑单元格",
 			description:
-				"开启 editable 后，列上配置 editable 即可编辑。beforeCellSubmit 可在保存前做异步处理，不传时请求 submitUrl。",
+				"开启 editable 后，列上配置 editable 即可编辑。beforeCellSubmit 可在保存前做异步处理，不传时请求 submitUrl。配置 confirmCellSubmit 或列级 editable.confirm 后，保存前会先弹出确认提醒。",
 			file: "table/editable.vue",
 		},
 		{
@@ -136,6 +136,13 @@ export default {
 				default: "-",
 			},
 			{ name: "cardWrapper", description: "是否用 Card 包裹", type: "`boolean`", default: "`false`" },
+			{
+				name: "confirmCellSubmit",
+				description:
+					"单元格保存前弹出确认提醒，`true` 使用默认文案，对象则作为 `Modal.confirm` 配置；列级 `editable.confirm` 优先，`confirm: false` 可对单列关闭",
+				type: "`boolean` | `object`",
+				default: "`false`",
+			},
 		],
 		events: [
 			{
@@ -218,6 +225,12 @@ export default {
 					["key", "提交字段，默认与 dataIndex 一致", "`string`", "-"],
 					["options", "select 选项；switch 时 [checked, unchecked]", "`array`", "-"],
 					["beforeCellSubmit", "单元格级保存前处理", "`(data) => Promise<void>`", "-"],
+					[
+						"confirm",
+						"保存前确认提醒配置，优先于表格级 `confirmCellSubmit`，传 `false` 可在全局开启时单独关闭该列",
+						"`boolean` | `object`",
+						"-",
+					],
 					["defaultValue", "进入编辑时的默认值", "`any`", "-"],
 					["defaultProps", "透传给编辑控件", "`object`", "`{}`"],
 					["defaultSlots", "透传给编辑控件", "`object`", "`{}`"],
@@ -282,6 +295,11 @@ export default {
 			title: "为什么 beforeCellSubmit 后没有触发 cellSubmit 事件？",
 			content:
 				"`cellSubmit` 只在使用内置 `submitUrl` 保存并成功后触发。使用 `beforeCellSubmit` 或列级 `editable.beforeCellSubmit` 时，由业务自行完成保存与提示。",
+		},
+		{
+			title: "保存确认提醒是什么行为？",
+			content:
+				"配置 `confirmCellSubmit`（或列级 `editable.confirm`）后，点击保存会先弹出 `Modal.confirm`，确认后才走 `beforeCellSubmit` / `submitUrl` 提交流程。取消时文本类控件（input / number / select）保持编辑态，可继续修改或点 ✕ 放弃；switch 类即时提交，取消时会回滚为切换前的值。传对象可自定义 `title` / `content` 等弹窗文案。",
 		},
 		{
 			title: "持久化保存了什么？",

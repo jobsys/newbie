@@ -7,6 +7,7 @@
 		:pagination="false"
 		:table-props="{ scroll: { x: 900, y: 260 } }"
 		:before-cell-submit="beforeCellSubmit"
+		confirm-cell-submit
 	/>
 </template>
 

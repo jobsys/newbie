@@ -17,4 +17,6 @@ export const tableDefaults = {
 	editable: false,
 	submitUrl: "",
 	beforeCellSubmit: null,
+	// 单元格保存前的确认提醒：true 使用默认文案，对象则为 Modal.confirm 配置
+	confirmCellSubmit: false,
 };

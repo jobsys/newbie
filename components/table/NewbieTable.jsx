@@ -117,6 +117,12 @@ export default defineComponent({
 		beforeCellSubmit: { type: Function, default: undefined },
 
 		/**
+		 * v2.0.17
+		 * 单元格保存前是否弹出确认提醒，为 Object 时作为 `Modal.confirm` 的配置（可覆盖 title/content 等），默认读取 `tableDefaults.confirmCellSubmit`（false）
+		 */
+		confirmCellSubmit: { type: [Boolean, Object], default: undefined },
+
+		/**
 		 * 表格请求方式，默认读取 `tableDefaults.method`（get）
 		 *
 		 * @values get, post
@@ -157,6 +163,7 @@ export default defineComponent({
 		 * @property {string} [key] - 字段 key, 默认与 dataIndex 一致
 		 * @property {array} [options] - 选项，当 type 为 select 时必填，如果 type 为 switch, options[0] 为 checked, options[1] 为 unchecked
 		 * @property {Function} [beforeCellSubmit] - 单元格编辑提交的前置方法, 返回一个 Promise
+		 * @property {boolean|Object} [confirm] - 保存前确认提醒配置，优先于表格级 `confirmCellSubmit`，传 false 可在全局开启时单独关闭该列 v2.0.17
 		 * @property {*} [defaultValue] 默认编辑时的值
 		 * @property {Object} [defaultProps] - 编辑项配置
 		 * @property {Object} [defaultSlots] - 编辑项 Slot

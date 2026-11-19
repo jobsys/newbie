@@ -77,7 +77,7 @@ const onRowClick = ({ record }) => {
 | --- | --- | --- |
 | 基础表格 | columns 定义列，dataSource（或 formData）传本地数据。没有 url 时组件不会请求接口，只触发 fetch 事件。 | [table/basic.vue](../../playground/docs/demos/table/basic.vue) |
 | 搜索与列配置 | 列的 filterable 会自动生成搜索项；isOnlyForQuery 的列只参与搜索，不显示在表格中。把这类列的 filterable.type 设为 segmented 可渲染状态分段栏。 | [table/search.vue](../../playground/docs/demos/table/search.vue) |
-| 可编辑单元格 | 开启 editable 后，列上配置 editable 即可编辑。beforeCellSubmit 可在保存前做异步处理，不传时请求 submitUrl。 | [table/editable.vue](../../playground/docs/demos/table/editable.vue) |
+| 可编辑单元格 | 开启 editable 后，列上配置 editable 即可编辑。beforeCellSubmit 可在保存前做异步处理，不传时请求 submitUrl。配置 confirmCellSubmit 或列级 editable.confirm 后，保存前会先弹出确认提醒。 | [table/editable.vue](../../playground/docs/demos/table/editable.vue) |
 | 操作列与单元格能力 | onCopy、onClick、tooltip、renderTableActions、renderTableImage、renderTableFile 覆盖常见单元格交互。 | [table/operations.vue](../../playground/docs/demos/table/operations.vue) |
 | 行选择与展开 | rowSelection、rowKey、expandRender、expandedRowKeys 直接映射到 antdv-next Table 的对应能力。 | [table/selection.vue](../../playground/docs/demos/table/selection.vue) |
 | 持久化 | persistence 支持内存与 localStorage，保存分页与自定义列显隐；冷数据默认自动恢复，切换配置时可通过 key 重新挂载表格。 | [table/persistence.vue](../../playground/docs/demos/table/persistence.vue) |
@@ -113,6 +113,7 @@ const onRowClick = ({ record }) => {
 | persistence | 持久化配置，保存分页与自定义列显隐；冷数据（localStorage）默认自动恢复 | `boolean` \| `string` \| `{ key?: string; storage?: 'memory' \| 'local'; restore?: 'auto' \| 'manual' }` | `false` |
 | searchPersistence | 内部 NewbieSearch 的持久化配置；不传时沿用 persistence，但冷数据默认交给“恢复上次查询”入口 | `boolean` \| `string` \| `{ key?: string; storage?: 'memory' \| 'local'; restore?: 'auto' \| 'manual' }` | - |
 | cardWrapper | 是否用 Card 包裹 | `boolean` | `false` |
+| confirmCellSubmit | 单元格保存前弹出确认提醒，`true` 使用默认文案，对象则作为 `Modal.confirm` 配置；列级 `editable.confirm` 优先，`confirm: false` 可对单列关闭 | `boolean` \| `object` | `false` |
 
 ## Events
 
@@ -182,6 +183,7 @@ const onRowClick = ({ record }) => {
 | key | 提交字段，默认与 dataIndex 一致 | `string` | - |
 | options | select 选项；switch 时 [checked, unchecked] | `array` | - |
 | beforeCellSubmit | 单元格级保存前处理 | `(data) => Promise<void>` | - |
+| confirm | 保存前确认提醒配置，优先于表格级 `confirmCellSubmit`，传 `false` 可在全局开启时单独关闭该列 | `boolean` \| `object` | - |
 | defaultValue | 进入编辑时的默认值 | `any` | - |
 | defaultProps | 透传给编辑控件 | `object` | `{}` |
 | defaultSlots | 透传给编辑控件 | `object` | `{}` |
@@ -283,6 +285,10 @@ renderTableFile(files, { fileName, placeholder, DefaultIcon }); // 附件链接
 ### 为什么 beforeCellSubmit 后没有触发 cellSubmit 事件？
 
 `cellSubmit` 只在使用内置 `submitUrl` 保存并成功后触发。使用 `beforeCellSubmit` 或列级 `editable.beforeCellSubmit` 时，由业务自行完成保存与提示。
+
+### 保存确认提醒是什么行为？
+
+配置 `confirmCellSubmit`（或列级 `editable.confirm`）后，点击保存会先弹出 `Modal.confirm`，确认后才走 `beforeCellSubmit` / `submitUrl` 提交流程。取消时文本类控件（input / number / select）保持编辑态，可继续修改或点 ✕ 放弃；switch 类即时提交，取消时会回滚为切换前的值。传对象可自定义 `title` / `content` 等弹窗文案。
 
 ### 持久化保存了什么？
 

@@ -1,7 +1,7 @@
 import { reactive, withModifiers } from "vue";
-import { Input, InputNumber, Select, Switch, message } from "antdv-next";
+import { Input, InputNumber, Modal, Select, Switch, message } from "antdv-next";
 import { CheckCircleOutlined, CloseCircleOutlined, EditOutlined } from "@antdv-next/icons";
-import { isFunction, isUndefined } from "lodash-es";
+import { isFunction, isObject, isUndefined } from "lodash-es";
 import { useFetch, useProcessStatusSuccess } from "../../hooks";
 import { tableDefaults } from "./config.js";
 import { splitNumberAddons, withNumberAddons } from "../../utils/inputNumber.jsx";
@@ -49,11 +49,16 @@ export const useTableEdit = ({ props, tableLoading, getRowKey, emit }) => {
 		}
 	};
 
-	const submitCell = async (editable, record, key) => {
-		if (!props.submitUrl && !props.beforeCellSubmit) {
-			return;
-		}
+	/**
+	 * 保存前确认提醒的配置：列级 editable.confirm 优先，未配置时沿用表格级 confirmCellSubmit
+	 */
+	const getConfirmConfig = editable =>
+		!isUndefined(editable.confirm) ? editable.confirm : props.confirmCellSubmit;
 
+	/**
+	 * 执行单元格提交，确认提醒通过后才会走到这里
+	 */
+	const doSubmitCell = async (editable, record, key) => {
 		const rowKey = getRowKey(record);
 		const value =
 			editable.type === "switch" ? editingSwitchData[rowKey][key] : editingData[rowKey][key];
@@ -80,6 +85,42 @@ export const useTableEdit = ({ props, tableLoading, getRowKey, emit }) => {
 			message.success(i18n.global.t("common.save-success"));
 			emit("cellSubmit", { record, key, value });
 		});
+	};
+
+	/**
+	 * 单元格保存入口，配置了确认提醒时先弹 Modal.confirm
+	 * @param {object} editable 列编辑配置
+	 * @param {object} record 行数据
+	 * @param {string} key 编辑字段
+	 * @param {*} prevValue switch 类型切换前的值，确认取消时用于回滚
+	 */
+	const submitCell = (editable, record, key, prevValue) => {
+		if (!props.submitUrl && !props.beforeCellSubmit) {
+			return;
+		}
+
+		const confirmConfig = getConfirmConfig(editable);
+
+		if (confirmConfig) {
+			const t = i18n.global.t;
+			Modal.confirm({
+				title: t("common.action-prompt"),
+				content: t("common.save-confirm"),
+				okText: t("common.confirm"),
+				cancelText: t("common.cancel"),
+				...(isObject(confirmConfig) ? confirmConfig : {}),
+				onOk: () => doSubmitCell(editable, record, key),
+				onCancel: () => {
+					// 文本类控件保持编辑态，由用户决定继续修改或取消；switch 是即时提交，取消时回滚为原值
+					if (editable.type === "switch") {
+						editingSwitchData[getRowKey(record)][key] = prevValue;
+					}
+				},
+			});
+			return;
+		}
+
+		doSubmitCell(editable, record, key);
 	};
 
 	const renderEditControl = (editable, rowKey, editKey) => {
@@ -141,7 +182,7 @@ export const useTableEdit = ({ props, tableLoading, getRowKey, emit }) => {
 						onClick={(_checked, e) => e.stopPropagation()}
 						onChange={(_checked, e) => {
 							e.stopPropagation();
-							submitCell(editable, record, editKey);
+							submitCell(editable, record, editKey, value);
 						}}
 						{...editable.defaultProps}
 					>
