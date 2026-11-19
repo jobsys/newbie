@@ -116,6 +116,9 @@
 		"attachment": "Attachment {title}",
 		"copy-success": "Copy success"
 	},
+	"pagination": {
+		"total": "Total {total}"
+	},
 	"form-designer": {
 		"default-group": "Default",
 		"drag-hint": "Click or drag a component from the left panel into the area below to create a form",

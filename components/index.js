@@ -7,6 +7,7 @@ export * from "./file-preview";
 export * from "./form";
 export * from "./list";
 export * from "./modal";
+export * from "./pagination";
 export * from "./password";
 export * from "./provider";
 export * from "./search";

@@ -6,7 +6,7 @@ Search 与 Table 的持久化共用一套底层实现，组件只负责“存什
 ## 1. 分层职责
 
 ```text
-组件（NewbieSearch / NewbieTable）
+组件（NewbieSearch / NewbieTable / NewbiePagination）
   ├─ 决定持久化的内容（快照结构）
   ├─ 决定冷数据的恢复策略（auto / manual）
   └─ 决定什么时候写入（onSearch / 分页发生 / 自定义列提交）
@@ -54,26 +54,26 @@ true                                         // 开启，内存存储，路由�
 
 `restore` 只影响 localStorage 冷数据：
 
-| 值 | Search | Table |
+| 值 | Search | Table / Pagination |
 | --- | --- | --- |
-| `auto` | 挂载时自动恢复条件 | 挂载时自动恢复分页与列显隐（默认） |
-| `manual` | 显示“恢复上次查询”入口（default） | 不适用：表格视图状态始终自动恢复 |
+| `auto` | 挂载时自动恢复条件 | 挂载时自动恢复分页（Table 还有列显隐）（默认） |
+| `manual` | 显示“恢复上次查询”入口（default） | 不适用：视图状态始终自动恢复 |
 
-表格自己的分页/列显隐不受 `restore` 影响；但表格上的 `restore` 会传给内部
-`NewbieSearch`（除非单独配置 `searchPersistence`），用来决定搜索条件的冷数据
-是自动恢复还是交给“恢复上次查询”入口。
+表格 / 分页列表自己的分页（及列显隐）不受 `restore` 影响；但组件上的 `restore`
+会传给内部 `NewbieSearch`（除非单独配置 `searchPersistence`），用来决定搜索条件的
+冷数据是自动恢复还是交给“恢复上次查询”入口。
 
 内存层永远自动恢复，因为它是当前 SPA 会话的实时状态。
 
-`NewbieTable` 内部的 `NewbieSearch` 由 `searchPersistence` 控制，不传时继承
-表格的 `key` / `storage`，但 `restore` 默认为 `manual`，避免旧筛选条件悄悄影响
-表格的首次查询。
+`NewbieTable` / `NewbiePagination` 内部的 `NewbieSearch` 由 `searchPersistence` 控制，
+不传时继承组件的 `key` / `storage`，但 `restore` 默认为 `manual`，避免旧筛选条件
+悄悄影响首次查询。
 
 ## 4. 命名空间与存储键
 
 - 未提供 `key`：`<scope>_sm3(location.href)`，即“当前路由一份”；
 - 提供 `key`：`<scope>_sm3(location.pathname + "_" + key)`，不同页面同名 key 互不影响；
-- `scope` 为 `search` 或 `table`，因此搜索条件与表格视图状态天然隔离；
+- `scope` 为 `search`、`table` 或 `pagination`，因此搜索条件与各组件视图状态天然隔离；
 - 最终存储键：`nbp_v2_<namespace>_state`。
 
 版本号 `PERSISTENCE_VERSION` 递增后旧键不再被读取，快照结构变更时可以安全地
@@ -118,6 +118,18 @@ true                                         // 开启，内存存储，路由�
 - 恢复时分页参数会校验为正整数；
 - 首屏返回后如果 `currentPage` 超过实际页数，自动回落到最后一页重新请求；
 - 写入时机：请求完成、翻页、修改自定义列后。
+
+### Pagination
+
+```js
+{
+  version: 1,
+  pagination: { currentPage: 2, pageSize: 20 }
+}
+```
+
+- 与 Table 相同的恢复与写入规则，只是没有列显隐；
+- 首屏返回后页码越界同样自动回落到最后一页重新请求。
 
 ## 6. 旧 API 兼容
 

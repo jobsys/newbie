@@ -1,0 +1,67 @@
+.newbie-pagination {
+	.newbie-search {
+		margin-bottom: 12px;
+	}
+
+	.newbie-pagination-prepend-wrapper {
+		margin-bottom: 12px;
+	}
+
+	.newbie-pagination-content {
+		padding: var(--newbie-padding-sm, 12px);
+		background: var(--newbie-color-bg-container, #fff);
+		border-radius: var(--newbie-radius, 6px);
+	}
+
+	.newbie-pagination-functional-wrapper {
+		display: flex;
+		justify-content: space-between;
+		padding-bottom: 10px;
+		align-items: center;
+
+		.newbie-pagination-functional-default {
+			width: 150px;
+			flex-shrink: 0;
+			text-align: right;
+		}
+
+		.newbie-pagination-functional {
+			flex-grow: 1;
+		}
+	}
+
+	.newbie-pagination-body {
+		min-height: 60px;
+
+		/* item 容器不做布局假设：卡片 / 网格 / 时间轴等形态由业务样式决定 */
+		.newbie-pagination-items {
+			display: block;
+		}
+	}
+
+	.newbie-pagination-empty {
+		margin: 24px 0;
+	}
+
+	.newbie-pagination-footer {
+		padding-top: 10px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+
+		.newbie-pagination-append-wrapper {
+			flex-grow: 1;
+			min-height: 32px;
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			row-gap: 8px;
+		}
+
+		.newbie-pagination-pagination-wrapper {
+			margin-left: auto;
+			text-align: right;
+			flex-shrink: 0;
+		}
+	}
+}

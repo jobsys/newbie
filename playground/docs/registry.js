@@ -6,6 +6,7 @@ import formDesigner from "./pages/form-designer.js";
 import form from "./pages/form.js";
 import list from "./pages/list.js";
 import modal from "./pages/modal.js";
+import pagination from "./pages/pagination.js";
 import password from "./pages/password.js";
 import provider from "./pages/provider.js";
 import search from "./pages/search.js";
@@ -33,7 +34,7 @@ export const categories = [
 		key: "data-display",
 		title: "数据展示",
 		description: "以表格、列表等结构化方式展示数据。",
-		pages: [table, list],
+		pages: [table, list, pagination],
 	},
 	{
 		key: "feedback",

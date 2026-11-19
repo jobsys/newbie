@@ -116,6 +116,9 @@
 		"attachment": "查看附件 {title}",
 		"copy-success": "复制成功"
 	},
+	"pagination": {
+		"total": "共 {total} 条"
+	},
 	"form-designer": {
 		"default-group": "默认",
 		"drag-hint": "请点击或者拖拽左侧组件至下面区域生成表单",

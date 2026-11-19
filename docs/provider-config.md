@@ -50,6 +50,25 @@ NewbieProvider 的 config[命名空间]
 
 > `table.page` 已废弃：全局初始页码没有实际意义，实例分页请用 `:pagination="{ current: 1 }"`。
 
+### pagination（`NewbiePagination`）
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| pageSize | number | `20` | 每页条数（实例分页对象仍然优先） |
+| pageKey | string | `"page"` | 页码请求参数名 |
+| pageSizeKey | string | `"pageSize"` | 每页条数请求参数名 |
+| filterable | boolean | `true` | 是否显示搜索栏 |
+| pagination | boolean \| object | `true` | 是否分页；对象表示自定义分页 |
+| autoQuery | boolean | `false` | 搜索条件变化后是否自动查询（透传给 NewbieSearch） |
+| showRefresh | boolean | `true` | 是否显示刷新按钮 |
+| cardWrapper | boolean | `false` | 是否用 `Card` 包裹 |
+| method | string | `"get"` | 请求方式 |
+| itemKey | string \| function | `"id"` | 数据项主键，`rowSelection` 依赖它 |
+| afterFetched | function | `null` | 请求返回数据的处理函数，必须返回 `{ items, totalSize }` |
+| rowSelection | boolean \| object | `false` | 是否开启选择 |
+| persistence | boolean \| string \| object | `false` | 分页视图状态持久化 |
+| searchPersistence | boolean \| string \| object | - | 内部 NewbieSearch 的持久化配置，不传时沿用 `persistence` |
+
 ### uploader（`NewbieUploader` / 表单的 uploader 字段）
 
 | 配置项           | 类型     | 默认值 | 说明                         |
