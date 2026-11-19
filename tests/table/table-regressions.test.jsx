@@ -200,3 +200,74 @@ describe("NewbieTable 状态分段列", () => {
 		wrapper.unmount();
 	});
 });
+
+describe("NewbieTable 列宽拖拽", () => {
+	it("默认给叶子列开启 resizable，支持按 resizable: false 关闭，且分组表头不开启", async () => {
+		const wrapper = mountTable({
+			columns: [
+				{ title: "名称", dataIndex: "name", width: 120 },
+				{
+					title: "详情",
+					children: [
+						{ title: "年龄", dataIndex: "age", width: 80 },
+						{ title: "操作", key: "actions", width: 100, resizable: false },
+					],
+				},
+			],
+			dataSource: [{ id: 1, name: "甲", age: 18 }],
+		});
+		await nextTick();
+		await nextTick();
+
+		const headers = wrapper.findAll("th.ant-table-cell");
+		const findHeader = title => headers.find(h => h.text().includes(title));
+
+		expect(findHeader("名称").find(".ant-table-resize-handle").exists()).toBe(true);
+		expect(findHeader("年龄").find(".ant-table-resize-handle").exists()).toBe(true);
+		expect(findHeader("详情").find(".ant-table-resize-handle").exists()).toBe(false);
+		expect(findHeader("操作").find(".ant-table-resize-handle").exists()).toBe(false);
+
+		wrapper.unmount();
+	});
+
+	it("拖动列宽手柄会更新列宽并触发 tableProps.onResizeColumn", async () => {
+		const onResizeColumn = vi.fn();
+		const wrapper = mountTable({
+			columns: [
+				{ title: "名称", dataIndex: "name", width: 120 },
+				{ title: "状态", dataIndex: "status", width: 100 },
+			],
+			dataSource: [{ id: 1, name: "甲", status: "正常" }],
+			tableProps: { onResizeColumn },
+		});
+		await nextTick();
+		await nextTick();
+
+		const nameHeader = wrapper.findAll("th.ant-table-cell").find(h => h.text().includes("名称"));
+		const handle = nameHeader.find(".ant-table-resize-handle");
+		expect(handle.exists()).toBe(true);
+
+		// jsdom 中 getBoundingClientRect 默认全 0，给表头模拟初始宽度 120px
+		vi.spyOn(nameHeader.element, "getBoundingClientRect").mockReturnValue({
+			width: 120,
+			height: 40,
+			top: 0,
+			left: 0,
+			right: 120,
+			bottom: 40,
+			x: 0,
+			y: 0,
+			toJSON: () => {},
+		});
+
+		await handle.trigger("mousedown", { button: 0, clientX: 120 });
+		document.dispatchEvent(new MouseEvent("mousemove", { clientX: 180, bubbles: true }));
+		document.dispatchEvent(new MouseEvent("mouseup", { clientX: 180, bubbles: true }));
+		await nextTick();
+
+		expect(onResizeColumn).toHaveBeenCalledTimes(1);
+		expect(onResizeColumn.mock.calls[0][0]).toBe(180);
+
+		wrapper.unmount();
+	});
+});

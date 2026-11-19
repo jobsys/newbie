@@ -1,71 +1,45 @@
 import {
-    computed,
-    defineComponent,
-    nextTick,
-    onMounted,
-    reactive,
-    ref,
-    watch,
-    withModifiers,
+	computed,
+	defineComponent,
+	nextTick,
+	onMounted,
+	reactive,
+	ref,
+	watch,
+	withModifiers,
 } from "vue";
-import {
-    Button,
-    Card,
-    Checkbox,
-    CheckboxGroup,
-    Col,
-    Divider,
-    Input,
-    InputNumber,
-    message,
-    Modal,
-    Row,
-    Select,
-    Switch,
-    Table,
-    Tooltip,
-} from "antdv-next";
-import {cloneDeep, isArray, isEqual, isFunction, isObject, isUndefined,} from "lodash-es";
-import {
-    CheckCircleOutlined,
-    CloseCircleOutlined,
-    CopyOutlined,
-    EditOutlined,
-    InfoCircleOutlined,
-    SyncOutlined,
-} from "@antdv-next/icons";
-import {useFetch, usePersistenceScope, useProcessStatusSuccess, useT} from "../../hooks";
-import {tableDefaults} from "./config.js";
-import {createTableSnapshot, readTableSnapshot, TABLE_STATE_KEY} from "./persistence.js";
-import {splitNumberAddons, withNumberAddons} from "../../utils/inputNumber.jsx";
-import {useMergedProps} from "../../hooks/useMergedProps.js";
+import { Button, Card, Table, Tooltip, message } from "antdv-next";
+import { cloneDeep, isArray, isEqual, isFunction, isObject, isUndefined } from "lodash-es";
+import { CopyOutlined, InfoCircleOutlined, SyncOutlined } from "@antdv-next/icons";
+import { useClipboard } from "@vueuse/core";
+import { useFetch, usePersistenceScope, useProcessStatusSuccess, useT } from "../../hooks";
+import { useMergedProps } from "../../hooks/useMergedProps.js";
 import NewbieSearch from "../search/NewbieSearch.jsx";
 import i18n from "../../i18n";
-import {useClipboard} from "@vueuse/core";
+import { tableDefaults } from "./config.js";
+import { createTableSnapshot, readTableSnapshot, TABLE_STATE_KEY } from "./persistence.js";
+import {
+	collectVisibleColumns,
+	ensureColumnKeys,
+	extractFilterableColumns,
+	extractSortableColumns,
+	flattenCustomColumns,
+	normalizeColumns,
+} from "./columns.js";
+import { renderColumnText, useTableEdit } from "./useTableEdit.jsx";
+import CustomColumnsModal from "./CustomColumnsModal.jsx";
 
 import "./index.less";
 
 // 渲染助手已抽到 ./helpers.jsx，这里保留同名导出以兼容旧的深层导入
 export {
-    renderTableActions,
-    renderTableImage,
-    renderTableFile,
-    useTableActions,
-    useTableImage,
-    useTableFile,
+	renderTableActions,
+	renderTableImage,
+	renderTableFile,
+	useTableActions,
+	useTableImage,
+	useTableFile,
 } from "./helpers.jsx";
-
-/**
- * 获取列的唯一 key
- * key 与 dataIndex 都可能是数组（嵌套路径），需要统一转成字符串，
- * 否则自定义列弹窗中 checkbox 的 value 会是数组，无法与 columnKey 的字符串 key 匹配
- * @param item
- * @returns {*}
- */
-const getKey = item => {
-	const key = item.key || item.dataIndex;
-	return isArray(key) ? key.join(".") : key;
-};
 
 /**
  * Newbie 表格组件
@@ -85,7 +59,7 @@ export default defineComponent({
 		filterable: { type: Boolean, default: undefined },
 
 		/**
-		 *  原生表格属性
+		 * 原生表格属性
 		 */
 		tableProps: { type: Object, default: () => ({}) },
 
@@ -105,7 +79,7 @@ export default defineComponent({
 		searchSlots: { type: Object, default: () => ({}) },
 
 		/**
-		 * 是否使用分页，为 Object 时时使用自定义分页，默认读取 `tableDefaults.pagination`（true）
+		 * 是否使用分页，为 Object 时使用自定义分页，默认读取 `tableDefaults.pagination`（true）
 		 */
 		pagination: { type: [Boolean, Object], default: undefined },
 
@@ -199,7 +173,7 @@ export default defineComponent({
 		rowSelection: { type: [Boolean, Object], default: () => null },
 
 		/**
-		 *  数据值需要指定 key 值，当启用 `rowSelection` 时一定要指定这个 key，默认读取 `tableDefaults.rowKey`（id）
+		 * 数据值需要指定 key 值，当启用 `rowSelection` 时一定要指定这个 key，默认读取 `tableDefaults.rowKey`（id）
 		 */
 		rowKey: { type: [String, Function] },
 
@@ -283,7 +257,6 @@ export default defineComponent({
 		 * - 搜索栏默认沿用表格配置，但冷数据默认交给“恢复上次查询”入口。
 		 */
 		const searchPersistenceProp = computed(() => props.searchPersistence ?? props.persistence);
-
 		const { store: persistTable } = usePersistenceScope("table", () => props.persistence);
 
 		// 表格视图状态始终自动恢复（restore 只影响搜索栏），快照不合法时按无持久化处理
@@ -291,33 +264,29 @@ export default defineComponent({
 			pagination: {},
 			columnKey: {},
 		};
-
-		let persistencePagination = persistedState.pagination;
+		const persistencePagination = persistedState.pagination;
 
 		const state = reactive({
-			customColumns: [],
-			tableColumns: [],
-			editingData: {}, //编辑中的单元格
-			editingSwitchData: {}, //可编辑的 Switch 的值, 因为 Switch 的逻辑与其它类型不同，不能复用editingData
-			filterableColumns: [], // 可过滤的列
-			sortableColumns: [], // 可排序的列
-			temporary: {}, // 用于存放一些临时数据
-			tableLoading: { loading: false }, // 翻页Loading
+			tableLoading: { loading: false },
 			customColumnVisible: false,
-			columnKeyModal: [],
 			pagination: {
-				// 翻页数据
 				totalSize: 0,
 				currentPage: persistencePagination.currentPage || 1,
 				pageSize: persistencePagination.pageSize || props.pagination?.pageSize || props.pageSize,
 			},
-			id: "",
 			tableSelection: [], // 给外部用
 			tableKeySelection: [], // 内部用
-			items: [], // 表格内容
-			columnKey: {...persistedState.columnKey}, // 自定义列
+			items: [],
+			columnKey: { ...persistedState.columnKey },
 			lastRequestId: 0, // 最近一次请求的 id，用于丢弃过期响应
-			searchFormData: {}, // 搜索表单数据
+			searchFormData: {},
+		});
+
+		const { isRowEditing, renderEditableCell } = useTableEdit({
+			props,
+			tableLoading: state.tableLoading,
+			getRowKey,
+			emit,
 		});
 
 		watch(
@@ -333,10 +302,7 @@ export default defineComponent({
 		 * 持久化表格视图状态：分页 + 自定义列显隐
 		 */
 		const onPersistence = () => {
-			if (!persistTable.value) {
-				return;
-			}
-
+			if (!persistTable.value) return;
 			persistTable.value.write(
 				TABLE_STATE_KEY,
 				createTableSnapshot({
@@ -346,27 +312,12 @@ export default defineComponent({
 			);
 		};
 
-		const onOpenCustomColumns = () => {
-			// 复制一份
-			state.columnKeyModal = [];
+		const onCustomSubmit = checkedKeys => {
 			Object.keys(state.columnKey).forEach(key => {
-				if (state.columnKey[key]) {
-					state.columnKeyModal.push(key);
-				}
+				state.columnKey[key] = checkedKeys.includes(key);
 			});
-			state.customColumnVisible = true;
-		};
-
-		const onCustomClearAll = () => {
-			state.columnKeyModal = [];
-		};
-
-		const onCustomSelectAll = () => {
-			onCustomClearAll();
-
-			Object.keys(state.columnKey).forEach(key => {
-				state.columnKeyModal.push(key);
-			});
+			// 列显隐变化立即落盘，不依赖下一次翻页
+			onPersistence();
 		};
 
 		const onSelectionChange = (selectedRowKeys, selectedRows) => {
@@ -374,17 +325,8 @@ export default defineComponent({
 			state.tableSelection = [].concat(selectedRows);
 		};
 
-		const onCustomSubmit = () => {
-			Object.keys(state.columnKey).forEach(key => {
-				state.columnKey[key] = state.columnKeyModal.indexOf(key) > -1;
-			});
-			state.customColumnVisible = false;
-			// 列显隐变化立即落盘，不依赖下一次翻页
-			onPersistence();
-		};
-
 		const getQueryData = () => {
-			let params = { ...state.searchFormData, ...props.extraData };
+			const params = { ...state.searchFormData, ...props.extraData };
 			if (props.pagination) {
 				if (state.pagination.pageSize) {
 					params[props.pageSizeKey] = state.pagination.pageSize;
@@ -395,9 +337,7 @@ export default defineComponent({
 		};
 
 		const setQueryData = fields => {
-			if (searchRef.value) {
-				searchRef.value?.setQueryForm(fields);
-			}
+			searchRef.value?.setQueryForm(fields);
 		};
 
 		/**
@@ -418,27 +358,19 @@ export default defineComponent({
 		};
 
 		const fetchItems = async () => {
-			let data = {},
-				params = getQueryData();
+			const params = getQueryData();
+			const method = props.method;
+			const data = method === "get" ? { params } : { ...params };
 			// 只认最后一次请求：响应回来时 id 不是最新的就丢弃，避免旧数据覆盖新数据
 			const requestId = ++state.lastRequestId;
 
-			const method = props.method;
-
-			if (method === "get") {
-				data = { params };
-			} else if (method === "post") {
-				data = { ...params };
-			}
-
 			const res = await useFetch(state.tableLoading)[method](props.url, data);
 			useProcessStatusSuccess(res, () => {
-				// 过期响应直接丢弃（loading 已由 useFetch 结束）
-				if (requestId !== state.lastRequestId) {
-					return;
-				}
+				if (requestId !== state.lastRequestId) return;
+
 				state.tableKeySelection = [];
 				state.tableSelection = [];
+
 				// afterFetched 由 props / Provider / tableDefaults 合并而来，缺省时给出明确报错
 				const fetched = isFunction(props.afterFetched)
 					? props.afterFetched
@@ -449,6 +381,7 @@ export default defineComponent({
 					);
 					return;
 				}
+
 				const result = fetched(res);
 				if (!result || !isArray(result.items)) {
 					console.error(
@@ -456,6 +389,7 @@ export default defineComponent({
 					);
 					return;
 				}
+
 				if (props.pagination) {
 					state.pagination.totalSize = result.totalSize ?? 0;
 				}
@@ -471,7 +405,7 @@ export default defineComponent({
 		/**
 		 * 执行获取数据
 		 * @param {boolean} refresh 是否刷新
-		 * @return {*}
+		 * @return {Promise<void>}
 		 */
 		const doFetch = async refresh => {
 			if (refresh === true) {
@@ -493,57 +427,7 @@ export default defineComponent({
 			doFetch(!persistence);
 		};
 
-		const tidyColumnsRecursion = columns => {
-			const result = [];
-			if (columns && columns.length) {
-				columns.forEach(column => {
-					const item = cloneDeep(column);
-					const key = getKey(item);
-					if (key && isUndefined(state.columnKey[key])) {
-						state.columnKey[key] = true;
-					}
-					if (!item.children) {
-						if ((key && state.columnKey[key]) || !key) {
-							result.push(item);
-						}
-					} else {
-						const res = tidyColumnsRecursion([].concat(item.children));
-						if (res.length) {
-							item.children = res;
-							if ((key && state.columnKey[key]) || !key) {
-								result.push(item);
-							}
-						}
-					}
-				});
-			}
-			return result;
-		};
-
-		/**
-		 * 用于获取自定义列
-		 * @param columns
-		 * @returns {*[]}
-		 */
-		const tidyCustomColumnsRecursion = columns => {
-			let result = [];
-			if (columns && columns.length) {
-				columns.forEach(column => {
-					const item = cloneDeep(column);
-					item.checkKey = getKey(item);
-					if (!item.children) {
-						result.push(item);
-					} else {
-						const res = tidyCustomColumnsRecursion(item.children);
-						delete item.children;
-						result.push(item);
-						result = result.concat(res);
-					}
-				});
-			}
-
-			return result;
-		};
+		/********** columns **********/
 
 		const totalColumns = computed(() => {
 			let columns;
@@ -554,83 +438,27 @@ export default defineComponent({
 			} else {
 				columns = props.tableProps.columns || [];
 			}
-			// 不改写调用方传入的列对象，改为返回浅拷贝后的新列（F-021）
-			return columns.map(item => ({
-				...item,
-				key: getKey(item),
-				...(item.minWidth
-					? {
-							width: item.minWidth,
-							RC_TABLE_INTERNAL_COL_DEFINE: {
-								style: {
-									"min-width": `${item.minWidth}px`,
-								},
-							},
-						}
-					: {}),
-			}));
+			return normalizeColumns(columns);
 		});
 
-		const prepareFormColumns = () => {
-			const originColumns = totalColumns.value.filter(item => {
-				return !item.isOnlyForQuery;
-			});
-
-			state.customColumns = tidyCustomColumnsRecursion([].concat(originColumns));
-			// 显示列表数组
-			state.tableColumns = tidyColumnsRecursion([].concat(originColumns));
-		};
-
-		const prepareSearchColumns = () => {
-			state.filterableColumns = totalColumns.value
-				.filter(item => {
-					return item.filterable || item.isOnlyForQuery;
-				})
-				.map(item => {
-					return {
-						title: item.title,
-						key: getKey(item),
-						options: item.options,
-						...item.filterable,
-					};
-				});
-
-			state.sortableColumns = totalColumns.value
-				.filter(item => item.sortable)
-				.map(item => {
-					let column = {
-						title: item.title,
-						key: getKey(item),
-					};
-
-					if (item.sortable === "asc" || item.sortable === "ASC") {
-						column.direction = "asc";
-					} else if (item.sortable === "desc" || item.sortable === "DESC") {
-						column.direction = "desc";
-					} else {
-						column = { ...column, ...item.sortable };
-					}
-					return column;
-				});
-		};
+		const displaySourceColumns = computed(() =>
+			totalColumns.value.filter(item => !item.isOnlyForQuery)
+		);
 
 		watch(
-			() => [totalColumns, state.columnKey],
-			(newValues, preValues) => {
-				prepareFormColumns();
-				//只有 Columns 确实发生变化了才重新渲染 Search,否则会导致 Search 的值丢失
-				if (
-					!preValues ||
-					!isEqual(
-						newValues[0].value.map(item => getKey(item)).toSorted(),
-						preValues[0].value.map(item => getKey(item)).toSorted()
-					)
-				) {
-					prepareSearchColumns();
-				}
+			displaySourceColumns,
+			columns => {
+				ensureColumnKeys(columns, state.columnKey);
 			},
-			{ immediate: true, deep: true }
+			{ immediate: true }
 		);
+
+		const customColumns = computed(() => flattenCustomColumns(displaySourceColumns.value));
+		const tableColumns = computed(() =>
+			collectVisibleColumns(displaySourceColumns.value, state.columnKey)
+		);
+		const filterableColumns = computed(() => extractFilterableColumns(totalColumns.value));
+		const sortableColumns = computed(() => extractSortableColumns(totalColumns.value));
 
 		/**
 		 * 仅在 antd 真正渲染分页后，才让 Append 与分页共用一行。
@@ -663,89 +491,53 @@ export default defineComponent({
 			}
 		);
 
-		/**
-		 * 第一次拿数据
-		 */
+		watch(
+			() => props.dataSource,
+			(newValue, oldValue) => {
+				if (!props.url && !isEqual(newValue, oldValue)) {
+					state.items = newValue;
+				}
+			}
+		);
+
 		const initFetch = () => {
 			if (props.url) {
-				//如果有默认搜索条件先拿出来
 				state.searchFormData = searchRef.value?.getSearch();
 				nextTick(() => fetchItems());
-			} else {
-				if (props.formData.length) {
-					state.items = props.formData;
-				}
-
-				if (props.dataSource.length) {
-					state.items = props.dataSource;
-				}
-
-				emit("fetch");
+				return;
 			}
+
+			if (props.formData.length) {
+				state.items = props.formData;
+			} else if (props.dataSource.length) {
+				state.items = props.dataSource;
+			}
+			emit("fetch");
 		};
 
 		onMounted(() => {
-			//1. 因为手动 fetch 需要调用 $ref 的 getQueryForm 等方法，所以需要 mounted 后才执行 fetch
-			//2. 当有持久化且存在 Search 组件时，需要等待 Search 初始化后（onMounted）触发搜索事件来拉取数据
-			//3. 如果没有 Search（filterable=false），或未开启持久化，直接在此处 initFetch
+			// 1. 手动 fetch 需要等待 mounted 后调用 ref 方法；
+			// 2. 启用搜索持久化且存在 Search 时，由 Search 初始化后触发 onSearch 拉取数据；
+			// 3. 其余场景直接在此初始化。
 			if (!searchPersistenceProp.value || !props.filterable) {
 				initFetch();
 			}
 		});
 
-		/**
-		 * 获取当前页的数据
-		 * @returns {*[]}
-		 */
-		const getData = () => {
-			return [].concat(state.items);
-		};
+		/********** exposes **********/
 
-		/**
-		 * 设置数据
-		 * @param items
-		 */
+		const getData = () => [].concat(state.items);
 		const setData = items => {
 			state.items = items;
 		};
-
-		/**
-		 * 设置翻页数据
-		 * @param {int} total
-		 * @param {int} currentPage
-		 * @param {int} pageSize
-		 */
 		const setPagination = (total, currentPage, pageSize) => {
-			if (!isUndefined(total)) {
-				state.pagination.totalSize = total;
-			}
-			if (!isUndefined(currentPage)) {
-				state.pagination.currentPage = currentPage;
-			}
-			if (!isUndefined(pageSize)) {
-				state.pagination.pageSize = pageSize;
-			}
+			if (!isUndefined(total)) state.pagination.totalSize = total;
+			if (!isUndefined(currentPage)) state.pagination.currentPage = currentPage;
+			if (!isUndefined(pageSize)) state.pagination.pageSize = pageSize;
 		};
-
-		/**
-		 * 获取翻页数据
-		 * @returns {*}
-		 */
 		const getPagination = () => state.pagination;
-
-		/**
-		 * 获取已选择的行数据
-		 * @returns {*[]}
-		 */
 		const getSelection = () => [].concat(state.tableSelection);
-
-		/**
-		 * 设置表格 loading 状态
-		 * @param {boolean} loading
-		 */
 		const setTableLoading = loading => (state.tableLoading.loading = loading);
-
-		/********** exposes **********/
 
 		expose({
 			getData,
@@ -760,44 +552,200 @@ export default defineComponent({
 			refreshStatusCounts: force => searchRef.value?.refreshStatusCounts(force),
 		});
 
-		/********** render **********/
+		/********** table props **********/
 
-		const titleElem = () => {
+		// 用 computed 缓存，避免每次渲染都新建对象导致 antd Table 重置内部状态（F-052）
+		const handleTable = computed(() => ({
+			bordered: true,
+			size: "middle",
+			scroll: {
+				y: 570,
+				x: 1000,
+				scrollToFirstRowOnChange: true,
+			},
+			rowClassName: (_record, index) => (index % 2 === 1 ? "newbie-table-striped" : null),
+			expandedRowRender: props.expandRender,
+			expandedRowKeys: props.expandedRowKeys,
+			/**
+			 * 展开列必须给出明确宽度。
+			 * antdv-next 生成的展开列默认没有 width，空数据时表头 colgroup 里就有一列没有列宽，
+			 * 列宽会按容器重新分配，固定列（展开列 / 选择列）的 sticky 偏移与真实列宽对不上，
+			 * 出现选择列压住第一列、表头与容器对不齐的错乱。
+			 */
+			expandable: {
+				columnWidth: 48,
+			},
+			rowKey: props.rowKey,
+			onRow: (record, index) => ({
+				onClick: event => {
+					if (isRowEditing(record)) {
+						// 编辑中不触发 rowClick，避免输入交互误触发行点击
+						return;
+					}
+					emit("rowClick", { record, index, event });
+				},
+			}),
+			...props.tableProps,
+		}));
+
+		const handlePagination = computed(() => {
+			if (!props.pagination) return false;
+
+			const custom = isObject(props.pagination) ? cloneDeep(props.pagination) : {};
+			return {
+				size: "small",
+				showQuickJumper: true,
+				showSizeChanger: true,
+				showTotal: total => useT("table.total", { total }),
+				pageSizeOptions: ["10", "20", "30", "50", "100", "300", "500"],
+				total: state.pagination.totalSize,
+				pageSize: state.pagination.pageSize,
+				current: state.pagination.currentPage,
+				"onUpdate:current": value => {
+					state.pagination.currentPage = value;
+				},
+				"onUpdate:pageSize": value => {
+					state.pagination.pageSize = value;
+				},
+				onChange: () => {
+					doFetch(false);
+				},
+				showSizeChange: () => {
+					doFetch(true);
+				},
+				...custom,
+			};
+		});
+
+		const handleRowSelection = computed(() => {
+			if (!props.rowSelection) return null;
+
+			const custom = isObject(props.rowSelection) ? cloneDeep(props.rowSelection) : {};
+			return {
+				selectedRowKeys: state.tableKeySelection,
+				preserveSelectedRowKeys: true,
+				columnWidth: 40,
+				fixed: true,
+				onChange: onSelectionChange,
+				...custom,
+			};
+		});
+
+		/********** render helpers **********/
+
+		const renderHeaderCell = ({ column }) => {
+			const tooltipElem = column.tooltip ? (
+				isFunction(column.tooltip) ? (
+					<Tooltip>
+						{{
+							default: () => <InfoCircleOutlined style={{ marginLeft: "5px" }} />,
+							title: column.tooltip,
+						}}
+					</Tooltip>
+				) : (
+					<Tooltip title={column.tooltip}>
+						{() => <InfoCircleOutlined style={{ marginLeft: "5px" }} />}
+					</Tooltip>
+				)
+			) : null;
+
+			const funcElems = [];
+			if (props.editable && column.editable) {
+				funcElems.push(<span class={"newbie-table-header-func"}>{useT("table.editable")}</span>);
+			}
+
+			return (
+				<div class={`newbie-table-header-wrapper ${funcElems.length ? "with-func" : ""}`}>
+					<div class={"newbie-table-header-title-wrapper"}>
+						<span>{column.title}</span>
+						{tooltipElem}
+					</div>
+					<div class={"newbie-table-header-func-wrapper"}>{funcElems}</div>
+				</div>
+			);
+		};
+
+		const renderBodyCell = row => {
+			const { column, text, record, index } = row;
+
+			if (props.editable && column.editable) {
+				return renderEditableCell(row);
+			}
+
+			if (column.customRender || column.render) {
+				return renderColumnText(row);
+			}
+
+			if (column.onClick) {
+				return (
+					<a
+						href="javascript:void(0);"
+						onClick={withModifiers(() => column.onClick({ column, text, record, index }), ["stop"])}
+					>
+						{text}
+					</a>
+				);
+			}
+
+			if (column.onCopy) {
+				return (
+					<span
+						class={"table-copy-wrapper"}
+						onClick={withModifiers(() => {
+							if (column.onCopy === true) {
+								copy(text);
+							} else {
+								column.onCopy(copy, { column, text, record, index });
+							}
+							message.success(i18n.global.t("table.copy-success"));
+						}, ["stop"])}
+					>
+						<span class={"table-copy-content"}>{text}</span>
+						<CopyOutlined />
+					</span>
+				);
+			}
+
+			return <span>{text}</span>;
+		};
+
+		const renderTitle = () => {
 			if (slots.title) {
 				return <div class={"newbie-table-title-wrapper"}>{slots.title()}</div>;
-			} else if (props.title) {
+			}
+			if (props.title) {
 				return <div class={"newbie-table-title-wrapper"}>{props.title}</div>;
 			}
 			return null;
 		};
 
-		const prependElem = () =>
+		const renderPrepend = () =>
 			slots.prepend ? <div class={"newbie-table-prepend-wrapper"}>{slots.prepend()}</div> : null;
 
-		const filterElem = () =>
-			props.filterable
-				? [
-						<NewbieSearch
-							ref={searchRef}
-							persistence={searchPersistenceProp.value}
-							autoQuery={props.autoQuery}
-							filterableColumns={state.filterableColumns}
-							sortableColumns={state.sortableColumns}
-							onSearch={onSearch}
-						>
-							{{
-								...props.searchSlots,
-							}}
-						</NewbieSearch>,
-					]
-				: null;
+		const renderFilter = () =>
+			props.filterable ? (
+				<NewbieSearch
+					ref={searchRef}
+					persistence={searchPersistenceProp.value}
+					autoQuery={props.autoQuery}
+					filterableColumns={filterableColumns.value}
+					sortableColumns={sortableColumns.value}
+					onSearch={onSearch}
+				>
+					{{ ...props.searchSlots }}
+				</NewbieSearch>
+			) : null;
 
-		const functionalElem = () => (
+		const renderFunctional = () => (
 			<div class={"newbie-table-functional-wrapper"}>
-				<div class={"newbie-table-functional"}>{slots.functional ? slots.functional() : null}</div>
+				<div class={"newbie-table-functional"}>{slots.functional?.()}</div>
 				<div class={"newbie-table-functional-default"}>
 					{props.filterable ? (
-						<Button type={"link"} style={{ marginRight: "5px" }} onClick={onOpenCustomColumns}>
+						<Button
+							type={"link"}
+							style={{ marginRight: "5px" }}
+							onClick={() => (state.customColumnVisible = true)}
+						>
 							{() => useT("table.custom")}
 						</Button>
 					) : null}
@@ -806,403 +754,34 @@ export default defineComponent({
 							class={"newbie-table-refresh"}
 							icon={<SyncOutlined />}
 							onClick={() => doFetch(false)}
-						></Button>
+						/>
 					) : null}
 				</div>
 			</div>
 		);
 
-		// 用 computed 缓存，避免每次渲染都新建对象导致 antd Table 重置内部状态（F-052）
-		const handleTable = computed(() => {
-			return {
-				bordered: true,
-				size: "middle",
-				scroll: {
-					y: 570,
-					x: 1000,
-					scrollToFirstRowOnChange: true,
-				},
-				rowClassName: (_record, index) => (index % 2 === 1 ? "newbie-table-striped" : null),
-				expandedRowRender: props.expandRender,
-				expandedRowKeys: props.expandedRowKeys,
-				/**
-				 * 展开列必须给出明确宽度。
-				 * antdv-next 生成的展开列默认没有 width，空数据时表头 colgroup 里就有一列没有列宽，
-				 * 列宽会按容器重新分配，固定列（展开列 / 选择列）的 sticky 偏移与真实列宽对不上，
-				 * 出现选择列压住第一列、表头与容器对不齐的错乱。
-				 */
-				expandable: {
-					columnWidth: 48,
-				},
-				rowKey: props.rowKey,
-				onRow: (record, index) => ({
-					onClick: event => {
-						const isEditing = state.editingData[getRowKey(record)];
-						if (isEditing) {
-							//如果在编辑就不触发 rowClick, 否则在输入等情况下 Click 操作都会触发，不好避免
-							return;
-						}
-						emit("rowClick", { record, index, event });
-					},
-				}),
-				...props.tableProps,
-			};
-		});
+		const renderTable = () => (
+			<Table
+				rowSelection={handleRowSelection.value}
+				pagination={handlePagination.value}
+				loading={state.tableLoading.loading}
+				dataSource={state.items}
+				columns={tableColumns.value}
+				{...handleTable.value}
+			>
+				{{
+					headerCell: renderHeaderCell,
+					bodyCell: renderBodyCell,
+					...props.tableSlots,
+				}}
+			</Table>
+		);
 
-		const handlePagination = computed(() => {
-			let pagination = !props.pagination
-				? false
-				: isObject(props.pagination)
-					? cloneDeep(props.pagination)
-					: {};
-			if (isObject(pagination)) {
-				pagination = {
-					size: "small",
-					showQuickJumper: true,
-					showSizeChanger: true,
-					showTotal: total => useT("table.total", { total }),
-					pageSizeOptions: ["10", "20", "30", "50", "100", "300", "500"],
-					total: state.pagination.totalSize,
-					pageSize: state.pagination.pageSize,
-					current: state.pagination.currentPage,
-					"onUpdate:current": value => {
-						state.pagination.currentPage = value;
-					},
-					"onUpdate:pageSize": value => {
-						state.pagination.pageSize = value;
-					},
-					onChange: () => {
-						doFetch(false);
-					},
-					showSizeChange: () => {
-						doFetch(true);
-					},
-					...pagination,
-				};
-			}
-
-			return pagination;
-		});
-
-		const handleRowSelection = computed(() => {
-			let rowSelection = !props.rowSelection
-				? null
-				: isObject(props.rowSelection)
-					? cloneDeep(props.rowSelection)
-					: {};
-
-			if (isObject(rowSelection)) {
-				rowSelection = {
-					selectedRowKeys: state.tableKeySelection,
-					preserveSelectedRowKeys: true,
-					columnWidth: 40,
-					fixed: true,
-					onChange: onSelectionChange,
-					...rowSelection,
-				};
-			}
-
-			return rowSelection;
-		});
-
-		const onEditTableCell = (editable, record, key, value) => {
-			if (state.editingData[getRowKey(record)]) {
-				state.editingData[getRowKey(record)][key] = value;
-			} else {
-				state.editingData[getRowKey(record)] = { [key]: value };
-			}
-		};
-		const onCancelEditTableCell = (record, key) => {
-			if (state.editingData[getRowKey(record)]) {
-				delete state.editingData[getRowKey(record)][key];
-			}
-		};
-
-		const onSubmitTableCell = async (editable, record, key) => {
-			if (!props.submitUrl && !props.beforeCellSubmit) {
-				return;
-			}
-
-			let value = null;
-			if (editable.type === "switch") {
-				value = state.editingSwitchData[getRowKey(record)][key];
-			} else {
-				value = state.editingData[getRowKey(record)][key];
-			}
-
-			// rowKey 为函数时无法反推字段名，回退到 tableDefaults.rowKey（id）
-			const rowKeyField = isFunction(props.rowKey) ? tableDefaults.rowKey : props.rowKey;
-			const data = {
-				[rowKeyField]: getRowKey(record),
-				[key]: value,
-			};
-
-			onCancelEditTableCell(record, key);
-
-			if (editable.beforeCellSubmit) {
-				state.tableLoading.loading = true;
-				await editable.beforeCellSubmit(data);
-				state.tableLoading.loading = false;
-			} else if (props.beforeCellSubmit) {
-				state.tableLoading.loading = true;
-				await props.beforeCellSubmit(data);
-				state.tableLoading.loading = false;
-			} else {
-				const res = await useFetch(state.tableLoading).post(props.submitUrl, data);
-				useProcessStatusSuccess(res, () => {
-					message.success(i18n.global.t("common.save-success"));
-					emit("cellSubmit", { record, key, value });
-				});
-			}
-		};
-
-		const handleEditableCell = row => {
-			const { column, text, record, index } = row;
-			let editable = column.editable;
-			if (column.editable === true) {
-				editable = { type: "input" };
-			}
-			const editKey = editable.key || column.key;
-
-			const value = isUndefined(editable.defaultValue) ? text : editable.defaultValue;
-
-			const isEditing =
-				state.editingData[getRowKey(record)] &&
-				!isUndefined(state.editingData[getRowKey(record)][editKey]);
-
-			const editIconElem = isEditing ? (
-				<span class={"table-editable-icon editing"}>
-					<CheckCircleOutlined
-						class={"check-icon"}
-						onClick={withModifiers(() => onSubmitTableCell(editable, record, editKey), ["stop"])}
-					/>
-					<CloseCircleOutlined
-						class={"close-icon"}
-						onClick={withModifiers(() => onCancelEditTableCell(record, editKey), ["stop"])}
-					/>
-				</span>
-			) : (
-				<span class={"table-editable-icon"}>
-					<EditOutlined
-						class={"edit-icon"}
-						onClick={withModifiers(
-							() => onEditTableCell(editable, record, editKey, value),
-							["stop"]
-						)}
-					/>
-				</span>
-			);
-
-			const editElems = () => {
-				if (editable.type === "input") {
-					return (
-						<Input
-							v-model:value={state.editingData[getRowKey(record)][editKey]}
-							style={{ width: "100%" }}
-							{...editable.defaultProps}
-						>
-							{{ ...editable.defaultSlots }}
-						</Input>
-					);
-				}
-				if (editable.type === "number") {
-					const { props: numberProps, addonBefore, addonAfter } = splitNumberAddons(
-						editable.defaultProps
-					);
-					return withNumberAddons(
-						<InputNumber
-							v-model:value={state.editingData[getRowKey(record)][editKey]}
-							style={{ width: "100%" }}
-							{...numberProps}
-						>
-							{{ ...editable.defaultSlots }}
-						</InputNumber>,
-						addonBefore,
-						addonAfter
-					);
-				}
-				if (editable.type === "select") {
-					return (
-						<Select
-							v-model:value={state.editingData[getRowKey(record)][editKey]}
-							options={editable.options}
-							style={{ width: "100%" }}
-							{...editable.defaultProps}
-						>
-							{{ ...editable.defaultSlots }}
-						</Select>
-					);
-				}
-			};
-
-			if (editable.type === "switch") {
-				let optionElements = {
-					checkedChildren: () => editable.options?.[0] || null,
-					unCheckedChildren: () => editable.options?.[1] || null,
-				};
-				if (isUndefined(state.editingSwitchData[getRowKey(record)])) {
-					state.editingSwitchData[getRowKey(record)] = {};
-				}
-
-				if (isUndefined(state.editingSwitchData[getRowKey(record)][editKey])) {
-					state.editingSwitchData[getRowKey(record)][editKey] = value;
-				}
-				return (
-					<div class={"table-editable-wrapper"}>
-						<div class={"table-editable-text"}>
-							<Switch
-								v-model:checked={state.editingSwitchData[getRowKey(record)][editKey]}
-								onClick={(checked, e) => e.stopPropagation()}
-								onChange={(checked, e) => {
-									e.stopPropagation();
-									onSubmitTableCell(editable, record, editKey);
-								}}
-								{...editable.defaultProps}
-							>
-								{optionElements}
-							</Switch>
-						</div>
-					</div>
-				);
-			} else {
-				let textElem = null;
-
-				if (isEditing) {
-					textElem = editElems();
-				} else if (column.customRender) {
-					textElem = column.customRender(row);
-				} else if (column.render) {
-					// 与非编辑态保持一致的 antd v5 列 render 兼容
-					textElem = column.render(text, record, index);
-				} else {
-					textElem = text;
-				}
-
-				return (
-					<div class={"table-editable-wrapper"}>
-						<div class={"table-editable-text"}>{textElem}</div>
-						{editIconElem}
-					</div>
-				);
-			}
-		};
-
-		const tableElem = () => {
-			return (
-				<Table
-					rowSelection={handleRowSelection.value}
-					pagination={handlePagination.value}
-					loading={state.tableLoading.loading}
-					dataSource={state.items}
-					columns={state.tableColumns}
-					{...handleTable.value}
-				>
-					{{
-						headerCell: ({ column }) => {
-							const titleCellElem = [
-								<span>{column.title}</span>,
-								column.tooltip ? (
-									isFunction(column.tooltip) ? (
-										<Tooltip>
-											{{
-												default: () => <InfoCircleOutlined style={{ marginLeft: "5px" }} />,
-												title: column.tooltip,
-											}}
-										</Tooltip>
-									) : (
-										<Tooltip title={column.tooltip}>
-											{() => <InfoCircleOutlined style={{ marginLeft: "5px" }} />}
-										</Tooltip>
-									)
-								) : null,
-							];
-
-							const funcElems = [];
-
-							if (props.editable && column.editable) {
-								funcElems.push(
-									<span class={"newbie-table-header-func"}>{useT("table.editable")}</span>
-								);
-							}
-
-							return (
-								<div class={`newbie-table-header-wrapper ${funcElems?.length ? "with-func" : ""}`}>
-									<div class={"newbie-table-header-title-wrapper"}>{titleCellElem}</div>
-									<div class={"newbie-table-header-func-wrapper"}>{funcElems}</div>
-								</div>
-							);
-						},
-						bodyCell: ({ column, text, record, index }) => {
-							if (props.editable && column.editable) {
-								return handleEditableCell({ column, text, record, index });
-							}
-
-							if (column.customRender) {
-								return column.customRender({ column, text, record, index });
-							}
-
-							// 兼容 antdv-next / antd v5 的列 render 写法
-							if (column.render) {
-								return column.render(text, record, index);
-							}
-
-							if (column.onClick) {
-								return (
-									<a
-										href="javascript:void(0);"
-										onClick={withModifiers(
-											() =>
-												column.onClick({
-													column,
-													text,
-													record,
-													index,
-												}),
-											["stop"]
-										)}
-									>
-										{text}
-									</a>
-								);
-							}
-
-							if (column.onCopy) {
-								return (
-									<span
-										class={"table-copy-wrapper"}
-										onClick={withModifiers(() => {
-											if (column.onCopy === true) {
-												copy(text);
-											} else {
-												column.onCopy(copy, {
-													column,
-													text,
-													record,
-													index,
-												});
-											}
-											message.success(i18n.global.t("table.copy-success"));
-										}, ["stop"])}
-									>
-										<span class={"table-copy-content"}>{text}</span>
-
-										<CopyOutlined></CopyOutlined>
-									</span>
-								);
-							}
-							return <span>{text}</span>;
-						},
-						...props.tableSlots,
-					}}
-				</Table>
-			);
-		};
-
-		const footerElem = () =>
+		const renderFooter = () =>
 			slots.append ? (
-				<div class={`newbie-table-footer`}>
-					<div class={"newbie-table-append-wrapper"}>{slots.append ? slots.append() : null}</div>
-					<div class={"newbie-table-pagination-wrapper"}></div>
+				<div class={"newbie-table-footer"}>
+					<div class={"newbie-table-append-wrapper"}>{slots.append()}</div>
+					<div class={"newbie-table-pagination-wrapper"} />
 				</div>
 			) : null;
 
@@ -1211,61 +790,33 @@ export default defineComponent({
 				{props.cardWrapper ? (
 					<Card size={"small"} class={"newbie-table-card"}>
 						{{
-							title: () => titleElem(),
-							extra: () => (slots.extra ? slots.extra() : null),
+							title: renderTitle,
+							extra: () => slots.extra?.() ?? null,
 							default: () => [
-								prependElem(),
-								filterElem(),
-								functionalElem(),
-								tableElem(),
-								footerElem(),
+								renderPrepend(),
+								renderFilter(),
+								renderFunctional(),
+								renderTable(),
+								renderFooter(),
 							],
 						}}
 					</Card>
 				) : (
 					[
-						prependElem(),
-						filterElem(),
+						renderPrepend(),
+						renderFilter(),
 						<div class={"newbie-table-content"}>
-							{[functionalElem(), tableElem(), footerElem()]}
+							{[renderFunctional(), renderTable(), renderFooter()]}
 						</div>,
 					]
 				)}
 
-				<Modal
+				<CustomColumnsModal
 					v-model:open={state.customColumnVisible}
-					title={useT("table.custom")}
-					width={"900px"}
-					onOk={onCustomSubmit}
-				>
-					{() => [
-						<CheckboxGroup v-model:value={state.columnKeyModal} style={{ width: "100%" }}>
-							{() => (
-								<Row gutter={15}>
-									{() =>
-										state.customColumns.map(item => (
-											<Col span={6}>
-												{() => (
-													<Checkbox
-														style={{ width: "100%", marginBottom: "5px", overflow: "hidden" }}
-														value={item.checkKey}
-													>
-														{() => item.title}
-													</Checkbox>
-												)}
-											</Col>
-										))
-									}
-								</Row>
-							)}
-						</CheckboxGroup>,
-						<Divider></Divider>,
-						<Button onClick={onCustomSelectAll}>{() => useT("table.select-all")}</Button>,
-						<Button onClick={onCustomClearAll} style={{ marginLeft: "5px" }}>
-							{() => useT("table.unselect-all")}
-						</Button>,
-					]}
-				</Modal>
+					columns={customColumns.value}
+					columnKey={state.columnKey}
+					onSubmit={onCustomSubmit}
+				/>
 			</div>
 		);
 	},
