@@ -476,52 +476,204 @@
 		}
 	}
 
+	// 展开式搜索项：整组套一圈边框，行与行之间只用发丝线分隔
 	.newbie-search-expand {
 		margin-top: 12px;
+		border: 1px solid var(--newbie-color-split, #eee);
+		border-radius: var(--newbie-radius, 6px);
+		overflow: hidden;
 
 		.newbie-search-expand-item {
 			display: flex;
 			align-items: stretch;
-			justify-content: space-between;
-			border-top: 1px solid var(--newbie-color-split, #eee);
-			border-radius: var(--newbie-radius, 6px);
-			overflow: hidden;
 
-			&:last-child {
-				border-bottom: 1px solid var(--newbie-color-split, #eee);
+			& + .newbie-search-expand-item {
+				border-top: 1px solid var(--newbie-color-split, #eee);
 			}
 
+			// 标题做成左侧标签轨：固定宽度对齐多行标签，随行高拉伸保持整轨连贯
 			.newbie-search-expand-item-title {
 				flex-shrink: 0;
-				padding: 10px;
-				font-weight: bold;
-				font-size: 13px;
-				background: var(--newbie-color-fill-alter, #f3f3f3);
 				display: flex;
 				align-items: center;
-				width: 100px;
+				width: 112px;
+				padding: 10px 12px;
+				background: var(--newbie-color-fill-alter, #f3f3f3);
+				font-size: 13px;
+				font-weight: 600;
+				color: var(--newbie-color-text, rgba(0, 0, 0, 0.88));
+
+				.newbie-search-expand-item-title-text {
+					min-width: 0;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+				}
 			}
 
 			.newbie-search-expand-item-options {
 				flex-grow: 1;
-				margin-left: 20px;
-				padding: 4px 0;
+				min-width: 0;
+				box-sizing: border-box;
 				display: flex;
+				flex-wrap: wrap;
 				align-items: center;
-				.ant-space {
-					margin-bottom: 0 !important;
+				gap: 6px;
+				padding: 10px 12px;
+
+				// 间距交给 flex gap，去掉 Tag 自带的外边距
+				.ant-tag {
+					margin-inline-end: 0;
 				}
 
-				.ant-tag {
+				// 未选中时也是一枚描边胶囊，而不是一段裸文本：长选项列表才扫得动
+				.newbie-search-expand-option.ant-tag-checkable {
+					padding: 2px 8px;
+					border: 1px solid var(--newbie-color-border-secondary, #f0f0f0);
+					border-radius: var(--newbie-radius, 6px);
+					background-color: var(--newbie-color-bg-container, #fff);
 					font-size: 13px;
+					user-select: none;
+					transition:
+						color 180ms ease,
+						background-color 180ms ease,
+						border-color 180ms ease,
+						transform 120ms ease;
+
+					// antd 默认的未选中 hover 是灰色填充，这里改成主题色的轻提示
+					&:not(.ant-tag-checkable-checked):hover {
+						color: var(--newbie-color-primary, #1677ff);
+						border-color: var(--newbie-color-primary, #1677ff);
+						background-color: var(--newbie-color-primary-bg, #e6f4ff);
+					}
+
+					// 与操作区按钮一致的按压手感
+					&:active {
+						transform: scale(0.96);
+					}
+
+					// 选中态沿用 antd 的主色底 + 浅色文字，补齐描边让胶囊轮廓完整
+					&.ant-tag-checkable-checked {
+						background-color: var(--newbie-color-primary, #1677ff);
+						border-color: var(--newbie-color-primary, #1677ff);
+					}
+				}
+
+				// 展开全部：虚线描边，与选项胶囊区分开，表明是控件而不是条件
+				.newbie-search-expand-toggle {
+					display: inline-flex;
+					align-items: center;
+					gap: 4px;
+					margin: 0;
+					padding: 2px 8px;
+					border: 1px dashed var(--newbie-color-border, #d9d9d9);
+					border-radius: var(--newbie-radius, 6px);
+					background: transparent;
+					color: var(--newbie-color-text-tertiary, rgba(0, 0, 0, 0.45));
+					font-size: 13px;
+					line-height: 20px;
+					cursor: pointer;
+					user-select: none;
+					transition:
+						color 180ms ease,
+						border-color 180ms ease;
+
+					&:hover {
+						color: var(--newbie-color-primary, #1677ff);
+						border-color: var(--newbie-color-primary-border, #91caff);
+					}
+
+					&:focus-visible {
+						outline: 2px solid var(--newbie-color-primary-border, #91caff);
+						outline-offset: 1px;
+					}
+
+					.newbie-search-expand-toggle-icon {
+						font-size: 10px;
+						transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+
+						&.is-expanded {
+							transform: rotate(180deg);
+						}
+					}
+				}
+
+				// 已选计数 / 可多选提示：不占固定列，用 auto 边距吸附在最后一行行尾，
+				// 折行宽度完整留给选项，放不下时才自己换到新行
+				.newbie-search-expand-item-selected,
+				.newbie-search-expand-item-hint {
+					flex-shrink: 0;
+					margin-left: auto;
+					white-space: nowrap;
+					font-size: 12px;
+				}
+
+				.newbie-search-expand-item-hint {
+					color: var(--newbie-color-text-tertiary, rgba(0, 0, 0, 0.45));
+					user-select: none;
+				}
+
+				.newbie-search-expand-item-selected {
+					display: inline-flex;
+					align-items: center;
+					gap: 8px;
+
+					.newbie-search-expand-item-selected-count {
+						color: var(--newbie-color-primary, #1677ff);
+						font-variant-numeric: tabular-nums;
+					}
+
+					.newbie-search-expand-item-clear {
+						margin: 0;
+						padding: 0;
+						border: none;
+						background: transparent;
+						color: var(--newbie-color-text-tertiary, rgba(0, 0, 0, 0.45));
+						font-size: 12px;
+						line-height: 18px;
+						cursor: pointer;
+						transition: color 0.2s;
+
+						&:hover {
+							color: var(--newbie-color-text, rgba(0, 0, 0, 0.88));
+						}
+
+						&:focus-visible {
+							outline: 2px solid var(--newbie-color-primary-border, #91caff);
+							outline-offset: 1px;
+						}
+					}
 				}
 			}
+		}
 
-			.newbie-search-expand-item-extra {
-				flex-shrink: 0;
-				padding-right: 10px;
-				color: var(--newbie-color-text-tertiary, #999);
-				font-size: 13px;
+		@media (prefers-reduced-motion: reduce) {
+			.newbie-search-expand-option,
+			.newbie-search-expand-toggle,
+			.newbie-search-expand-toggle-icon,
+			.newbie-search-expand-item-clear {
+				transition: none;
+			}
+
+			.newbie-search-expand-option:active {
+				transform: none;
+			}
+		}
+
+		// 窄屏时标签轨转成行首标题，选项在其下换行展示
+		@media (max-width: 640px) {
+			.newbie-search-expand-item {
+				flex-wrap: wrap;
+
+				.newbie-search-expand-item-title {
+					width: 100%;
+					padding: 10px 12px 0;
+					background: transparent;
+				}
+
+				.newbie-search-expand-item-options {
+					padding: 8px 12px 10px;
+				}
 			}
 		}
 	}

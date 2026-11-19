@@ -286,3 +286,139 @@ describe("NewbieSearch 回归", () => {
 		wrapper.unmount();
 	});
 });
+
+const findOption = (wrapper, label) =>
+	wrapper.findAll(".newbie-search-expand-option").find(tag => tag.text() === label);
+
+describe("NewbieSearch 展开式搜索项", () => {
+	it("单选：点击选项立即写入 queryForm 并显示选中态，再次点击取消", async () => {
+		const wrapper = mountSearch({
+			filterableColumns: [
+				{
+					key: "role",
+					title: "用户角色",
+					expandable: true,
+					options: [
+						{ value: "admin", label: "超级管理员" },
+						{ value: "counselor", label: "辅导员" },
+					],
+				},
+			],
+		});
+		await nextTick();
+
+		const admin = findOption(wrapper, "超级管理员");
+		expect(admin.classes()).not.toContain("ant-tag-checkable-checked");
+		await admin.trigger("click");
+		await nextTick();
+
+		expect(admin.classes()).toContain("ant-tag-checkable-checked");
+		expect(wrapper.findComponent(NewbieSearch).vm.getSearch().newbieQuery.role).toEqual({
+			condition: "equal",
+			type: "select",
+			value: "admin",
+		});
+
+		// 单选语义：点另一个选项时旧值被替换
+		await findOption(wrapper, "辅导员").trigger("click");
+		await nextTick();
+
+		expect(wrapper.findComponent(NewbieSearch).vm.getSearch().newbieQuery.role.value).toBe(
+			"counselor"
+		);
+		expect(findOption(wrapper, "超级管理员").classes()).not.toContain(
+			"ant-tag-checkable-checked"
+		);
+
+		// 点击当前选项取消选中
+		await findOption(wrapper, "辅导员").trigger("click");
+		await nextTick();
+
+		expect(wrapper.findComponent(NewbieSearch).vm.getSearch().newbieQuery.role).toBeUndefined();
+
+		wrapper.unmount();
+	});
+
+	it("多选：include 条件、可取消单项，行内清除只清空当前项", async () => {
+		const wrapper = mountSearch({
+			filterableColumns: [
+				{ key: "name", title: "姓名", type: "input" },
+				{
+					key: "tags",
+					title: "标签",
+					expandable: "multiple",
+					options: ["重点", "跟进", "已归档"],
+				},
+			],
+		});
+		await nextTick();
+
+		await findOption(wrapper, "重点").trigger("click");
+		await findOption(wrapper, "跟进").trigger("click");
+		await nextTick();
+
+		const vm = wrapper.findComponent(NewbieSearch).vm;
+		expect(vm.getSearch().newbieQuery.tags).toEqual({
+			condition: "include",
+			type: "select",
+			value: ["重点", "跟进"],
+		});
+		expect(wrapper.find(".newbie-search-expand-item-selected-count").text()).toBe("已选 2 项");
+
+		// 取消其中一个选项
+		await findOption(wrapper, "重点").trigger("click");
+		await nextTick();
+		expect(vm.getSearch().newbieQuery.tags.value).toEqual(["跟进"]);
+
+		// 行内清除只影响当前项，其他搜索项不受波及
+		await wrapper.find(".newbie-search-expand-item-clear").trigger("click");
+		await nextTick();
+		expect(vm.getSearch().newbieQuery.tags).toBeUndefined();
+		expect(vm.getSearch().newbieQuery.name).toBeUndefined();
+
+		wrapper.unmount();
+	});
+
+	it("选项超过阈值时折叠展示，已选中的隐藏选项保持可见，可展开收起", async () => {
+		const options = Array.from({ length: 26 }, (_, index) => ({
+			value: index,
+			label: `角色${index}`,
+		}));
+		const wrapper = mountSearch({
+			filterableColumns: [
+				{
+					key: "role",
+					title: "用户角色",
+					expandable: "multiple",
+					defaultValue: [25],
+					options,
+				},
+			],
+		});
+		await nextTick();
+
+		// 默认折叠：16 个选项 + 默认选中的末位选项补在末尾
+		expect(wrapper.findAll(".newbie-search-expand-option").length).toBe(17);
+		const hiddenSelected = findOption(wrapper, "角色25");
+		expect(hiddenSelected.classes()).toContain("ant-tag-checkable-checked");
+		const toggle = wrapper.find(".newbie-search-expand-toggle");
+		expect(toggle.text()).toContain("26");
+		expect(toggle.attributes("aria-expanded")).toBe("false");
+
+		// 展开显示全部
+		await toggle.trigger("click");
+		await nextTick();
+		expect(wrapper.findAll(".newbie-search-expand-option").length).toBe(26);
+		expect(wrapper.find(".newbie-search-expand-toggle").attributes("aria-expanded")).toBe(
+			"true"
+		);
+
+		// 收起后回到折叠视图，选中项仍然可见
+		await wrapper.find(".newbie-search-expand-toggle").trigger("click");
+		await nextTick();
+		expect(wrapper.findAll(".newbie-search-expand-option").length).toBe(17);
+		expect(findOption(wrapper, "角色25").classes()).toContain("ant-tag-checkable-checked");
+
+		wrapper.unmount();
+	});
+});

@@ -30,7 +30,7 @@ export default {
 			id: "expandable",
 			title: "展开单选与多选",
 			description:
-				"expandable 为 true 时展开单选，为 \"multiple\" 时展开多选；多选条件的值会自动使用 include。",
+				"expandable 为 true 时展开单选，为 \"multiple\" 时展开多选；多选条件的值会自动使用 include。选项渲染成胶囊，超过 20 个时默认折叠、可展开全部，选中项始终可见，行尾提供已选计数与清除。",
 			file: "search/expandable.vue",
 		},
 		{
@@ -162,7 +162,12 @@ export default {
 						"`input`",
 					],
 					["sortOrder", "默认排序，数字越大越靠前", "`number`", "`0`"],
-					["expandable", "展开单选或多选", "`boolean` | `\"multiple\"`", "`false`"],
+					[
+					"expandable",
+					"展开单选或多选；选项渲染成胶囊，超过 20 个时默认折叠为 16 个，可展开全部，选中项即使被折叠也保持可见，行尾提供已选计数与清除入口",
+					"`boolean` | `\"multiple\"`",
+					"`false`",
+				],
 					["options", "选项，支持字符串、数字或 { label, value }", "`array` | `() => array`", "`[]`"],
 					["inputProps", "透传给输入控件的属性", "`object`", "`{}`"],
 					["disableConditions", "是否禁用条件选择", "`boolean`", "`false`"],

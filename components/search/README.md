@@ -106,103 +106,103 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 
 ## 更多示例
 
-| 示例 | 说明 | 源码 |
-| --- | --- | --- |
-| 基础用法 | filterableColumns 定义搜索项，type 决定输入控件。点击搜索后通过 search 事件拿到 newbieQuery。 | [search/basic.vue](../../playground/docs/demos/search/basic.vue) |
-| 状态分段筛选 | statusFilter 把状态切换成 Segmented；span 控制占用列数，countRequest 通过独立接口补全各状态计数。 | [search/status.vue](../../playground/docs/demos/search/status.vue) |
-| 展开单选与多选 | expandable 为 true 时展开单选，为 "multiple" 时展开多选；多选条件的值会自动使用 include。 | [search/expandable.vue](../../playground/docs/demos/search/expandable.vue) |
-| 排序设置 | sortableColumns 会生成排序设置入口，搜索时通过 newbieSort 返回字段与方向。 | [search/sortable.vue](../../playground/docs/demos/search/sortable.vue) |
-| 自定义搜索项 | customRender 返回 displayValue 等展示信息，配合以 item.key 命名的插槽渲染真正的输入组件。 | [search/custom.vue](../../playground/docs/demos/search/custom.vue) |
-| 持久化 | persistence 支持内存与 localStorage 两层存储，保存搜索条件与排序；localStorage 默认不自动套用，可通过“恢复上次查询”入口应用，也可配置 restore: 'auto' 自动恢复。 | [search/persistence.vue](../../playground/docs/demos/search/persistence.vue) |
+| 示例           | 说明                                                                                                                                                                                | 源码                                                                         |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 基础用法       | filterableColumns 定义搜索项，type 决定输入控件。点击搜索后通过 search 事件拿到 newbieQuery。                                                                                       | [search/basic.vue](../../playground/docs/demos/search/basic.vue)             |
+| 状态分段筛选   | statusFilter 把状态切换成 Segmented；span 控制占用列数，countRequest 通过独立接口补全各状态计数。                                                                                   | [search/status.vue](../../playground/docs/demos/search/status.vue)           |
+| 展开单选与多选 | expandable 为 true 时展开单选，为 "multiple" 时展开多选；多选条件的值会自动使用 include。选项渲染成胶囊，超过 20 个时默认折叠、可展开全部，选中项始终可见，行尾提供已选计数与清除。 | [search/expandable.vue](../../playground/docs/demos/search/expandable.vue)   |
+| 排序设置       | sortableColumns 会生成排序设置入口，搜索时通过 newbieSort 返回字段与方向。                                                                                                          | [search/sortable.vue](../../playground/docs/demos/search/sortable.vue)       |
+| 自定义搜索项   | customRender 返回 displayValue 等展示信息，配合以 item.key 命名的插槽渲染真正的输入组件。                                                                                           | [search/custom.vue](../../playground/docs/demos/search/custom.vue)           |
+| 持久化         | persistence 支持内存与 localStorage 两层存储，保存搜索条件与排序；localStorage 默认不自动套用，可通过“恢复上次查询”入口应用，也可配置 restore: 'auto' 自动恢复。                    | [search/persistence.vue](../../playground/docs/demos/search/persistence.vue) |
 
 ## Props
 
-| 参数 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| filterableColumns | 搜索项配置 | `SearchItemConfig[]` \| `() => SearchItemConfig[]` | `[]` |
-| sortableColumns | 可排序的字段配置，通常与 filterableColumns 相同 | `SearchItemConfig[]` \| `() => SearchItemConfig[]` | `[]` |
-| disableConditions | 是否全局禁用条件选择 | `boolean` | `false` |
-| autoQuery | 条件变化后是否自动搜索（约 300ms 防抖，初始化与 `setQueryForm` 不会触发） | `boolean` | `false` |
-| gutter | 搜索项间距 | `number` \| `string` | `16` |
-| persistence | 持久化配置。`restore` 控制冷数据（localStorage）的使用方式：`manual` 显示“恢复上次查询”入口，`auto` 在挂载时自动恢复；不传时 localStorage 为 `manual`、内存为 `auto` | `boolean` \| `string` \| `{ key?: string; storage?: 'memory' \| 'local'; restore?: 'auto' \| 'manual' }` | `false` |
-| statusFilter | 状态分段筛选。表格里也可以不传该 prop，而在 `isOnlyForQuery` 列的 `filterable` 中写 `type: 'segmented'`；同 key 的普通搜索项会被忽略 | `StatusFilterConfig` | - |
+| 参数              | 说明                                                                                                                                                                 | 类型                                                                                                     | 默认值  |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------- |
+| filterableColumns | 搜索项配置                                                                                                                                                           | `SearchItemConfig[]` \| `() => SearchItemConfig[]`                                                       | `[]`    |
+| sortableColumns   | 可排序的字段配置，通常与 filterableColumns 相同                                                                                                                      | `SearchItemConfig[]` \| `() => SearchItemConfig[]`                                                       | `[]`    |
+| disableConditions | 是否全局禁用条件选择                                                                                                                                                 | `boolean`                                                                                                | `false` |
+| autoQuery         | 条件变化后是否自动搜索（约 300ms 防抖，初始化与 `setQueryForm` 不会触发）                                                                                            | `boolean`                                                                                                | `false` |
+| gutter            | 搜索项间距                                                                                                                                                           | `number` \| `string`                                                                                     | `16`    |
+| persistence       | 持久化配置。`restore` 控制冷数据（localStorage）的使用方式：`manual` 显示“恢复上次查询”入口，`auto` 在挂载时自动恢复；不传时 localStorage 为 `manual`、内存为 `auto` | `boolean` \| `string` \| `{ key?: string; storage?: 'memory' \| 'local'; restore?: 'auto' \| 'manual' }` | `false` |
+| statusFilter      | 状态分段筛选。表格里也可以不传该 prop，而在 `isOnlyForQuery` 列的 `filterable` 中写 `type: 'segmented'`；同 key 的普通搜索项会被忽略                                 | `StatusFilterConfig`                                                                                     | -       |
 
 ## Events
 
-| 事件名 | 说明 | 参数 |
-| --- | --- | --- |
+| 事件名 | 说明                                                                                                 | 参数                                                    |
+| ------ | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | search | 点击搜索或 autoQuery 自动触发时触发，始终包含 `newbieQuery` 与 `newbieSort` 两个字段（空对象也保留） | `({ newbieQuery: object; newbieSort: object }) => void` |
 
 ## Slots
 
-| 插槽名 | 说明 |
-| --- | --- |
+| 插槽名     | 说明                                        |
+| ---------- | ------------------------------------------- |
 | <item.key> | 以搜索项的 key 命名，用于自定义渲染该搜索项 |
 
 ## Methods
 
-| 方法 | 说明 | 参数 |
-| --- | --- | --- |
-| getQueryForm | 获取当前搜索条件，格式为 { key: { condition, type, value } }；只读，不会写入持久化 | `() => object` |
-| setQueryForm | 设置搜索项的值 | `(fields: Record<string, any>) => void` |
-| getSortForm | 获取排序结果，格式为 { key: 'asc' \| 'desc' }；只读，不会写入持久化 | `() => object` |
-| getSearch | 获取可直接提交给后端的 { newbieQuery, newbieSort }，始终包含这两个字段（空对象也保留） | `() => { newbieQuery: object; newbieSort: object }` |
-| refreshStatusCounts | 重新请求状态分段计数；`force` 为 false 时仅在排除 status 的查询变化后请求 | `(force?: boolean) => Promise<object>` |
+| 方法                | 说明                                                                                   | 参数                                                |
+| ------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| getQueryForm        | 获取当前搜索条件，格式为 { key: { condition, type, value } }；只读，不会写入持久化     | `() => object`                                      |
+| setQueryForm        | 设置搜索项的值                                                                         | `(fields: Record<string, any>) => void`             |
+| getSortForm         | 获取排序结果，格式为 { key: 'asc' \| 'desc' }；只读，不会写入持久化                    | `() => object`                                      |
+| getSearch           | 获取可直接提交给后端的 { newbieQuery, newbieSort }，始终包含这两个字段（空对象也保留） | `() => { newbieQuery: object; newbieSort: object }` |
+| refreshStatusCounts | 重新请求状态分段计数；`force` 为 false 时仅在排除 status 的查询变化后请求              | `(force?: boolean) => Promise<object>`              |
 
 ## SearchItemConfig
 
 搜索项配置。
 
-| 字段 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| key | 搜索项的字段名 | `string` | - |
-| title | 搜索项标题 | `string` | - |
-| type | 控件类型；`segmented` 仅用于状态栏，不参与普通搜索项 | `input` \| `textarea` \| `number` \| `select` \| `cascade` \| `date` \| `switch` \| `segmented` | `input` |
-| sortOrder | 默认排序，数字越大越靠前 | `number` | `0` |
-| expandable | 展开单选或多选 | `boolean` \| `"multiple"` | `false` |
-| options | 选项，支持字符串、数字或 { label, value } | `array` \| `() => array` | `[]` |
-| inputProps | 透传给输入控件的属性 | `object` | `{}` |
-| disableConditions | 是否禁用条件选择 | `boolean` | `false` |
-| conditions | 允许的条件白名单 | `string[]` | `[]` |
-| defaultValue | 默认值 | `any` | - |
-| defaultCondition | 默认条件 | `string` | `equal` |
-| customRender | 自定义渲染，返回 { conditions, Component, displayValue, onComponentOpen } | `Function` | - |
-| collectItem | 自定义收集值，返回 { value, searchLabel } | `Function` | - |
+| 字段              | 说明                                                                                                                             | 类型                                                                                            | 默认值  |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------- |
+| key               | 搜索项的字段名                                                                                                                   | `string`                                                                                        | -       |
+| title             | 搜索项标题                                                                                                                       | `string`                                                                                        | -       |
+| type              | 控件类型；`segmented` 仅用于状态栏，不参与普通搜索项                                                                             | `input` \| `textarea` \| `number` \| `select` \| `cascade` \| `date` \| `switch` \| `segmented` | `input` |
+| sortOrder         | 默认排序，数字越大越靠前                                                                                                         | `number`                                                                                        | `0`     |
+| expandable        | 展开单选或多选；选项渲染成胶囊，超过 20 个时默认折叠为 16 个，可展开全部，选中项即使被折叠也保持可见，行尾提供已选计数与清除入口 | `boolean` \| `"multiple"`                                                                       | `false` |
+| options           | 选项，支持字符串、数字或 { label, value }                                                                                        | `array` \| `() => array`                                                                        | `[]`    |
+| inputProps        | 透传给输入控件的属性                                                                                                             | `object`                                                                                        | `{}`    |
+| disableConditions | 是否禁用条件选择                                                                                                                 | `boolean`                                                                                       | `false` |
+| conditions        | 允许的条件白名单                                                                                                                 | `string[]`                                                                                      | `[]`    |
+| defaultValue      | 默认值                                                                                                                           | `any`                                                                                           | -       |
+| defaultCondition  | 默认条件                                                                                                                         | `string`                                                                                        | `equal` |
+| customRender      | 自定义渲染，返回 { conditions, Component, displayValue, onComponentOpen }                                                        | `Function`                                                                                      | -       |
+| collectItem       | 自定义收集值，返回 { value, searchLabel }                                                                                        | `Function`                                                                                      | -       |
 
 ## StatusFilterConfig
 
 状态分段筛选配置。直接使用时传 statusFilter；表格中可写在 isOnlyForQuery 列的 filterable 里，此时额外提供 type: 'segmented'。
 
-| 字段 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| key | 输出到 newbieQuery 的字段名 | `string` | `status` |
-| title | 无障碍标签，不显示在界面上 | `string` | - |
-| options | 状态选项，支持 { label, value, count, disabled, tooltip } | `array` \| `() => array` | `[]` |
-| defaultValue | 默认选中的值，未匹配时取第一个选项 | `any` | - |
-| allValue | 代表“全部 / 不过滤”的值，选中时不写入 newbieQuery | `string` \| `number` | `''` |
-| span | 占用的网格列数；不传时按内容宽度向上取整列，窄屏自动占满整行，内容超出时横向滚动 | `number` | 自动 |
-| queryType | 写入 newbieQuery 的类型 | `string` | `select` |
-| condition | 写入 newbieQuery 的条件 | `string` | `equal` |
-| immediate | 点击状态后是否立即触发搜索 | `boolean` | `true` |
-| counts | 静态计数映射，可传响应式对象 | `Record<string \| number, number>` | - |
-| countRequest | 异步计数接口。挂载时以及非状态条件变化后的搜索时调用；query 已排除 status | `(ctx) => Promise<CountsResult> \| CountsResult` | - |
-| onCountError | 计数接口失败回调，默认输出 console.error 并保留上次计数 | `(error) => void` | - |
-| inputProps | 透传给 antdv-next Segmented | `object` | `{}` |
-| labelRender | 自定义选项渲染 | `Function` | - |
+| 字段         | 说明                                                                             | 类型                                             | 默认值   |
+| ------------ | -------------------------------------------------------------------------------- | ------------------------------------------------ | -------- |
+| key          | 输出到 newbieQuery 的字段名                                                      | `string`                                         | `status` |
+| title        | 无障碍标签，不显示在界面上                                                       | `string`                                         | -        |
+| options      | 状态选项，支持 { label, value, count, disabled, tooltip }                        | `array` \| `() => array`                         | `[]`     |
+| defaultValue | 默认选中的值，未匹配时取第一个选项                                               | `any`                                            | -        |
+| allValue     | 代表“全部 / 不过滤”的值，选中时不写入 newbieQuery                                | `string` \| `number`                             | `''`     |
+| span         | 占用的网格列数；不传时按内容宽度向上取整列，窄屏自动占满整行，内容超出时横向滚动 | `number`                                         | 自动     |
+| queryType    | 写入 newbieQuery 的类型                                                          | `string`                                         | `select` |
+| condition    | 写入 newbieQuery 的条件                                                          | `string`                                         | `equal`  |
+| immediate    | 点击状态后是否立即触发搜索                                                       | `boolean`                                        | `true`   |
+| counts       | 静态计数映射，可传响应式对象                                                     | `Record<string \| number, number>`               | -        |
+| countRequest | 异步计数接口。挂载时以及非状态条件变化后的搜索时调用；query 已排除 status        | `(ctx) => Promise<CountsResult> \| CountsResult` | -        |
+| onCountError | 计数接口失败回调，默认输出 console.error 并保留上次计数                          | `(error) => void`                                | -        |
+| inputProps   | 透传给 antdv-next Segmented                                                      | `object`                                         | `{}`     |
+| labelRender  | 自定义选项渲染                                                                   | `Function`                                       | -        |
 
 ## 内置条件
 
 不同控件支持的条件不同，可通过 conditions 进一步筛选。
 
-| 控件类型 | 支持的条件 |
-| --- | --- |
-| input | `equal`、`notEqual`、`include`、`exclude`、`null`、`notNull` |
-| textarea | `equal`、`exclude` |
-| number | `equal`、`notEqual`、`lessThan`、`greaterThan`、`between` |
-| select | `equal`、`notEqual`、`include`、`exclude`、`null`、`notNull` |
-| cascade | `equal`、`notEqual`、`include`、`null` |
-| date | `equal`、`lessThan`、`greaterThan`、`between`、`null`、`notNull` |
-| switch | `equal` |
+| 控件类型 | 支持的条件                                                       |
+| -------- | ---------------------------------------------------------------- |
+| input    | `equal`、`notEqual`、`include`、`exclude`、`null`、`notNull`     |
+| textarea | `equal`、`exclude`                                               |
+| number   | `equal`、`notEqual`、`lessThan`、`greaterThan`、`between`        |
+| select   | `equal`、`notEqual`、`include`、`exclude`、`null`、`notNull`     |
+| cascade  | `equal`、`notEqual`、`include`、`null`                           |
+| date     | `equal`、`lessThan`、`greaterThan`、`between`、`null`、`notNull` |
+| switch   | `equal`                                                          |
 
 ## 全局配置
 
@@ -212,10 +212,10 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 
 搜索栏样式类与值格式化。
 
-| 配置项 | 说明 | 类型 | 默认值 |
-| --- | --- | --- | --- |
-| maskClass | 搜索项外层的额外类名 | `string` | `""` |
-| inputClass | 弹层中输入框的额外类名 | `string` | `""` |
+| 配置项         | 说明                                                                           | 类型     | 默认值 |
+| -------------- | ------------------------------------------------------------------------------ | -------- | ------ |
+| maskClass      | 搜索项外层的额外类名                                                           | `string` | `""`   |
+| inputClass     | 弹层中输入框的额外类名                                                         | `string` | `""`   |
 | valueFormatter | 按搜索项类型索引的格式化函数，如 { date: value => value.format('YYYY-MM-DD') } | `object` | `null` |
 
 ## FAQ
@@ -256,12 +256,12 @@ const onSearch = ({ newbieQuery, newbieSort }) => {
 
 ```js
 countRequest: async ({ query, signal }) => {
-  const { data } = await axios.get('/api/campaigns/status-counts', {
-    params: { query },
-    signal,
-  });
-  return data;
-}
+	const { data } = await axios.get("/api/campaigns/status-counts", {
+		params: { query },
+		signal,
+	});
+	return data;
+};
 ```
 
 返回值支持 `{ total, counts }`、纯映射 `{ sent: 96 }`、`[{ value, count }]`。`query` 已排除 status，所以只切换状态不会重复请求；需要手动刷新时调用 `searchRef.value.refreshStatusCounts()`。
